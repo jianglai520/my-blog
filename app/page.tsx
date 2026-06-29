@@ -29,14 +29,14 @@ export default async function Home() {
   const posts = await getPosts()
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-r from-blue-600 to-purple-600">
       {/* 网站顶部标题区域 */}
       <header className="bg-white shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-12">
-          <h1 className="text-4xl font-bold text-gray-900 text-center">
+        <div className="max-w-4xl mx-auto px-4 py-16">
+          <h1 className="text-4xl font-bold text-white text-center">
             ✨ 我的博客
           </h1>
-          <p className="text-gray-500 text-center mt-2">
+          <p className="text-gray-300 text-center mt-2">
             用 Next.js + Supabase 搭建的全栈博客
           </p>
           <div className="text-center mt-6">
@@ -64,7 +64,7 @@ export default async function Home() {
               <a
                 key={post.id}
                 href={`/posts/${post.id}`}
-                className="block bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
+                className="block bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-shadow"
               >
                 <h2 className="text-2xl font-semibold text-gray-900 mb-2">
                   {post.title}
