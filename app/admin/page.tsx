@@ -1,7 +1,7 @@
 'use client'
 
 import { supabase } from '@/lib/supabase'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function AdminPage() {
@@ -10,7 +10,35 @@ export default function AdminPage() {
   const [content, setContent] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const [checking, setChecking] = useState(true)
 
+  // 页面加载时检查是否已登录
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        router.push('/login')  // 没登录就跳转到登录页
+      } else {
+        setChecking(false)
+      }
+    })
+  }, [router])
+
+  // 退出登录
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
+
+  // 检查登录中，显示加载
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-400">检查登录状态...</p>
+      </div>
+    )
+  }
+
+  // 已登录，显示发布表单（以下代码和之前一样）
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
@@ -47,20 +75,24 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-2xl mx-auto px-4">
-        <div className="mb-8">
-          <a href="/" className="text-blue-600 hover:text-blue-800 text-sm">
-            ← 返回首页
-          </a>
-          <h1 className="text-3xl font-bold text-gray-900 mt-2">
-            写新文章
-          </h1>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <a href="/" className="text-blue-600 hover:text-blue-800 text-sm">
+              ← 返回首页
+            </a>
+            <h1 className="text-3xl font-bold text-gray-900 mt-2">写新文章</h1>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="text-sm text-red-500 hover:text-red-700"
+          >
+            退出登录
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-xl p-8 shadow-sm space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              文章标题
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">文章标题</label>
             <input
               type="text"
               value={title}
@@ -71,9 +103,7 @@ export default function AdminPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              文章内容
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">文章内容</label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -87,9 +117,7 @@ export default function AdminPage() {
             type="submit"
             disabled={loading}
             className={`w-full py-3 px-6 rounded-lg text-white font-medium text-lg ${
-              loading
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700'
+              loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
             }`}
           >
             {loading ? '发布中...' : '📝 发布文章'}
