@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ✨ 我的个人博客
 
-## Getting Started
+基于 **Next.js + Supabase + Vercel** 搭建的全栈个人博客，支持多用户注册发文、后台管理、登录保护、评论区等功能。
 
-First, run the development server:
+## 🔗 线上地址
+
+https://jianglai520.com
+
+## 🛠️ 技术栈
+
+| 技术 | 用途 |
+|------|------|
+| **Next.js 16** | 前端框架（App Router） |
+| **TypeScript** | 类型安全 |
+| **Tailwind CSS** | 样式 |
+| **Supabase** | 数据库 + 认证（Auth） |
+| **Vercel** | 托管部署 |
+
+## ✨ 已实现功能
+
+| 功能 | 状态 |
+|------|------|
+| 📄 首页展示文章列表 | ✅ |
+| 📖 文章详情页 | ✅ |
+| 📝 发布新文章 | ✅ |
+| 🔐 邮箱登录/注册 | ✅ |
+| 🛡️ 后台登录保护（未登录自动跳转） | ✅ |
+| 📋 后台文章管理列表 | ✅ |
+| 🗑️ 文章删除（仅本人） | ✅ |
+| 🌐 自定义域名绑定 | ✅ |
+| 💬 评论区 | ✅ |
+
+## 🚀 本地运行
 
 ```bash
+# 安装依赖
+npm install
+
+# 启动开发服务器
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+打开 http://localhost:3000 即可查看。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📁 项目结构
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+my-blog/
+  ├── app/
+  │   ├── page.tsx            # 首页（文章列表）
+  │   ├── layout.tsx          # 全局布局
+  │   ├── globals.css         # 全局样式
+  │   ├── posts/
+  │   │   └── [id]/
+  │   │       └── page.tsx    # 文章详情页
+  │   │       └── CommentForm.tsx  # 评论表单组件
+  │   ├── admin/
+  │   │   └── page.tsx        # 后台管理（发布+删除文章）
+  │   └── login/
+  │       └── page.tsx        # 登录/注册页
+  ├── lib/
+  │   └── supabase.js         # Supabase 客户端配置
+  └── .env.local              # 环境变量（不提交到 Git）
+```
 
-## Learn More
+## 🔐 权限说明
 
-To learn more about Next.js, take a look at the following resources:
+| 操作 | 谁可以 |
+|------|--------|
+| 浏览文章 | 所有人 |
+| 注册账号 | 所有人 |
+| 发布文章 | 任何登录用户 |
+| 删除文章 | 仅本人邮箱 |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🌐 部署
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+代码推送到 GitHub 后，Vercel 自动部署：
 
-## Deploy on Vercel
+```bash
+git add .
+git commit -m "更新内容"
+git push
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📄 详细教程
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+完整搭建指南见桌面文件：`新手全栈博客搭建指南.md`
