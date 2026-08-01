@@ -1,19 +1,66 @@
-import type { Metadata } from 'next'
-import './globals.css'
+import type { Metadata, Viewport } from "next";
+import { Noto_Sans_SC, Space_Grotesk } from "next/font/google";
+import "./globals.css";
+import SiteHeader from "./components/SiteHeader";
+import SiteFooter from "./components/SiteFooter";
+
+const SITE_URL = "https://jianglai520.com";
+
+const notoSansSc = Noto_Sans_SC({
+  variable: "--font-noto-sans-sc",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: '我的博客',
-  description: '用 Next.js + Supabase 搭建的全栈个人博客',
-}
+  metadataBase: new URL(SITE_URL),
+  title: {
+    template: "%s | jianglai520",
+    default: "jianglai520 — 我的博客",
+  },
+  description: "个人技术博客，记录开发经验、学习笔记与生活随想。",
+  openGraph: {
+    siteName: "jianglai520",
+    type: "website",
+    locale: "zh_CN",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "jianglai520" }],
+  },
+  icons: {
+    icon: "/favicon.ico",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#07070f",
+  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN">
-      <body className="antialiased">{children}</body>
+    <html
+      lang="zh-CN"
+      className={`${notoSansSc.variable} ${spaceGrotesk.variable}`}
+    >
+      <body className="min-h-screen antialiased">
+        <SiteHeader />
+        <div className="flex min-h-[calc(100vh-4rem)] flex-col">
+          <main className="flex-1">{children}</main>
+          <SiteFooter />
+        </div>
+      </body>
     </html>
-  )
+  );
 }
