@@ -28,16 +28,19 @@
 
 | 功能 | 说明 |
 |------|------|
-| 📄 首页 | 英雄区（自我介绍/头像）+ 最新文章卡片列表（hover 发光） |
-| 📖 文章详情页 | 语义化 slug 链接（兼容旧数字 id 链接，301 跳转） |
+| 📄 首页 | 英雄区 + 文章卡片列表（hover 发光、标签、阅读数）+ **分页** |
+| 📖 文章详情页 | 语义化 slug 链接（兼容旧数字 id，301 跳转）；显示标签、**浏览量** |
 | 📝 **Markdown 正文** | 标题 / 列表 / **代码高亮（shiki）** / 表格 / 引用 / 图片完整渲染 |
 | 🖊️ **富文本编辑器** | TipTap 所见即所得，保存为 Markdown |
-| 📥 **草稿与编辑** | 可存草稿 / 发布 / 编辑续写，草稿永不公开 |
-| 🖼️ **图片上传** | 编辑器内选择本地图片 → 上传 Supabase Storage → 自动插入 |
-| 🔖 SEO | `metadataBase` / OG 图 / canonical / `sitemap.xml` / `robots.txt` |
-| 💬 评论区 | 昵称 + 内容，发布后自动刷新 |
+| 📥 **草稿与编辑** | 存草稿 / 发布 / 编辑续写，草稿永不公开 |
+| 🖼️ **图片上传** | 编辑器内选择本地图片 → Supabase Storage → 自动插入 |
+| 🏷️ **标签系统** | 写文章打标签；`/tags/xxx` 标签页；首页卡片显示标签 |
+| 🔍 **搜索** | 导航搜索框（防抖），标题/摘要/正文模糊搜索 |
+| 📡 **RSS** | `/feed.xml`（Atom），layout 注入订阅链接 |
+| 🗂 **归档 / 关于** | 按年月归档页、个人关于页 |
+| 💬 评论区 | 昵称 + 内容，即时显示；后台可删除 |
 | 🔐 登录 | Supabase Auth 邮箱登录（单管理员） |
-| 🛡️ 后台管理 | 服务端鉴权；发布/编辑/删除文章、草稿管理 |
+| 🛡️ 后台管理 | 服务端鉴权；文章管理（发布/编辑/删除/草稿）+ **评论管理** |
 | 🌐 自定义域名 | jianglai520.com 已绑定 Vercel |
 
 ---
@@ -153,6 +156,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `excerpt` | text（可空） | 摘要，用于列表卡片与分享 |
 | `cover_image` | text（可空） | 封面图 URL |
 | `status` | text | `published`（已发布）/ `draft`（草稿，永不公开） |
+| `view_count` | int | 浏览量（RPC `increment_view` 递增，客户端 cookie 防刷） |
 | `created_at` | timestamptz | 创建时间 |
 | `published` | boolean | 兼容旧字段（`status` 的冗余，新代码用 status） |
 
@@ -164,7 +168,15 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `post_id` | int8 | 关联 `posts.id` |
 | `name` | text | 评论者昵称 |
 | `content` | text | 评论内容 |
+| `status` | text | 评论状态（当前均为 `approved`，为审核模式预留） |
 | `created_at` | timestamptz | 创建时间 |
+
+### 表 `tags` / `post_tags`
+
+| 表 | 说明 |
+|----|------|
+| `tags` | 标签（`name` / `slug` 唯一） |
+| `post_tags` | 文章-标签关联（多对多，复合主键） |
 
 ### 表 `profiles`
 
@@ -244,5 +256,5 @@ git push origin main
 
 1. ~~**安全**：数据增删改由浏览器端直接调用 Supabase anon key 完成~~ ✅ **已解决（Phase 0）**
 2. ~~**内容**：正文为纯文本，无 Markdown / 富文本 / 代码高亮~~ ✅ **已解决（Phase 1）**：Markdown 渲染 + TipTap 编辑器 + 草稿/编辑 + 图片上传，迁移已执行、测试通过
-3. **功能**：无标签分类、搜索、分页、浏览量统计、RSS。
+3. ~~**功能**：无标签分类、搜索、分页、浏览量统计、RSS~~ ✅ **已解决（Phase 3）**：标签系统 + 搜索 + 分页 + 浏览量 + RSS + 归档 + 关于页 + 评论管理，迁移已执行、测试通过
 4. **工程化**：无自动化测试、CI 流水线、错误监控、数据备份策略。

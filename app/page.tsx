@@ -1,10 +1,21 @@
-import Image from "next/image";
 import Link from "next/link";
+import PostCard from "@/app/components/PostCard";
 import { getPublishedPosts } from "@/lib/posts";
-import { formatDate, stripMarkdown } from "@/lib/format";
 
-export default async function Home() {
-  const posts = await getPublishedPosts();
+const PAGE_SIZE = 10;
+
+export const dynamic = "force-dynamic";
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: pageStr } = await searchParams;
+  const page = Math.max(1, Number(pageStr) || 1);
+
+  const { posts, total } = await getPublishedPosts(page, PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
@@ -39,6 +50,7 @@ export default async function Home() {
         <h2 className="mb-6 flex items-center gap-3 font-display text-xl font-semibold text-fg">
           <span className="h-5 w-1 rounded bg-gradient-to-b from-glow-400 to-brand-500" />
           最新文章
+          <span className="text-sm font-normal text-fg-faint">共 {total} 篇</span>
         </h2>
 
         {posts.length === 0 ? (
@@ -49,37 +61,42 @@ export default async function Home() {
         ) : (
           <div className="grid gap-5">
             {posts.map((post) => (
-              <Link
-                key={post.id}
-                href={`/posts/${post.slug ?? post.id}`}
-                className="glow-hover block overflow-hidden rounded-2xl border border-ink-700/60 bg-ink-900/60"
-              >
-                {post.cover_image ? (
-                  <div className="relative h-48 w-full sm:h-56">
-                    <Image
-                      src={post.cover_image}
-                      alt={post.title}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 56rem"
-                    />
-                  </div>
-                ) : null}
-                <div className="p-6">
-                  <div className="mb-2 flex items-center gap-2 text-sm text-fg-faint">
-                    <span>{formatDate(post.created_at)}</span>
-                  </div>
-                  <h3 className="mb-2 text-2xl font-semibold text-fg transition-colors">
-                    {post.title}
-                  </h3>
-                  <p className="text-fg-muted line-clamp-2">
-                    {post.excerpt ||
-                      (post.content ? stripMarkdown(post.content).slice(0, 150) : "")}
-                  </p>
-                </div>
-              </Link>
+              <PostCard key={post.id} post={post} />
             ))}
           </div>
+        )}
+
+        {/* 分页 */}
+        {totalPages > 1 && (
+          <nav className="mt-10 flex items-center justify-center gap-4 text-sm" aria-label="分页">
+            {page > 1 ? (
+              <Link
+                href={page === 2 ? "/" : `/?page=${page - 1}`}
+                className="rounded-lg border border-ink-600 px-4 py-2 text-fg-muted transition-colors hover:border-brand-500/50 hover:text-fg"
+              >
+                ← 上一页
+              </Link>
+            ) : (
+              <span className="rounded-lg border border-ink-700/50 px-4 py-2 text-fg-faint opacity-50">
+                ← 上一页
+              </span>
+            )}
+            <span className="text-fg-faint">
+              {page} / {totalPages}
+            </span>
+            {page < totalPages ? (
+              <Link
+                href={`/?page=${page + 1}`}
+                className="rounded-lg border border-ink-600 px-4 py-2 text-fg-muted transition-colors hover:border-brand-500/50 hover:text-fg"
+              >
+                下一页 →
+              </Link>
+            ) : (
+              <span className="rounded-lg border border-ink-700/50 px-4 py-2 text-fg-faint opacity-50">
+                下一页 →
+              </span>
+            )}
+          </nav>
         )}
       </section>
     </>

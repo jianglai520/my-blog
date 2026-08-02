@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import AdminClient from "./AdminClient";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
-import type { Post } from "@/lib/posts";
+import type { Post, Comment } from "@/lib/posts";
 
 // 后台始终读最新数据，不做静态缓存
 export const dynamic = "force-dynamic";
@@ -16,10 +16,26 @@ export default async function AdminPage() {
   }
 
   const supabase = await getServerSupabase();
-  const { data: posts } = await supabase
-    .from("posts")
-    .select("id,slug,title,content,excerpt,cover_image,created_at,published,status")
-    .order("created_at", { ascending: false });
+  const [{ data: posts }, { data: comments }] = await Promise.all([
+    supabase
+      .from("posts")
+      .select("id,slug,title,content,excerpt,cover_image,created_at,published,status,post_tags(tag:tags(name))")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("comments")
+      .select("id,post_id,name,content,created_at,status")
+      .order("created_at", { ascending: false })
+      .limit(200),
+  ]);
 
-  return <AdminClient userEmail={admin.email} posts={(posts as Post[]) || []} />;
+  return (
+    <AdminClient
+      userEmail={admin.email}
+      posts={((posts ?? []) as unknown as AdminPost[]) }
+      comments={((comments ?? []) as Comment[]) || []}
+    />
+  );
 }
+
+/* 后台文章行（含标签嵌套，来自 supabase-js 返回结构） */
+type AdminPost = Post & { post_tags?: { tag: { name: string } }[] };

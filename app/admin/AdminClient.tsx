@@ -11,14 +11,18 @@ import {
   deletePost,
   type PostFormState,
 } from "@/app/actions/posts";
+import { deleteComment } from "@/app/actions/comments";
 import { logout } from "@/app/actions/auth";
 import { slugify } from "@/lib/format";
-import type { Post } from "@/lib/posts";
+import type { Post, Comment } from "@/lib/posts";
 
 const inputCls =
   "w-full rounded-lg border border-ink-600 bg-ink-800 px-4 py-3 text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-brand-500";
 
 const initialState: PostFormState = { message: "", success: false };
+
+/* 后台文章类型（带标签嵌套） */
+type AdminPost = Post & { post_tags?: { tag: { name: string } }[] };
 
 /* ============ 写作表单（创建 / 编辑共用；key 变化即重挂载重置） ============ */
 
@@ -26,7 +30,7 @@ function PostForm({
   initial,
   onSaved,
 }: {
-  initial: Post | null;
+  initial: AdminPost | null;
   onSaved: () => void;
 }) {
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -34,6 +38,9 @@ function PostForm({
   const [excerpt, setExcerpt] = useState(initial?.excerpt ?? "");
   const [coverImage, setCoverImage] = useState(initial?.cover_image ?? "");
   const [content, setContent] = useState(initial?.content ?? "");
+  const [tags, setTags] = useState(
+    initial?.post_tags?.map((pt) => pt.tag.name).join(", ") ?? "",
+  );
 
   const action = initial ? updatePost : createPost;
   const [state, formAction, pending] = useActionState<PostFormState, FormData>(
@@ -94,19 +101,35 @@ function PostForm({
           />
         </div>
 
-        <div>
-          <label htmlFor="post-slug" className="mb-2 block text-sm text-fg-muted">
-            语义化链接（slug，可选）<span className="text-fg-faint">· 留空则用 id</span>
-          </label>
-          <input
-            id="post-slug"
-            name="slug"
-            type="text"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            placeholder="my-first-post（建议：由标题自动生成）"
-            className={inputCls}
-          />
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label htmlFor="post-slug" className="mb-2 block text-sm text-fg-muted">
+              语义化链接（slug，可选）
+            </label>
+            <input
+              id="post-slug"
+              name="slug"
+              type="text"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              placeholder="my-first-post"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label htmlFor="post-tags" className="mb-2 block text-sm text-fg-muted">
+              标签（逗号分隔，可选）
+            </label>
+            <input
+              id="post-tags"
+              name="tags"
+              type="text"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="Next.js, 前端, 随笔"
+              className={inputCls}
+            />
+          </div>
         </div>
 
         <div>
@@ -186,13 +209,16 @@ function PostForm({
 export default function AdminClient({
   userEmail,
   posts,
+  comments,
 }: {
   userEmail: string;
-  posts: Post[];
+  posts: AdminPost[];
+  comments: Comment[];
 }) {
   const router = useRouter();
-  const [editing, setEditing] = useState<Post | null>(null);
+  const [editing, setEditing] = useState<AdminPost | null>(null);
   const [formVersion, setFormVersion] = useState(0);
+  const [tab, setTab] = useState<"posts" | "comments">("posts");
 
   // 保存成功：退出编辑模式 + 递增 key 重置表单 + 刷新列表
   function handleSaved() {
@@ -201,11 +227,13 @@ export default function AdminClient({
     router.refresh();
   }
 
-  function handleEdit(post: Post) {
+  function handleEdit(post: AdminPost) {
     setEditing(post);
-    setFormVersion((v) => v); // 保持 key 稳定，让表单进入编辑态
     document.getElementById("post-form")?.scrollIntoView({ behavior: "smooth" });
   }
+
+  // 评论 → 所属文章标题
+  const postById = new Map(posts.map((p) => [p.id, p]));
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
@@ -228,88 +256,177 @@ export default function AdminClient({
         </form>
       </div>
 
-      {/* 写作 / 编辑表单（key 变化时重挂载重置） */}
-      <PostForm
-        key={`${editing?.id ?? "new"}-${formVersion}`}
-        initial={editing}
-        onSaved={handleSaved}
-      />
-
-      {editing && (
+      {/* Tab 切换 */}
+      <div className="mb-6 flex gap-2 border-b border-ink-700/60">
         <button
-          onClick={() => setEditing(null)}
-          className="mb-4 text-sm text-fg-faint transition-colors hover:text-brand-300"
+          onClick={() => setTab("posts")}
+          className={`rounded-t-lg px-4 py-2 text-sm transition-colors ${
+            tab === "posts"
+              ? "border-b-2 border-brand-500 text-fg"
+              : "text-fg-muted hover:text-fg"
+          }`}
         >
-          ← 取消编辑
+          📝 文章管理（{posts.length}）
         </button>
-      )}
-
-      {/* ===== 文章管理列表 ===== */}
-      <div className="rounded-2xl border border-ink-700/60 bg-ink-900/50 p-8">
-        <h2 className="mb-6 text-xl font-bold text-fg">
-          📋 文章管理{" "}
-          <span className="text-sm font-normal text-fg-faint">
-            （{posts.length} 篇，含草稿）
-          </span>
-        </h2>
-
-        {posts.length === 0 ? (
-          <p className="py-8 text-center text-fg-muted">还没有文章～</p>
-        ) : (
-          <div className="space-y-4">
-            {posts.map((post) => (
-              <div
-                key={post.id}
-                className="flex items-center justify-between rounded-lg border border-ink-700/60 bg-ink-800/40 p-4 transition-colors hover:bg-ink-800"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={`/posts/${post.slug ?? post.id}`}
-                      className="block truncate text-lg font-medium text-fg transition-colors hover:text-brand-300"
-                    >
-                      {post.title}
-                    </a>
-                    {post.status === "draft" && (
-                      <span className="flex-shrink-0 rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-xs text-amber-300">
-                        草稿
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-sm text-fg-faint">
-                    {post.slug ? `/posts/${post.slug}` : `/posts/${post.id}`}
-                    {" · "}
-                    {new Date(post.created_at).toLocaleDateString("zh-CN")}
-                  </p>
-                </div>
-
-                <div className="ml-4 flex flex-shrink-0 gap-2">
-                  <button
-                    onClick={() => handleEdit(post)}
-                    className="rounded-lg border border-brand-400/30 px-4 py-2 text-sm text-brand-300 transition-colors hover:bg-brand-400/10"
-                  >
-                    编辑
-                  </button>
-                  <form
-                    action={deletePost}
-                    onSubmit={(e) => {
-                      if (!confirm("确定要删除这篇文章吗？")) e.preventDefault();
-                    }}
-                  >
-                    <input type="hidden" name="postId" value={post.id} />
-                    <button
-                      type="submit"
-                      className="rounded-lg border border-red-400/30 px-4 py-2 text-sm text-red-400 transition-colors hover:bg-red-400/10"
-                    >
-                      删除
-                    </button>
-                  </form>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <button
+          onClick={() => setTab("comments")}
+          className={`rounded-t-lg px-4 py-2 text-sm transition-colors ${
+            tab === "comments"
+              ? "border-b-2 border-brand-500 text-fg"
+              : "text-fg-muted hover:text-fg"
+          }`}
+        >
+          💬 评论管理（{comments.length}）
+        </button>
       </div>
+
+      {tab === "posts" ? (
+        <>
+          {/* 写作 / 编辑表单（key 变化时重挂载重置） */}
+          <PostForm
+            key={`${editing?.id ?? "new"}-${formVersion}`}
+            initial={editing}
+            onSaved={handleSaved}
+          />
+
+          {editing && (
+            <button
+              onClick={() => setEditing(null)}
+              className="mb-4 text-sm text-fg-faint transition-colors hover:text-brand-300"
+            >
+              ← 取消编辑
+            </button>
+          )}
+
+          {/* ===== 文章列表 ===== */}
+          <div className="rounded-2xl border border-ink-700/60 bg-ink-900/50 p-8">
+            <h2 className="mb-6 text-xl font-bold text-fg">
+              📋 文章管理{" "}
+              <span className="text-sm font-normal text-fg-faint">
+                （{posts.length} 篇，含草稿）
+              </span>
+            </h2>
+
+            {posts.length === 0 ? (
+              <p className="py-8 text-center text-fg-muted">还没有文章～</p>
+            ) : (
+              <div className="space-y-4">
+                {posts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="flex items-center justify-between rounded-lg border border-ink-700/60 bg-ink-800/40 p-4 transition-colors hover:bg-ink-800"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={`/posts/${post.slug ?? post.id}`}
+                          className="block truncate text-lg font-medium text-fg transition-colors hover:text-brand-300"
+                        >
+                          {post.title}
+                        </a>
+                        {post.status === "draft" && (
+                          <span className="flex-shrink-0 rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-xs text-amber-300">
+                            草稿
+                          </span>
+                        )}
+                        {post.post_tags?.length ? (
+                          <span className="hidden flex-shrink-0 text-xs text-fg-faint sm:inline">
+                            {post.post_tags.map((pt) => `#${pt.tag.name}`).join(" ")}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 text-sm text-fg-faint">
+                        {post.slug ? `/posts/${post.slug}` : `/posts/${post.id}`}
+                        {" · "}
+                        {new Date(post.created_at).toLocaleDateString("zh-CN")}
+                      </p>
+                    </div>
+
+                    <div className="ml-4 flex flex-shrink-0 gap-2">
+                      <button
+                        onClick={() => handleEdit(post)}
+                        className="rounded-lg border border-brand-400/30 px-4 py-2 text-sm text-brand-300 transition-colors hover:bg-brand-400/10"
+                      >
+                        编辑
+                      </button>
+                      <form
+                        action={deletePost}
+                        onSubmit={(e) => {
+                          if (!confirm("确定要删除这篇文章吗？")) e.preventDefault();
+                        }}
+                      >
+                        <input type="hidden" name="postId" value={post.id} />
+                        <button
+                          type="submit"
+                          className="rounded-lg border border-red-400/30 px-4 py-2 text-sm text-red-400 transition-colors hover:bg-red-400/10"
+                        >
+                          删除
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        /* ===== 评论管理 ===== */
+        <div className="rounded-2xl border border-ink-700/60 bg-ink-900/50 p-8">
+          <h2 className="mb-6 text-xl font-bold text-fg">
+            💬 评论管理{" "}
+            <span className="text-sm font-normal text-fg-faint">（最新 200 条）</span>
+          </h2>
+
+          {comments.length === 0 ? (
+            <p className="py-8 text-center text-fg-muted">还没有评论～</p>
+          ) : (
+            <div className="space-y-4">
+              {comments.map((comment) => {
+                const post = postById.get(comment.post_id);
+                return (
+                  <div
+                    key={comment.id}
+                    className="rounded-lg border border-ink-700/60 bg-ink-800/40 p-4"
+                  >
+                    <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                      <span className="font-medium text-fg">{comment.name}</span>
+                      <span className="text-xs text-fg-faint">
+                        {new Date(comment.created_at).toLocaleString("zh-CN")}
+                      </span>
+                      {post && (
+                        <a
+                          href={`/posts/${post.slug ?? post.id}`}
+                          className="text-xs text-brand-300 hover:underline"
+                        >
+                          → 《{post.title}》
+                        </a>
+                      )}
+                    </div>
+                    <p className="text-fg-muted">{comment.content}</p>
+                    <div className="mt-2">
+                      <form
+                        action={deleteComment}
+                        onSubmit={(e) => {
+                          if (!confirm("确定要删除这条评论吗？")) e.preventDefault();
+                        }}
+                      >
+                        <input type="hidden" name="commentId" value={comment.id} />
+                        <button
+                          type="submit"
+                          className="rounded-lg border border-red-400/30 px-3 py-1 text-xs text-red-400 transition-colors hover:bg-red-400/10"
+                        >
+                          删除
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

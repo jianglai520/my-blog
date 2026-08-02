@@ -14,6 +14,7 @@ export const postSchema = z.object({
   coverImage: z.string().trim().url("封面图需为合法 URL").optional().or(z.literal("")),
   content: z.string().trim().min(1, "内容不能为空"),
   status: z.enum(["draft", "published"]).default("published"),
+  tags: z.string().trim().max(200, "标签最多 200 字").optional().or(z.literal("")),
 });
 
 export type PostFormInput = z.infer<typeof postSchema>;

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { postSchema, type PostFormInput } from "@/lib/validations/posts";
+import { slugify } from "@/lib/format";
 
 export type PostFormState = {
   message: string;
@@ -20,6 +21,7 @@ function parseForm(formData: FormData):
     coverImage: String(formData.get("coverImage") || ""),
     content: String(formData.get("content") || ""),
     status: String(formData.get("status") || "published"),
+    tags: String(formData.get("tags") || ""),
   });
 
   if (!parsed.success) {
@@ -53,6 +55,50 @@ async function ensureUniqueSlug(
   }
 }
 
+/**
+ * 同步文章的标签关联（tags + post_tags）。
+ * 输入逗号分隔的标签名（自动去重）；不存在则创建（slug 冲突自动加后缀）；
+ * 先清空旧关联再插入新关联。
+ */
+async function syncPostTags(
+  supabase: Awaited<ReturnType<typeof getServerSupabase>>,
+  postId: number,
+  tagsInput: string,
+): Promise<void> {
+  const names = [...new Set(tagsInput.split(/[,，]/).map((t) => t.trim()).filter(Boolean))];
+
+  if (names.length === 0) {
+    await supabase.from("post_tags").delete().eq("post_id", postId);
+    return;
+  }
+
+  // 生成唯一 slug（避免不同名称 slugify 后撞车）
+  const slugs = names.map((n) => slugify(n)).filter(Boolean);
+  const { data: existing } = await supabase.from("tags").select("slug").in("slug", slugs);
+  const taken = new Set((existing ?? []).map((t: { slug: string }) => t.slug));
+  const rows = names.map((name) => {
+    const base = slugify(name);
+    let s = base;
+    let i = 2;
+    while (taken.has(s)) s = `${base}-${i++}`;
+    taken.add(s);
+    return { name, slug: s };
+  });
+
+  // 只插入新标签（name 已存在的忽略，保留原 slug）
+  await supabase.from("tags").upsert(rows, { onConflict: "name", ignoreDuplicates: true });
+
+  // 取所有相关 tag id 后重建关联
+  const { data: tagRows } = await supabase.from("tags").select("id").in("name", names);
+  if (!tagRows?.length) return;
+
+  await supabase.from("post_tags").delete().eq("post_id", postId);
+  const { error } = await supabase
+    .from("post_tags")
+    .insert(tagRows.map((t: { id: number }) => ({ post_id: postId, tag_id: t.id })));
+  if (error) console.error("同步标签失败:", error.message);
+}
+
 /** 发布新文章：zod 校验 → 博主鉴权 → 写库 → 刷新缓存 */
 export async function createPost(
   _prev: PostFormState,
@@ -71,23 +117,29 @@ export async function createPost(
     };
   }
 
-  const { title, slug, excerpt, coverImage, content, status } = parsed.data;
+  const { title, slug, excerpt, coverImage, content, status, tags } = parsed.data;
   const supabase = await getServerSupabase();
   const finalSlug = slug ? await ensureUniqueSlug(supabase, slug) : null;
-  const { error } = await supabase.from("posts").insert({
-    title,
-    slug: finalSlug,
-    excerpt: excerpt || null,
-    cover_image: coverImage || null,
-    content,
-    status,
-    published: status === "published",
-    author_id: admin.id,
-  });
+  const { data: created, error } = await supabase
+    .from("posts")
+    .insert({
+      title,
+      slug: finalSlug,
+      excerpt: excerpt || null,
+      cover_image: coverImage || null,
+      content,
+      status,
+      published: status === "published",
+      author_id: admin.id,
+    })
+    .select("id")
+    .single();
 
   if (error) {
     return { message: `❌ 发布失败：${error.message}`, success: false };
   }
+
+  await syncPostTags(supabase, created.id, tags ?? "");
 
   revalidatePath("/");
   revalidatePath("/admin");
@@ -119,7 +171,7 @@ export async function updatePost(
     };
   }
 
-  const { title, slug, excerpt, coverImage, content, status } = parsed.data;
+  const { title, slug, excerpt, coverImage, content, status, tags } = parsed.data;
   const supabase = await getServerSupabase();
   const finalSlug = slug ? await ensureUniqueSlug(supabase, slug, postId) : null;
   const { data: updated, error } = await supabase
@@ -140,6 +192,8 @@ export async function updatePost(
   if (error) {
     return { message: `❌ 保存失败：${error.message}`, success: false };
   }
+
+  await syncPostTags(supabase, postId, tags ?? "");
 
   revalidatePath("/");
   revalidatePath("/admin");

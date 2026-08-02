@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import CommentForm from "./CommentForm";
 import Markdown from "@/app/components/Markdown";
+import ViewCounter from "@/app/components/ViewCounter";
 import { getComments, getPostByIdentifier } from "@/lib/posts";
 import { formatDateTime } from "@/lib/format";
 
@@ -82,9 +83,23 @@ export default async function PostPage({ params }: Props) {
         <h1 className="text-3xl font-bold leading-tight text-fg sm:text-4xl">
           {post.title}
         </h1>
-        <p className="mt-4 text-sm text-fg-faint">
-          发布于 {formatDateTime(post.created_at)}
-        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-fg-faint">
+          <span>发布于 {formatDateTime(post.created_at)}</span>
+          <ViewCounter postId={post.id} initialCount={post.view_count ?? 0} />
+        </div>
+        {post.tags.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {post.tags.map((tag) => (
+              <Link
+                key={tag.slug}
+                href={`/tags/${tag.slug}`}
+                className="rounded-full border border-brand-400/30 bg-brand-500/10 px-2.5 py-0.5 text-xs text-brand-300 transition-colors hover:bg-brand-500/20"
+              >
+                #{tag.name}
+              </Link>
+            ))}
+          </div>
+        )}
         {post.excerpt ? (
           <p className="mt-4 border-l-2 border-glow-500/60 pl-4 text-fg-muted">
             {post.excerpt}
