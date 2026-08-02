@@ -26,21 +26,26 @@ jobs:
       - name: Unit tests
         run: npm test
 
-      # 构建需要数据库（静态页查库）；secrets 未配置时跳过（lint+test 仍为门禁）
+      # 构建需要数据库（静态页查库）；secrets 未配置时跳过（lint+test 仍为门禁）。
+      # 注：GitHub Actions 的 if 条件不支持 secrets context，改用 shell 判断。
       - name: Build
-        if: env.NEXT_PUBLIC_SUPABASE_URL != ''
-        run: npm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SENTRY_DSN: ""
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::warning::DATABASE_URL 未配置（GitHub Secrets），跳过 Build"
+            exit 0
+          fi
+          npm run build
 
   e2e:
     name: E2E (Playwright)
     needs: test
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && secrets.NEXT_PUBLIC_SUPABASE_URL != ''
+    if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
 
@@ -56,10 +61,15 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: E2E tests
-        run: npm run test:e2e
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::warning::DATABASE_URL 未配置（GitHub Secrets），跳过 E2E"
+            exit 0
+          fi
+          npm run test:e2e
