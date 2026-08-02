@@ -43,6 +43,10 @@
 ```
 my-blog/
 ├── app/
+│   ├── actions/                    # Server Actions：服务端业务逻辑（唯一写入口）
+│   │   ├── auth.ts                 # 登录 / 注册 / 退出
+│   │   ├── posts.ts                # 发布 / 删除文章（zod 校验 + 博主鉴权）
+│   │   └── comments.ts             # 发表评论
 │   ├── layout.tsx                  # 全局布局（字体 / metadata / 主题）
 │   ├── globals.css                 # 全局样式 + Tailwind v4 @theme 设计系统
 │   ├── page.tsx                    # 首页（英雄区 + 文章列表）
@@ -52,18 +56,24 @@ my-blog/
 │   ├── posts/
 │   │   └── [identifier]/
 │   │       ├── page.tsx            # 文章详情页（slug/id 双解析）
-│   │       └── CommentForm.tsx     # 评论表单（客户端组件）
+│   │       └── CommentForm.tsx     # 评论表单（调用 Server Action）
 │   ├── admin/
-│   │   └── page.tsx                # 后台管理（发布/删除文章）
+│   │   ├── page.tsx                # 后台入口（服务端鉴权，未登录/非博主重定向）
+│   │   └── AdminClient.tsx         # 后台交互（表单/列表/删除，调用 Server Actions）
 │   ├── login/
-│   │   └── page.tsx                # 登录/注册页
+│   │   └── page.tsx                # 登录/注册页（useActionState 调 Server Actions）
 │   ├── robots.ts                   # 搜索引擎爬虫规则
 │   ├── sitemap.ts                  # 站点地图（动态生成）
 │   └── favicon.ico
 ├── lib/
-│   ├── posts.ts                    # 数据层：文章/评论查询（含列降级兼容）
+│   ├── server/
+│   │   └── supabase.ts             # 服务端客户端 + 鉴权工具（server-only 保护）
+│   ├── posts.ts                    # 公开读数据层：文章/评论查询（含列降级兼容）
 │   ├── format.ts                   # 中文日期格式化 / slugify
-│   └── supabase.js                 # Supabase 客户端（浏览器直接使用）
+│   └── supabase.js                 # anon 客户端（仅服务端公开读引用）
+├── proxy.ts                        # 路由守卫（Next 16 中 middleware 更名为此）
+├── supabase/
+│   └── migrations/                 # 数据库迁移 SQL（0001 表结构 / 0002 RLS 策略）
 ├── scripts/
 │   └── generate-og.mjs             # 一次性脚本：生成 public/og.png
 ├── public/
@@ -122,6 +132,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `id` | int8 / PK | 主键 |
+| `author_id` | uuid（可空） | 作者，关联 `auth.users.id` |
 | `slug` | text / unique（可空） | 语义化链接，如 `my-first-post` |
 | `title` | text | 标题 |
 | `content` | text | 正文（目前为纯文本，按换行分段） |
@@ -129,8 +140,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `cover_image` | text（可空） | 封面图 URL |
 | `created_at` | timestamptz | 创建时间 |
 | `published` | boolean | 是否发布 |
-
-> 扩展字段 `slug` / `excerpt` / `cover_image` 是后加的，代码层已做「列不存在自动降级」兼容（`lib/posts.ts` 中 `42703` 错误兜底），未迁移也能正常运行，但建议在 Supabase 控制台补齐这三列并给 `slug` 建唯一索引。
 
 ### 表 `comments`
 
@@ -141,6 +150,47 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `name` | text | 评论者昵称 |
 | `content` | text | 评论内容 |
 | `created_at` | timestamptz | 创建时间 |
+
+### 表 `profiles`
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | uuid / PK | 关联 `auth.users.id` |
+| `is_admin` | boolean | 是否为博主（仅博主可发文/删文） |
+| `created_at` | timestamptz | 创建时间 |
+
+> 以上建表 / 加列 / RLS 策略脚本见 `supabase/migrations/`（0001 表结构、0002 RLS），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+
+---
+
+## 🛡️ 安全架构
+
+所有**写操作**（发文、删文、评论、登录注册）都通过服务端 **Server Actions** 执行，浏览器端不再直接接触数据库：
+
+```
+浏览器表单 ──▶ Server Action（zod 校验 → 服务端 session 鉴权 → 写库 → revalidatePath）
+                     │
+                     ▼
+              Supabase（RLS 行级安全策略：第二道防线）
+```
+
+| 防线 | 作用 |
+|------|------|
+| `proxy.ts` 路由守卫 | 未登录访问 `/admin` 重定向 `/login`（Next 16，替代 middleware） |
+| Server Actions 鉴权 | `requireAdmin()`：仅 `profiles.is_admin = true` 的博主可发文/删文 |
+| RLS 策略 | 即使拿到公开 anon key 直连数据库，非博主也无法增删改 `posts`；评论匿名可发但仅博主可删 |
+| zod 校验 | 所有表单输入在服务端校验（标题/内容必填、slug 格式、评论限长） |
+
+首次部署需在 Supabase 控制台执行：
+
+```sql
+-- 1. 在 SQL Editor 依次执行 supabase/migrations/0001_init.sql、0002_rls.sql
+-- 2. 把自己的账号标记为博主：
+INSERT INTO profiles (id, is_admin)
+SELECT id, true FROM auth.users WHERE email = '你的登录邮箱'
+ON CONFLICT (id) DO UPDATE SET is_admin = true;
+-- 3.（推荐）关闭公开注册：Authentication → Sign In / Up → Allow new users to sign up 关闭
+```
 
 ---
 
@@ -173,7 +223,7 @@ git push origin main
 
 当前版本为 MVP，存在以下待改进点（详见优化方案文档）：
 
-1. **安全**：数据增删改由浏览器端直接调用 Supabase anon key 完成，依赖数据库 RLS 策略约束权限；若 RLS 未正确配置，存在越权风险（如任意登录用户删他人文章）。
+1. ~~**安全**：数据增删改由浏览器端直接调用 Supabase anon key 完成~~ ✅ **已解决（Phase 0）**：写操作全部收回到服务端 Server Actions，并配置 RLS 双保险。代码已完成并构建通过；需在 Supabase 控制台执行 `supabase/migrations/` 两个迁移脚本后，RLS 正式生效（见上方「安全架构」）。
 2. **内容**：正文为纯文本，无 Markdown / 富文本 / 代码高亮。
 3. **功能**：无标签分类、搜索、分页、浏览量统计、RSS。
 4. **工程化**：无自动化测试、CI 流水线、错误监控、数据备份策略。
