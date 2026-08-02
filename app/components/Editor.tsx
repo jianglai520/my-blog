@@ -1,0 +1,218 @@
+"use client";
+
+import { startTransition, useEffect, useRef } from "react";
+import { useActionState } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import { Markdown } from "@tiptap/markdown";
+import Image from "@tiptap/extension-image";
+import { uploadImage, type UploadState } from "@/app/actions/uploads";
+
+const initialUploadState: UploadState = { url: null, message: "", success: false };
+
+const btnCls = (active: boolean) =>
+  `rounded-md px-2 py-1 text-sm transition-colors disabled:opacity-40 ${
+    active
+      ? "bg-brand-500/30 text-brand-200"
+      : "text-fg-muted hover:bg-ink-700/60 hover:text-fg"
+  }`;
+
+function ToolbarButton({
+  onClick,
+  active,
+  title,
+  disabled,
+  children,
+}: {
+  onClick: () => void;
+  active?: boolean;
+  title: string;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      disabled={disabled}
+      onMouseDown={(e) => e.preventDefault()} // 防止工具栏按钮抢走编辑器焦点
+      onClick={onClick}
+      className={btnCls(!!active)}
+    >
+      {children}
+    </button>
+  );
+}
+
+export default function Editor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (md: string) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploadState, uploadAction, uploadPending] = useActionState(
+    uploadImage,
+    initialUploadState
+  );
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Image.configure({ inline: false, allowBase64: false }),
+      Markdown,
+    ],
+    content: value,
+    contentType: "markdown", // 关键：声明初始 content 为 Markdown，否则被当 JSON 解析
+    immediatelyRender: false,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getMarkdown());
+    },
+  });
+
+  // 选择本地图片后立即上传（useActionState 的 action 需在 startTransition 内调用）
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("file", file);
+    startTransition(() => {
+      uploadAction(fd);
+    });
+    // 重置 input，允许下次选择同一文件再次触发 change
+    e.target.value = "";
+  }
+
+  // 图片上传成功后插入编辑器
+  useEffect(() => {
+    if (uploadState.success && uploadState.url && editor) {
+      editor.chain().focus().setImage({ src: uploadState.url }).run();
+    }
+  }, [uploadState, editor]);
+
+  if (!editor) {
+    return <div className="min-h-[320px] rounded-xl border border-ink-700/60 bg-ink-900/50" />;
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-ink-600 bg-ink-900/50">
+      {/* ===== 工具栏 ===== */}
+      <div className="flex flex-wrap items-center gap-1 border-b border-ink-700/60 bg-ink-800/60 px-2 py-1.5">
+        <ToolbarButton
+          title="加粗"
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          active={editor.isActive("bold")}
+        >
+          <b>B</b>
+        </ToolbarButton>
+        <ToolbarButton
+          title="斜体"
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          active={editor.isActive("italic")}
+        >
+          <i>I</i>
+        </ToolbarButton>
+        <ToolbarButton
+          title="删除线"
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          active={editor.isActive("strike")}
+        >
+          <s>S</s>
+        </ToolbarButton>
+        <span className="mx-1 h-5 w-px bg-ink-700" />
+        <ToolbarButton
+          title="二级标题"
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          active={editor.isActive("heading", { level: 2 })}
+        >
+          H2
+        </ToolbarButton>
+        <ToolbarButton
+          title="三级标题"
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          active={editor.isActive("heading", { level: 3 })}
+        >
+          H3
+        </ToolbarButton>
+        <span className="mx-1 h-5 w-px bg-ink-700" />
+        <ToolbarButton
+          title="无序列表"
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          active={editor.isActive("bulletList")}
+        >
+          •≡
+        </ToolbarButton>
+        <ToolbarButton
+          title="有序列表"
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          active={editor.isActive("orderedList")}
+        >
+          1≡
+        </ToolbarButton>
+        <ToolbarButton
+          title="引用"
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          active={editor.isActive("blockquote")}
+        >
+          ❝
+        </ToolbarButton>
+        <ToolbarButton
+          title="代码块"
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          active={editor.isActive("codeBlock")}
+        >
+          {"</>"}
+        </ToolbarButton>
+        <ToolbarButton
+          title="插入图片"
+          onClick={() => fileRef.current?.click()}
+        >
+          🖼
+        </ToolbarButton>
+        <span className="mx-1 h-5 w-px bg-ink-700" />
+        <ToolbarButton
+          title="撤销"
+          onClick={() => editor.chain().focus().undo().run()}
+          disabled={!editor.can().undo()}
+        >
+          ↩
+        </ToolbarButton>
+        <ToolbarButton
+          title="重做"
+          onClick={() => editor.chain().focus().redo().run()}
+          disabled={!editor.can().redo()}
+        >
+          ↪
+        </ToolbarButton>
+
+        {/* 上传状态提示 */}
+        <span className="ml-auto text-xs text-fg-faint">
+          {uploadPending
+            ? "上传中…"
+            : uploadState.success
+              ? "✅ 已插入图片"
+              : uploadState.message.startsWith("❌")
+                ? uploadState.message
+                : ""}
+        </span>
+      </div>
+
+      {/* ===== 编辑区 ===== */}
+      <EditorContent
+        editor={editor}
+        className="editor-content min-h-[320px] px-4 py-3 text-fg"
+      />
+
+      {/* 文件选择框（视觉隐藏但可交互；选择后立即上传，仅博主可上传） */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        onChange={handleFileChange}
+        className="sr-only"
+      />
+    </div>
+  );
+}

@@ -28,3 +28,26 @@ export function slugify(title: string): string {
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
 }
+
+/**
+ * 从 Markdown 源文本提取纯文本（去标题符号/强调/代码围栏/链接/图片语法），
+ * 用于列表卡片摘要等场景，避免摘要里出现 `#`、`**`、`![]()` 等符号。
+ */
+export function stripMarkdown(md: string): string {
+  return md
+    .replace(/```[\s\S]*?```/g, " ") // 代码围栏整块替换为空格
+    .replace(/`([^`]*)`/g, "$1") // 行内代码
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1") // 图片 ![alt](url) → alt
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1") // 链接 [text](url) → text
+    .replace(/^#{1,6}\s+/gm, "") // 标题符号
+    .replace(/^\s*[-*+]\s+/gm, "") // 无序列表符号
+    .replace(/^\s*\d+\.\s+/gm, "") // 有序列表符号
+    .replace(/^>\s?/gm, "") // 引用符号
+    .replace(/^\s*[-_*]{3,}\s*$/gm, "") // 分隔线
+    .replace(/(\*\*|__)(.*?)\1/g, "$2") // 粗体
+    .replace(/(\*|_)(.*?)\1/g, "$2") // 斜体
+    .replace(/~~(.*?)~~/g, "$1") // 删除线
+    .replace(/^\s*\|.*\|\s*$/gm, "") // 表格行
+    .replace(/\s+/g, " ")
+    .trim();
+}

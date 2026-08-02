@@ -18,7 +18,7 @@ export default async function AdminPage() {
   const supabase = await getServerSupabase();
   const { data: posts } = await supabase
     .from("posts")
-    .select("id,slug,title,content,excerpt,cover_image,created_at,published")
+    .select("id,slug,title,content,excerpt,cover_image,created_at,published,status")
     .order("created_at", { ascending: false });
 
   return <AdminClient userEmail={admin.email} posts={(posts as Post[]) || []} />;

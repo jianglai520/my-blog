@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import CommentForm from "./CommentForm";
+import Markdown from "@/app/components/Markdown";
 import { getComments, getPostByIdentifier } from "@/lib/posts";
 import { formatDateTime } from "@/lib/format";
 
@@ -91,14 +92,8 @@ export default async function PostPage({ params }: Props) {
         ) : null}
       </header>
 
-      {/* 正文：纯文本按换行切分，精细阅读排版 */}
-      <div className="prose-lead space-y-6 text-lg leading-loose text-fg/90">
-        {post.content?.split("\n").map((line, index) => (
-          <p key={index} className="first-of-type:text-xl first-of-type:text-fg">
-            {line || " "}
-          </p>
-        ))}
-      </div>
+      {/* 正文：Markdown 渲染（标题/列表/代码高亮/表格/图片） */}
+      <Markdown source={post.content} />
 
       {/* ===== 评论区 ===== */}
       <section className="mt-14">

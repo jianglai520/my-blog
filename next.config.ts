@@ -6,6 +6,12 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname, "../"),
   },
+  experimental: {
+    serverActions: {
+      // 图片上传走 Server Action，默认 1MB 不够，放宽到 10MB（配合 uploads.ts 的 5MB 单图限制）
+      bodySizeLimit: "10mb",
+    },
+  },
   images: {
     // 允许远程封面图来自常用图床；本地 public 下的图片无需配置
     remotePatterns: [

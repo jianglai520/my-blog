@@ -29,12 +29,15 @@
 |------|------|
 | 📄 首页 | 英雄区（自我介绍/头像）+ 最新文章卡片列表（hover 发光） |
 | 📖 文章详情页 | 语义化 slug 链接（兼容旧数字 id 链接，301 跳转） |
+| 📝 **Markdown 正文** | 标题 / 列表 / **代码高亮（shiki）** / 表格 / 引用 / 图片完整渲染 |
+| 🖊️ **富文本编辑器** | TipTap 所见即所得，保存为 Markdown |
+| 📥 **草稿与编辑** | 可存草稿 / 发布 / 编辑续写，草稿永不公开 |
+| 🖼️ **图片上传** | 编辑器内选择本地图片 → 上传 Supabase Storage → 自动插入 |
 | 🔖 SEO | `metadataBase` / OG 图 / canonical / `sitemap.xml` / `robots.txt` |
 | 💬 评论区 | 昵称 + 内容，发布后自动刷新 |
-| 🔐 登录/注册 | Supabase Auth 邮箱密码登录 |
-| 🛡️ 后台管理 | 登录保护；发布文章（标题/slug/摘要/封面图/正文）、文章列表、删除 |
+| 🔐 登录 | Supabase Auth 邮箱登录（单管理员） |
+| 🛡️ 后台管理 | 服务端鉴权；发布/编辑/删除文章、草稿管理 |
 | 🌐 自定义域名 | jianglai520.com 已绑定 Vercel |
-| 🖼️ 封面图 | 支持远程图床（Supabase Storage / Unsplash / jsDelivr） |
 
 ---
 
@@ -45,23 +48,26 @@ my-blog/
 ├── app/
 │   ├── actions/                    # Server Actions：服务端业务逻辑（唯一写入口）
 │   │   ├── auth.ts                 # 登录 / 注册 / 退出
-│   │   ├── posts.ts                # 发布 / 删除文章（zod 校验 + 博主鉴权）
-│   │   └── comments.ts             # 发表评论
+│   │   ├── posts.ts                # 发布 / 编辑 / 删除文章（zod 校验 + 博主鉴权）
+│   │   ├── comments.ts             # 发表评论
+│   │   └── uploads.ts              # 图片上传（Supabase Storage）
 │   ├── layout.tsx                  # 全局布局（字体 / metadata / 主题）
 │   ├── globals.css                 # 全局样式 + Tailwind v4 @theme 设计系统
 │   ├── page.tsx                    # 首页（英雄区 + 文章列表）
 │   ├── components/
 │   │   ├── SiteHeader.tsx          # 顶部导航（毛玻璃）
-│   │   └── SiteFooter.tsx          # 页脚（关于 / 社交 / 版权）
+│   │   ├── SiteFooter.tsx          # 页脚（关于 / 社交 / 版权）
+│   │   ├── Markdown.tsx            # Markdown → HTML 渲染（RSC，代码高亮）
+│   │   └── Editor.tsx              # TipTap 富文本编辑器（client）
 │   ├── posts/
 │   │   └── [identifier]/
 │   │       ├── page.tsx            # 文章详情页（slug/id 双解析）
 │   │       └── CommentForm.tsx     # 评论表单（调用 Server Action）
 │   ├── admin/
 │   │   ├── page.tsx                # 后台入口（服务端鉴权，未登录/非博主重定向）
-│   │   └── AdminClient.tsx         # 后台交互（表单/列表/删除，调用 Server Actions）
+│   │   └── AdminClient.tsx         # 后台交互（编辑器/草稿/编辑/删除）
 │   ├── login/
-│   │   └── page.tsx                # 登录/注册页（useActionState 调 Server Actions）
+│   │   └── page.tsx                # 登录页（useActionState 调 Server Actions）
 │   ├── robots.ts                   # 搜索引擎爬虫规则
 │   ├── sitemap.ts                  # 站点地图（动态生成）
 │   └── favicon.ico
@@ -69,11 +75,11 @@ my-blog/
 │   ├── server/
 │   │   └── supabase.ts             # 服务端客户端 + 鉴权工具（server-only 保护）
 │   ├── posts.ts                    # 公开读数据层：文章/评论查询（含列降级兼容）
-│   ├── format.ts                   # 中文日期格式化 / slugify
+│   ├── format.ts                   # 中文日期格式化 / slugify / stripMarkdown
 │   └── supabase.js                 # anon 客户端（仅服务端公开读引用）
 ├── proxy.ts                        # 路由守卫（Next 16 中 middleware 更名为此）
 ├── supabase/
-│   └── migrations/                 # 数据库迁移 SQL（0001 表结构 / 0002 RLS 策略）
+│   └── migrations/                 # 数据库迁移 SQL（0001 表结构 / 0002 RLS / 0003 Markdown+草稿+bucket）
 ├── scripts/
 │   └── generate-og.mjs             # 一次性脚本：生成 public/og.png
 ├── public/
@@ -135,11 +141,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `author_id` | uuid（可空） | 作者，关联 `auth.users.id` |
 | `slug` | text / unique（可空） | 语义化链接，如 `my-first-post` |
 | `title` | text | 标题 |
-| `content` | text | 正文（目前为纯文本，按换行分段） |
+| `content` | text | 正文（**Markdown**） |
 | `excerpt` | text（可空） | 摘要，用于列表卡片与分享 |
 | `cover_image` | text（可空） | 封面图 URL |
+| `status` | text | `published`（已发布）/ `draft`（草稿，永不公开） |
 | `created_at` | timestamptz | 创建时间 |
-| `published` | boolean | 是否发布 |
+| `published` | boolean | 兼容旧字段（`status` 的冗余，新代码用 status） |
 
 ### 表 `comments`
 
@@ -159,7 +166,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `is_admin` | boolean | 是否为博主（仅博主可发文/删文） |
 | `created_at` | timestamptz | 创建时间 |
 
-> 以上建表 / 加列 / RLS 策略脚本见 `supabase/migrations/`（0001 表结构、0002 RLS），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+### Storage bucket `post-images`
+
+公开读的文章图片存储桶（仅博主可上传/删除，RLS 策略见 `0002_rls.sql` / `0003_markdown_draft.sql`）。
+
+> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0003），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
 
 ---
 
@@ -223,7 +234,7 @@ git push origin main
 
 当前版本为 MVP，存在以下待改进点（详见优化方案文档）：
 
-1. ~~**安全**：数据增删改由浏览器端直接调用 Supabase anon key 完成~~ ✅ **已解决（Phase 0）**：写操作全部收回到服务端 Server Actions，并配置 RLS 双保险。代码已完成并构建通过；需在 Supabase 控制台执行 `supabase/migrations/` 两个迁移脚本后，RLS 正式生效（见上方「安全架构」）。
-2. **内容**：正文为纯文本，无 Markdown / 富文本 / 代码高亮。
+1. ~~**安全**：数据增删改由浏览器端直接调用 Supabase anon key 完成~~ ✅ **已解决（Phase 0）**
+2. ~~**内容**：正文为纯文本，无 Markdown / 富文本 / 代码高亮~~ ✅ **已解决（Phase 1）**：Markdown 渲染 + TipTap 编辑器 + 草稿/编辑 + 图片上传（代码已完成，需执行 `0003_markdown_draft.sql` 迁移后正式生效）
 3. **功能**：无标签分类、搜索、分页、浏览量统计、RSS。
 4. **工程化**：无自动化测试、CI 流水线、错误监控、数据备份策略。

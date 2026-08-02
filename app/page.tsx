@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getPublishedPosts } from "@/lib/posts";
-import { formatDate } from "@/lib/format";
+import { formatDate, stripMarkdown } from "@/lib/format";
 
 export default async function Home() {
   const posts = await getPublishedPosts();
@@ -74,8 +74,7 @@ export default async function Home() {
                   </h3>
                   <p className="text-fg-muted line-clamp-2">
                     {post.excerpt ||
-                      post.content?.substring(0, 150) ||
-                      ""}
+                      (post.content ? stripMarkdown(post.content).slice(0, 150) : "")}
                   </p>
                 </div>
               </Link>

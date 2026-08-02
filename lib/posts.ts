@@ -10,6 +10,7 @@ export type Post = {
   cover_image: string | null;
   created_at: string;
   published: boolean;
+  status: string | null;
 };
 
 export type Comment = {
@@ -20,8 +21,9 @@ export type Comment = {
   created_at: string;
 };
 
-const POST_SELECT = "id,slug,title,content,excerpt,cover_image,created_at,published";
-// 兼容降级：新字段（slug/excerpt/cover_image）尚未加到数据库时的旧列集合
+const POST_SELECT =
+  "id,slug,title,content,excerpt,cover_image,created_at,published,status";
+// 兼容降级：status 列尚未迁移时的旧列集合
 const POST_SELECT_LEGACY = "id,title,content,created_at,published";
 
 /** 判断错误是否为"列不存在"（Postgres 42703 undefined_column） */
@@ -33,14 +35,16 @@ function isUndefinedColumn(error: unknown): boolean {
 
 /**
  * 已发布文章列表（首页 / sitemap 用），按时间倒序。
- * 若新扩展列尚未在数据库存在（用户未跑 ALTER TABLE），自动降级为旧列，避免整个站点报错。
+ * 优先按新模型 status='published' 查询；若 status 列尚未迁移（42703），
+ * 自动降级为旧模型 published=true，避免整个站点报错。
  */
 export async function getPublishedPosts(): Promise<Post[]> {
-  const { data, error } = await supabase
+  const query = supabase
     .from("posts")
     .select(POST_SELECT)
-    .eq("published", true)
+    .eq("status", "published")
     .order("created_at", { ascending: false });
+  const { data, error } = await query;
 
   if (error && isUndefinedColumn(error)) {
     const fallback = await supabase
@@ -48,12 +52,13 @@ export async function getPublishedPosts(): Promise<Post[]> {
       .select(POST_SELECT_LEGACY)
       .eq("published", true)
       .order("created_at", { ascending: false });
-    // 旧列不含新扩展字段，填充 null 以保持 Post 结构
+    // 旧列不含新扩展字段，填充默认值以保持 Post 结构
     const legacy = (fallback.data || []).map((row: Record<string, unknown>) => ({
       ...row,
       slug: null,
       excerpt: null,
       cover_image: null,
+      status: "published",
     })) as Post[];
     return legacy;
   }
@@ -72,7 +77,18 @@ async function queryPostBy<K extends "id" | "slug">(
 ): Promise<{ data: Post | null; error: unknown }> {
   const run = async (select: string) => {
     const builder = supabase.from("posts").select(select).eq(field as never, value as never);
-    return (await builder.maybeSingle()) as { data: Post | null; error: unknown };
+    const result = (await builder.maybeSingle()) as { data: Post | null; error: unknown };
+    // 旧列降级时补默认值
+    if (select === POST_SELECT_LEGACY && result.data) {
+      result.data = {
+        ...result.data,
+        slug: null,
+        excerpt: null,
+        cover_image: null,
+        status: "published",
+      };
+    }
+    return result;
   };
 
   let result = await run(POST_SELECT);
