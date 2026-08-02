@@ -178,7 +178,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 公开读的文章图片存储桶（仅博主可上传/删除，RLS 策略见 `0002_rls.sql` / `0003_markdown_draft.sql`）。
 
-> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0003），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0004），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
 
 ---
 
@@ -243,6 +243,6 @@ git push origin main
 当前版本为 MVP，存在以下待改进点（详见优化方案文档）：
 
 1. ~~**安全**：数据增删改由浏览器端直接调用 Supabase anon key 完成~~ ✅ **已解决（Phase 0）**
-2. ~~**内容**：正文为纯文本，无 Markdown / 富文本 / 代码高亮~~ ✅ **已解决（Phase 1）**：Markdown 渲染 + TipTap 编辑器 + 草稿/编辑 + 图片上传（代码已完成，需执行 `0003_markdown_draft.sql` 迁移后正式生效）
+2. ~~**内容**：正文为纯文本，无 Markdown / 富文本 / 代码高亮~~ ✅ **已解决（Phase 1）**：Markdown 渲染 + TipTap 编辑器 + 草稿/编辑 + 图片上传，迁移已执行、测试通过
 3. **功能**：无标签分类、搜索、分页、浏览量统计、RSS。
 4. **工程化**：无自动化测试、CI 流水线、错误监控、数据备份策略。
