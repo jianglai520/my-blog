@@ -133,7 +133,7 @@ export default async function PostPage({ params }: Props) {
           </div>
         )}
 
-        <CommentForm postId={post.id} />
+        <CommentForm postId={post.id} identifier={identifier} />
       </section>
     </article>
   );
