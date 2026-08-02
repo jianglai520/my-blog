@@ -24,6 +24,27 @@
 
 ---
 
+## 🧪 工程质量（Phase 4）
+
+| 能力 | 说明 |
+|------|------|
+| 单元测试 | **Vitest**（40 个用例）：`lib/format`、zod 校验层、Server Actions 权限分支 |
+| E2E 测试 | **Playwright**（chromium）：首页/文章/搜索/RSS/登录（`npm run test:e2e`） |
+| CI 流水线 | **GitHub Actions**（`.github/workflows/ci.yml`）：push/PR 自动跑 lint + 单测 + 构建（+ E2E） |
+| 错误监控 | **Sentry**（`SENTRY_DSN` 配置后生效）+ 自定义 `error.tsx` / `global-error.tsx` |
+| 访问分析 | **Vercel Analytics**（`@vercel/analytics`，Dashboard 开启） |
+| 数据备份 | 见 **`BACKUP.md`**（手动导出 + 迁移脚本 + 恢复演练） |
+
+```bash
+npm test          # 单元测试
+npm run test:e2e  # E2E 测试（需先 build）
+npm run lint      # ESLint
+```
+
+> CI 的 build/E2E 需要 GitHub Secrets：`NEXT_PUBLIC_SUPABASE_URL`、`NEXT_PUBLIC_SUPABASE_ANON_KEY`、`DATABASE_URL`、（E2E 可选）`TEST_EMAIL`/`TEST_PASSWORD`。
+
+---
+
 ## ✅ 已实现功能
 
 | 功能 | 说明 |
@@ -257,4 +278,4 @@ git push origin main
 1. ~~**安全**：数据增删改由浏览器端直接调用 Supabase anon key 完成~~ ✅ **已解决（Phase 0）**
 2. ~~**内容**：正文为纯文本，无 Markdown / 富文本 / 代码高亮~~ ✅ **已解决（Phase 1）**：Markdown 渲染 + TipTap 编辑器 + 草稿/编辑 + 图片上传，迁移已执行、测试通过
 3. ~~**功能**：无标签分类、搜索、分页、浏览量统计、RSS~~ ✅ **已解决（Phase 3）**：标签系统 + 搜索 + 分页 + 浏览量 + RSS + 归档 + 关于页 + 评论管理，迁移已执行、测试通过
-4. **工程化**：无自动化测试、CI 流水线、错误监控、数据备份策略。
+4. ~~**工程化**：无自动化测试、CI 流水线、错误监控、数据备份策略~~ ✅ **已解决（Phase 4）**：Vitest 单元测试（40 用例）+ Playwright E2E + GitHub Actions CI + Sentry 错误监控 + Vercel Analytics + 备份文档（见 `BACKUP.md`；Sentry DSN 配置后生效）
