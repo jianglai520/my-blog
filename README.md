@@ -16,7 +16,8 @@
 | **React** | 19.2.4 | UI 组件 |
 | **TypeScript** | ^5 | 类型安全 |
 | **Tailwind CSS** | ^4 | 样式（CSS-first `@theme` 设计系统） |
-| **Supabase** | ^2.108 | 数据库（PostgreSQL）+ 认证（Auth） |
+| **Supabase** | ^2.108 | 认证（Auth）+ 写操作（RLS 防线） |
+| **Drizzle ORM** | ^0.45 | 公开读数据层（schema 即类型真相，直连 Postgres） |
 | **Vercel** | — | 托管部署（Git 推送自动部署） |
 
 > 运行环境要求：Node.js ≥ 20.9（开发环境使用 Node 24.14.0）。
@@ -71,15 +72,19 @@ my-blog/
 │   ├── robots.ts                   # 搜索引擎爬虫规则
 │   ├── sitemap.ts                  # 站点地图（动态生成）
 │   └── favicon.ico
+├── db/
+│   └── schema.ts                    # Drizzle schema（类型真相，数据库结构变更入口）
 ├── lib/
 │   ├── server/
 │   │   └── supabase.ts             # 服务端客户端 + 鉴权工具（server-only 保护）
-│   ├── posts.ts                    # 公开读数据层：文章/评论查询（含列降级兼容）
+│   ├── db.ts                       # Drizzle 客户端（连接池单例，仅服务端读路径）
+│   ├── posts.ts                    # 公开读数据层（Drizzle，强制 status='published' 过滤）
+│   ├── validations/                # zod 校验 schema（posts/comments/auth，服务端客户端共用）
 │   ├── format.ts                   # 中文日期格式化 / slugify / stripMarkdown
-│   └── supabase.js                 # anon 客户端（仅服务端公开读引用）
 ├── proxy.ts                        # 路由守卫（Next 16 中 middleware 更名为此）
+├── drizzle.config.ts               # drizzle-kit 配置（schema → 迁移 SQL）
 ├── supabase/
-│   └── migrations/                 # 数据库迁移 SQL（0001 表结构 / 0002 RLS / 0003 Markdown+草稿+bucket）
+│   └── migrations/                 # 数据库迁移 SQL（0001~0004，手动在 SQL Editor 执行）
 ├── scripts/
 │   └── generate-og.mjs             # 一次性脚本：生成 public/og.png
 ├── public/
@@ -119,6 +124,9 @@ npm run lint    # ESLint 检查
 |------|------|----------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目 URL | Supabase 控制台 → Project Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 公开匿名密钥（anon key） | 同上 |
+| `DATABASE_URL` | **服务端专用**数据库连接串（Drizzle 直连用，**不带 NEXT_PUBLIC_ 前缀**） | Supabase → Project Settings → Database → Connection string → **Transaction pooler**（端口 6543） |
+
+> ⚠️ `DATABASE_URL` 是能直连数据库的服务端密钥：只在 `.env.local` / Vercel 服务端环境变量里，**绝不暴露给浏览器**（Vercel 配置时**不勾选** "Expose to Client"）。
 
 示例：
 

@@ -1,33 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
+import { postSchema, type PostFormInput } from "@/lib/validations/posts";
 
 export type PostFormState = {
   message: string;
   success: boolean;
 };
 
-/** 文章表单校验（创建 / 编辑共用） */
-const postSchema = z.object({
-  title: z.string().trim().min(1, "标题不能为空").max(120),
-  slug: z
-    .string()
-    .trim()
-    .regex(/^[a-z0-9-]+$/i, "slug 只能包含字母、数字和连字符")
-    .max(100)
-    .optional()
-    .or(z.literal("")),
-  excerpt: z.string().trim().max(200, "摘要最长 200 字").optional().or(z.literal("")),
-  coverImage: z.string().trim().url("封面图需为合法 URL").optional().or(z.literal("")),
-  content: z.string().trim().min(1, "内容不能为空"),
-  status: z.enum(["draft", "published"]).default("published"),
-});
-
 /** 解析表单并统一校验（返回错误消息或解析后的数据） */
 function parseForm(formData: FormData):
-  | { ok: true; data: z.infer<typeof postSchema> }
+  | { ok: true; data: PostFormInput }
   | { ok: false; message: string } {
   const parsed = postSchema.safeParse({
     title: String(formData.get("title") || ""),
@@ -43,6 +27,30 @@ function parseForm(formData: FormData):
     return { ok: false, message: `❌ ${first?.message || "输入不合法"}` };
   }
   return { ok: true, data: parsed.data };
+}
+
+/**
+ * slug 唯一化：若候选 slug 已被其他文章占用，自动追加 -2、-3… 后缀。
+ * 避免自动生成的 slug（slugify 基于标题）与已有文章冲突报 23505。
+ * 返回最终唯一 slug；excludeId 用于编辑时排除自身。
+ */
+async function ensureUniqueSlug(
+  supabase: Awaited<ReturnType<typeof getServerSupabase>>,
+  slug: string,
+  excludeId?: number,
+): Promise<string> {
+  let candidate = slug;
+  let i = 2;
+  for (;;) {
+    const { data } = await supabase
+      .from("posts")
+      .select("id")
+      .eq("slug", candidate)
+      .maybeSingle();
+    const taken = data && data.id !== excludeId;
+    if (!taken) return candidate;
+    candidate = `${slug}-${i++}`;
+  }
 }
 
 /** 发布新文章：zod 校验 → 博主鉴权 → 写库 → 刷新缓存 */
@@ -65,9 +73,10 @@ export async function createPost(
 
   const { title, slug, excerpt, coverImage, content, status } = parsed.data;
   const supabase = await getServerSupabase();
+  const finalSlug = slug ? await ensureUniqueSlug(supabase, slug) : null;
   const { error } = await supabase.from("posts").insert({
     title,
-    slug: slug || null,
+    slug: finalSlug,
     excerpt: excerpt || null,
     cover_image: coverImage || null,
     content,
@@ -112,11 +121,12 @@ export async function updatePost(
 
   const { title, slug, excerpt, coverImage, content, status } = parsed.data;
   const supabase = await getServerSupabase();
+  const finalSlug = slug ? await ensureUniqueSlug(supabase, slug, postId) : null;
   const { data: updated, error } = await supabase
     .from("posts")
     .update({
       title,
-      slug: slug || null,
+      slug: finalSlug,
       excerpt: excerpt || null,
       cover_image: coverImage || null,
       content,
