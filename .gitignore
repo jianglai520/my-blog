@@ -47,3 +47,6 @@ next-env.d.ts
 /playwright-report/
 blob-report/
 playwright/.cache/
+
+# data backups (含数据库内容，不提交)
+/backups/
