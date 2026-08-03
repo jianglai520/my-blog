@@ -142,6 +142,8 @@ export async function createPost(
   await syncPostTags(supabase, created.id, tags ?? "");
 
   revalidatePath("/");
+  revalidatePath("/archives");
+  revalidatePath("/sitemap.xml");
   revalidatePath("/admin");
   return {
     message: status === "published" ? "✅ 发布成功！" : "✅ 草稿已保存！",
@@ -197,6 +199,8 @@ export async function updatePost(
 
   revalidatePath("/");
   revalidatePath("/admin");
+  revalidatePath("/archives");
+  revalidatePath("/sitemap.xml");
   if (updated?.slug) revalidatePath(`/posts/${updated.slug}`);
   return {
     message: status === "published" ? "✅ 已发布！" : "✅ 草稿已更新！",
