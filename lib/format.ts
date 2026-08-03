@@ -1,9 +1,10 @@
-/** 格式化为中文日期：2026年8月2日 */
+/** 格式化为中文日期：2026年8月2日（固定 Asia/Shanghai，避免 SSR 服务器时区（UTC）与客户端不一致） */
 export function formatDate(input: string): string {
   return new Date(input).toLocaleDateString("zh-CN", {
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: "Asia/Shanghai",
   });
 }
 
@@ -15,6 +16,7 @@ export function formatDateTime(input: string): string {
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Asia/Shanghai",
   });
 }
 
