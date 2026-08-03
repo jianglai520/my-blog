@@ -1,66 +1,64 @@
-import Link from "next/link";
+import { GitFork, Mail, Feather } from "lucide-react";
+import { getSiteSettings } from "@/lib/site";
 
-const SOCIALS = [
-  {
-    label: "GitHub",
-    href: "https://github.com",
-    placeholder: true,
-  },
-  {
-    label: "X / Twitter",
-    href: "https://x.com",
-    placeholder: true,
-  },
-  {
-    label: "邮箱",
-    href: "mailto:hi@jianglai520.com",
-    placeholder: true,
-  },
-];
+export default async function SiteFooter() {
+  const settings = await getSiteSettings();
 
-export default function SiteFooter() {
+  const socials = [
+    settings.github && { label: "GitHub", href: settings.github, icon: GitFork },
+    settings.email && { label: "邮箱", href: `mailto:${settings.email}`, icon: Mail },
+  ].filter(Boolean) as { label: string; href: string; icon: typeof GitFork }[];
+
   return (
     <footer className="border-t border-ink-700/60 bg-ink-900/60">
-      <div className="mx-auto max-w-5xl px-4 py-10">
+      <div className="mx-auto max-w-5xl px-4 py-12">
         <div className="grid gap-10 md:grid-cols-3">
           <div>
-            <h2 className="mb-3 font-display text-sm font-semibold text-fg">
+            <h2 className="page-heading mb-3 font-display text-sm font-semibold text-fg">
               关于
             </h2>
             <p className="text-sm leading-relaxed text-fg-muted">
-              个人博客，记录技术实践、学习心得与生活思考。
-              这里是我的数字花园。
+              {settings.bio}
             </p>
           </div>
 
           <div>
-            <h2 className="mb-3 font-display text-sm font-semibold text-fg">
+            <h2 className="page-heading mb-3 font-display text-sm font-semibold text-fg">
               关注我
             </h2>
-            <p className="mb-2 text-xs text-fg-faint">（占位链接，待补充真实地址）</p>
-            <ul className="space-y-2">
-              {SOCIALS.map((social) => (
-                <li key={social.label}>
-                  <Link
-                    href={social.href}
-                    className="text-sm text-fg-muted transition-colors hover:text-brand-300"
-                  >
-                    {social.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            {socials.length === 0 ? (
+              <p className="text-sm text-fg-faint">
+                社交链接待补充（后台「站点设置」可配置）
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {socials.map((social) => (
+                  <li key={social.label}>
+                    <a
+                      href={social.href}
+                      target={social.href.startsWith("http") ? "_blank" : undefined}
+                      rel={social.href.startsWith("http") ? "noreferrer noopener" : undefined}
+                      className="group inline-flex items-center gap-2 text-sm text-fg-muted transition-colors hover:text-brand-300"
+                    >
+                      <social.icon size={15} className="text-fg-faint transition-colors group-hover:text-brand-300" />
+                      {social.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div>
-            <h2 className="mb-3 font-display text-sm font-semibold text-fg">
+            <h2 className="page-heading mb-3 font-display text-sm font-semibold text-fg">
               信息
             </h2>
             <ul className="space-y-2 text-sm text-fg-muted">
-              <li className="text-fg-faint">
-                © {new Date().getFullYear()} jianglai520.com
+              <li className="flex items-center gap-2 text-fg-faint">
+                <Feather size={14} />
+                © {new Date().getFullYear()} {settings.author_name} · jianglai520.com
               </li>
-              <li className="text-fg-faint">备案号占位：待填写</li>
+              {settings.icp && <li className="text-fg-faint">{settings.icp}</li>}
             </ul>
           </div>
         </div>

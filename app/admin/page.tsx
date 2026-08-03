@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import AdminClient from "./AdminClient";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
+import { getSiteSettings } from "@/lib/site";
 import type { Post, Comment } from "@/lib/posts";
 
 // 后台始终读最新数据，不做静态缓存
@@ -28,11 +29,14 @@ export default async function AdminPage() {
       .limit(200),
   ]);
 
+  const siteSettings = await getSiteSettings();
+
   return (
     <AdminClient
       userEmail={admin.email}
       posts={((posts ?? []) as unknown as AdminPost[]) }
       comments={((comments ?? []) as Comment[]) || []}
+      siteSettings={siteSettings}
     />
   );
 }

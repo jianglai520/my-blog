@@ -74,6 +74,13 @@ export const postTags = pgTable(
   (t) => [primaryKey({ columns: [t.post_id, t.tag_id] })],
 );
 
+/** 站点配置（key-value，管理员后台可改，前台读取） */
+export const siteSettings = pgTable("site_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull().default(""),
+  updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+});
+
 /* ================= relations（供 db.query 嵌套查询） ================= */
 
 export const postsRelations = relations(posts, ({ many }) => ({
@@ -98,3 +105,4 @@ export type NewComment = typeof comments.$inferInsert;
 export type Profile = typeof profiles.$inferSelect;
 export type Tag = typeof tags.$inferSelect;
 export type PostTag = typeof postTags.$inferSelect;
+export type SiteSetting = typeof siteSettings.$inferSelect;

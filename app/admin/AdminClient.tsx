@@ -13,7 +13,9 @@ import {
 } from "@/app/actions/posts";
 import { deleteComment } from "@/app/actions/comments";
 import { logout } from "@/app/actions/auth";
+import { updateSiteSettings, type SettingsState } from "@/app/actions/settings";
 import { slugify } from "@/lib/format";
+import type { SiteSettings } from "@/lib/site";
 import type { Post, Comment } from "@/lib/posts";
 
 const inputCls =
@@ -204,21 +206,182 @@ function PostForm({
   );
 }
 
+/* ============ 站点设置表单 ============ */
+
+const initialSettingsState: SettingsState = { message: "", success: false };
+
+function SettingsForm({ settings }: { settings: SiteSettings }) {
+  const [authorName, setAuthorName] = useState(settings.author_name);
+  const [intro, setIntro] = useState(settings.intro);
+  const [bio, setBio] = useState(settings.bio);
+  const [github, setGithub] = useState(settings.github);
+  const [email, setEmail] = useState(settings.email);
+  const [avatarUrl, setAvatarUrl] = useState(settings.avatar_url);
+  const [icp, setIcp] = useState(settings.icp);
+
+  const [state, formAction, pending] = useActionState<SettingsState, FormData>(
+    updateSiteSettings,
+    initialSettingsState
+  );
+
+  // 保存成功后刷新（首页/关于页缓存）
+  const router = useRouter();
+  const savedRef = useRef(false);
+  useEffect(() => {
+    if (state.success && !savedRef.current) {
+      savedRef.current = true;
+      router.refresh();
+    }
+  }, [state.success, router]);
+
+  return (
+    <div className="rounded-2xl border border-ink-700/60 bg-ink-900/50 p-8">
+      <h2 className="mb-6 text-xl font-bold text-fg">⚙️ 站点设置</h2>
+      <p className="mb-6 text-sm text-fg-faint">
+        这些信息会显示在首页、关于页和页脚；保存后立即生效。
+      </p>
+
+      <form action={formAction} className="space-y-5">
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label htmlFor="set-author" className="mb-2 block text-sm text-fg-muted">
+              博主名字
+            </label>
+            <input
+              id="set-author"
+              name="author_name"
+              type="text"
+              value={authorName}
+              onChange={(e) => setAuthorName(e.target.value)}
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label htmlFor="set-intro" className="mb-2 block text-sm text-fg-muted">
+              一句话简介
+            </label>
+            <input
+              id="set-intro"
+              name="intro"
+              type="text"
+              value={intro}
+              onChange={(e) => setIntro(e.target.value)}
+              placeholder="全栈学习者 & 生活记录者"
+              className={inputCls}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="set-bio" className="mb-2 block text-sm text-fg-muted">
+            个人介绍（关于页）
+          </label>
+          <textarea
+            id="set-bio"
+            name="bio"
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            rows={4}
+            placeholder="写一段自我介绍..."
+            className={`${inputCls} resize-y`}
+          />
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label htmlFor="set-github" className="mb-2 block text-sm text-fg-muted">
+              GitHub 链接
+            </label>
+            <input
+              id="set-github"
+              name="github"
+              type="url"
+              value={github}
+              onChange={(e) => setGithub(e.target.value)}
+              placeholder="https://github.com/你的用户名"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label htmlFor="set-email" className="mb-2 block text-sm text-fg-muted">
+              邮箱
+            </label>
+            <input
+              id="set-email"
+              name="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label htmlFor="set-avatar" className="mb-2 block text-sm text-fg-muted">
+              头像图片 URL（可选）
+            </label>
+            <input
+              id="set-avatar"
+              name="avatar_url"
+              type="url"
+              value={avatarUrl}
+              onChange={(e) => setAvatarUrl(e.target.value)}
+              placeholder="https://.../avatar.png"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label htmlFor="set-icp" className="mb-2 block text-sm text-fg-muted">
+              备案号（可选）
+            </label>
+            <input
+              id="set-icp"
+              name="icp"
+              type="text"
+              value={icp}
+              onChange={(e) => setIcp(e.target.value)}
+              placeholder="京ICP备xxxxxxxx号"
+              className={inputCls}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-lg bg-gradient-to-r from-brand-600 to-brand-500 px-6 py-3 font-medium text-white transition-colors hover:from-brand-500 hover:to-glow-400 disabled:cursor-not-allowed disabled:bg-ink-600"
+          >
+            {pending ? "保存中..." : "💾 保存设置"}
+          </button>
+          {state.message && (
+            <span className={`text-sm ${state.success ? "text-emerald-400" : "text-red-400"}`}>
+              {state.message}
+            </span>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+}
+
 /* ============ 后台主界面 ============ */
 
 export default function AdminClient({
   userEmail,
   posts,
   comments,
+  siteSettings,
 }: {
   userEmail: string;
   posts: AdminPost[];
   comments: Comment[];
+  siteSettings: SiteSettings;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState<AdminPost | null>(null);
   const [formVersion, setFormVersion] = useState(0);
-  const [tab, setTab] = useState<"posts" | "comments">("posts");
+  const [tab, setTab] = useState<"posts" | "comments" | "settings">("posts");
 
   // 保存成功：退出编辑模式 + 递增 key 重置表单 + 刷新列表
   function handleSaved() {
@@ -277,6 +440,16 @@ export default function AdminClient({
           }`}
         >
           💬 评论管理（{comments.length}）
+        </button>
+        <button
+          onClick={() => setTab("settings")}
+          className={`rounded-t-lg px-4 py-2 text-sm transition-colors ${
+            tab === "settings"
+              ? "border-b-2 border-brand-500 text-fg"
+              : "text-fg-muted hover:text-fg"
+          }`}
+        >
+          ⚙️ 站点设置
         </button>
       </div>
 
@@ -370,7 +543,7 @@ export default function AdminClient({
             )}
           </div>
         </>
-      ) : (
+      ) : tab === "comments" ? (
         /* ===== 评论管理 ===== */
         <div className="rounded-2xl border border-ink-700/60 bg-ink-900/50 p-8">
           <h2 className="mb-6 text-xl font-bold text-fg">
@@ -426,6 +599,8 @@ export default function AdminClient({
             </div>
           )}
         </div>
+      ) : (
+        <SettingsForm settings={siteSettings} />
       )}
     </div>
   );

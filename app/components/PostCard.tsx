@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Eye } from "lucide-react";
 import { formatDate, stripMarkdown } from "@/lib/format";
 import type { PostWithTags } from "@/lib/posts";
 
@@ -12,18 +13,18 @@ export default function PostCard({ post }: { post: PostWithTags }) {
   const postUrl = `/posts/${post.slug ?? post.id}`;
 
   return (
-    <div className="glow-hover group relative block overflow-hidden rounded-2xl border border-ink-700/60 bg-ink-900/60">
+    <div className="gradient-card group relative block overflow-hidden rounded-2xl">
       {/* 整卡点击覆盖层（stretched link，z-0；内容链接需 relative z-10 才能在上层） */}
       <Link href={postUrl} className="absolute inset-0 z-0" aria-label={post.title} />
 
       {post.cover_image ? (
-        <div className="relative h-48 w-full sm:h-56">
+        <div className="relative h-44 w-full overflow-hidden sm:h-52">
           <Image
             src={post.cover_image}
             alt={post.title}
             fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 56rem"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            sizes="(max-width: 768px) 100vw, 40rem"
           />
         </div>
       ) : null}
@@ -32,17 +33,19 @@ export default function PostCard({ post }: { post: PostWithTags }) {
         <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-fg-faint">
           <span>{formatDate(post.created_at)}</span>
           {post.view_count != null && post.view_count > 0 && (
-            <span aria-label="阅读数">👁 {post.view_count}</span>
+            <span className="inline-flex items-center gap-1" aria-label="阅读数">
+              <Eye size={13} /> {post.view_count}
+            </span>
           )}
         </div>
 
-        <h3 className="mb-2 text-2xl font-semibold text-fg transition-colors group-hover:text-brand-300">
+        <h3 className="mb-2 text-xl font-semibold text-fg transition-colors group-hover:text-brand-300">
           <Link href={postUrl} className="relative z-10">
             {post.title}
           </Link>
         </h3>
 
-        <p className="text-fg-muted line-clamp-2">
+        <p className="text-sm text-fg-muted line-clamp-2">
           {post.excerpt || (post.content ? stripMarkdown(post.content).slice(0, 150) : "")}
         </p>
 
@@ -52,7 +55,7 @@ export default function PostCard({ post }: { post: PostWithTags }) {
               <Link
                 key={tag.slug}
                 href={`/tags/${tag.slug}`}
-                className="relative z-10 rounded-full border border-brand-400/30 bg-brand-500/10 px-2.5 py-0.5 text-xs text-brand-300 transition-colors hover:bg-brand-500/20"
+                className="relative z-10 rounded-full border border-brand-400/30 bg-brand-500/10 px-2.5 py-0.5 text-xs text-brand-300 transition-all hover:border-brand-400/60 hover:bg-brand-500/20"
               >
                 #{tag.name}
               </Link>

@@ -264,3 +264,125 @@ body::before {
   accent-color: var(--color-brand-500);
   margin-right: 0.5rem;
 }
+
+/* ================= 视觉升级（v2）================= */
+
+/* 渐变边框卡片：hover 时边框渐变发光 */
+.gradient-card {
+  position: relative;
+  background:
+    linear-gradient(
+        color-mix(in oklab, var(--color-ink-900) 85%, transparent),
+        color-mix(in oklab, var(--color-ink-900) 85%, transparent)
+      )
+      padding-box,
+    linear-gradient(135deg, rgba(139, 92, 246, 0.35), rgba(168, 85, 247, 0.12), rgba(139, 92, 246, 0.35))
+      border-box;
+  border: 1px solid transparent;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.gradient-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Hero 头像光环 */
+.avatar-ring {
+  position: relative;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #c4b5fd, #a855f7 45%, #7c3aed);
+  padding: 3px;
+  box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.4), var(--shadow-glow-lg);
+}
+.avatar-ring::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.35), transparent 70%);
+  animation: avatar-pulse 3s ease-in-out infinite;
+  z-index: -1;
+}
+@keyframes avatar-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+
+/* Hero 标题渐变动画（背景位移） */
+.hero-title {
+  background: linear-gradient(120deg, #c4b5fd 0%, #a855f7 35%, #7c3aed 65%, #c084fc 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: hero-gradient 6s ease-in-out infinite;
+}
+@keyframes hero-gradient {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+}
+
+/* 导航链接 hover 下划线动画 */
+.nav-link {
+  position: relative;
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.35rem;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--color-brand-400), var(--color-glow-400));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s ease;
+}
+.nav-link:hover::after {
+  transform: scaleX(1);
+}
+
+/* CTA 按钮渐变位移 */
+.btn-gradient {
+  background: linear-gradient(120deg, #7c3aed, #a855f7, #c084fc);
+  background-size: 200% auto;
+  transition: background-position 0.35s ease, box-shadow 0.3s ease, transform 0.2s ease;
+}
+.btn-gradient:hover {
+  background-position: right center;
+  box-shadow: var(--shadow-glow);
+}
+
+/* 页面标题条（渐变竖线） */
+.page-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.page-heading::before {
+  content: "";
+  width: 4px;
+  height: 1.25em;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, var(--color-glow-400), var(--color-brand-500));
+}
+
+/* 背景氛围增强：中央光晕 + 噪点纹理 */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(40rem 28rem at 50% -5%, rgba(124, 58, 237, 0.12), transparent 60%),
+    radial-gradient(30rem 20rem at 0% 100%, rgba(192, 132, 252, 0.06), transparent 55%);
+}
+body::before {
+  background-image:
+    radial-gradient(60rem 40rem at 85% -10%, rgba(139, 92, 246, 0.22), transparent 60%),
+    radial-gradient(50rem 34rem at -10% 110%, rgba(88, 28, 135, 0.28), transparent 55%),
+    radial-gradient(40rem 30rem at 50% 120%, rgba(147, 51, 234, 0.16), transparent 60%),
+    var(--color-ink-950);
+}

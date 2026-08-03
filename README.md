@@ -58,7 +58,8 @@ npm run lint      # ESLint
 | 🏷️ **标签系统** | 写文章打标签；`/tags/xxx` 标签页；首页卡片显示标签 |
 | 🔍 **搜索** | 导航搜索框（防抖），标题/摘要/正文模糊搜索 |
 | 📡 **RSS** | `/feed.xml`（Atom），layout 注入订阅链接 |
-| 🗂 **归档 / 关于** | 按年月归档页、个人关于页 |
+| 🗂 **归档 / 关于** | 按年月归档页、个人关于页（**个人信息后台可配置**） |
+| ⚙️ **站点设置** | 后台可随时修改博主名/简介/GitHub/邮箱/头像/备案号，前台即时生效 |
 | 💬 评论区 | 昵称 + 内容，即时显示；后台可删除 |
 | 🔐 登录 | Supabase Auth 邮箱登录（单管理员） |
 | 🛡️ 后台管理 | 服务端鉴权；文章管理（发布/编辑/删除/草稿）+ **评论管理** |
@@ -108,7 +109,7 @@ my-blog/
 ├── proxy.ts                        # 路由守卫（Next 16 中 middleware 更名为此）
 ├── drizzle.config.ts               # drizzle-kit 配置（schema → 迁移 SQL）
 ├── supabase/
-│   └── migrations/                 # 数据库迁移 SQL（0001~0004，手动在 SQL Editor 执行）
+│   └── migrations/                 # 数据库迁移 SQL（0001~0006，手动在 SQL Editor 执行）
 ├── scripts/
 │   └── generate-og.mjs             # 一次性脚本：生成 public/og.png
 ├── public/
@@ -192,6 +193,18 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `status` | text | 评论状态（当前均为 `approved`，为审核模式预留） |
 | `created_at` | timestamptz | 创建时间 |
 
+### 表 `site_settings`
+
+站点配置（key-value，管理员后台「站点设置」可随时修改，前台即时生效）：
+
+| key | 说明 |
+|-----|------|
+| `author_name` | 博主名字（默认「江来」） |
+| `intro` / `bio` | 一句话简介 / 关于页个人介绍 |
+| `github` / `email` | 社交链接 |
+| `avatar_url` | 头像图片 URL |
+| `icp` | 备案号 |
+
 ### 表 `tags` / `post_tags`
 
 | 表 | 说明 |
@@ -211,7 +224,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 公开读的文章图片存储桶（仅博主可上传/删除，RLS 策略见 `0002_rls.sql` / `0003_markdown_draft.sql`）。
 
-> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0004），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0006），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
 
 ---
 
