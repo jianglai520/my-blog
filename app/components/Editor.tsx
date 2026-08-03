@@ -6,7 +6,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "@tiptap/markdown";
 import Image from "@tiptap/extension-image";
-import { uploadImage, type UploadState } from "@/app/actions/uploads";
+import { uploadImage, uploadAttachment, type UploadState } from "@/app/actions/uploads";
 
 const initialUploadState: UploadState = { url: null, message: "", success: false };
 
@@ -53,8 +53,14 @@ export default function Editor({
   onChange: (md: string) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const attachRef = useRef<HTMLInputElement>(null);
+  const attachNameRef = useRef("附件");
   const [uploadState, uploadAction, uploadPending] = useActionState(
     uploadImage,
+    initialUploadState
+  );
+  const [attachState, attachAction, attachPending] = useActionState(
+    uploadAttachment,
     initialUploadState
   );
 
@@ -85,12 +91,34 @@ export default function Editor({
     e.target.value = "";
   }
 
+  // 选择附件后立即上传
+  function handleAttachChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    attachNameRef.current = file.name; // 记录原始文件名（存储路径是 UUID，插入链接时用原名）
+    const fd = new FormData();
+    fd.append("file", file);
+    startTransition(() => {
+      attachAction(fd);
+    });
+    e.target.value = "";
+  }
+
   // 图片上传成功后插入编辑器
   useEffect(() => {
     if (uploadState.success && uploadState.url && editor) {
       editor.chain().focus().setImage({ src: uploadState.url }).run();
     }
   }, [uploadState, editor]);
+
+  // 附件上传成功后插入下载链接（Markdown 语法，用原始文件名）
+  useEffect(() => {
+    if (attachState.success && attachState.url && editor) {
+      const filename = attachNameRef.current || "附件";
+      const md = `[📎 ${filename}](${attachState.url})`;
+      editor.chain().focus().insertContent(md, { contentType: "markdown" }).run();
+    }
+  }, [attachState, editor]);
 
   if (!editor) {
     return <div className="min-h-[320px] rounded-xl border border-ink-700/60 bg-ink-900/50" />;
@@ -171,6 +199,12 @@ export default function Editor({
         >
           🖼
         </ToolbarButton>
+        <ToolbarButton
+          title="插入附件（PDF/Word/Excel）"
+          onClick={() => attachRef.current?.click()}
+        >
+          📎
+        </ToolbarButton>
         <span className="mx-1 h-5 w-px bg-ink-700" />
         <ToolbarButton
           title="撤销"
@@ -189,13 +223,17 @@ export default function Editor({
 
         {/* 上传状态提示 */}
         <span className="ml-auto text-xs text-fg-faint">
-          {uploadPending
+          {uploadPending || attachPending
             ? "上传中…"
             : uploadState.success
               ? "✅ 已插入图片"
-              : uploadState.message.startsWith("❌")
-                ? uploadState.message
-                : ""}
+              : attachState.success
+                ? "✅ 已插入附件"
+                : uploadState.message.startsWith("❌")
+                  ? uploadState.message
+                  : attachState.message.startsWith("❌")
+                    ? attachState.message
+                    : ""}
         </span>
       </div>
 
@@ -205,12 +243,19 @@ export default function Editor({
         className="editor-content min-h-[320px] px-4 py-3 text-fg"
       />
 
-      {/* 文件选择框（视觉隐藏但可交互；选择后立即上传，仅博主可上传） */}
+      {/* 文件选择框（视觉隐藏但可交互；仅博主可上传） */}
       <input
         ref={fileRef}
         type="file"
         accept="image/png,image/jpeg,image/webp,image/gif"
         onChange={handleFileChange}
+        className="sr-only"
+      />
+      <input
+        ref={attachRef}
+        type="file"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.txt,.md,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,text/plain,text/markdown"
+        onChange={handleAttachChange}
         className="sr-only"
       />
     </div>

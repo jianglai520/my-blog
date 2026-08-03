@@ -5,6 +5,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import CommentForm from "./CommentForm";
 import Markdown from "@/app/components/Markdown";
 import ViewCounter from "@/app/components/ViewCounter";
+import AttachmentEnhancer from "@/app/components/AttachmentEnhancer";
 import { getComments, getPostByIdentifier } from "@/lib/posts";
 import { formatDateTime } from "@/lib/format";
 
@@ -120,6 +121,8 @@ export default async function PostPage({ params }: Props) {
 
       {/* 正文：Markdown 渲染（标题/列表/代码高亮/表格/图片） */}
       <Markdown source={post.content} />
+      {/* 附件链接增强：PDF 新窗口预览、Office 文档加在线预览按钮 */}
+      <AttachmentEnhancer />
 
       {/* ===== 评论区 ===== */}
       <section className="mt-14">
