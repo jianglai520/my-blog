@@ -4,7 +4,7 @@
 
 - 🌐 线上地址：**https://jianglai520.com**
 - 📦 代码仓库：`git@github.com:jianglai520/my-blog.git`
-- 🎨 视觉风格：霓虹紫 → 深色渐变（Tailwind CSS 4 设计系统）
+- 🎨 视觉风格：霓虹紫 → 深色渐变 + 浅色模式（Tailwind CSS 4 设计系统）
 
 ---
 
@@ -50,8 +50,10 @@ npm run lint      # ESLint
 | 功能 | 说明 |
 |------|------|
 | 📄 首页 | 英雄区 + 文章卡片列表（hover 发光、标签、阅读数）+ **分页** |
-| 📖 文章详情页 | 语义化 slug 链接（兼容旧数字 id，301 跳转）；显示标签、**浏览量** |
-| 📝 **Markdown 正文** | 标题 / 列表 / **代码高亮（shiki）** / 表格 / 引用 / 图片完整渲染 |
+| 📖 文章详情页 | 语义化 slug 链接（兼容旧数字 id，301 跳转）；显示标签、**浏览量**；阅读进度条 + 文章目录（TOC） |
+| 📝 **Markdown 正文** | 标题 / 列表 / **代码高亮（shiki 深浅双主题，无语言代码块自动补默认）** / 表格 / 引用 / 图片完整渲染 |
+| 🔍 **图片点击放大** | 文章正文图片点击查看大图（lightbox，点遮罩 / ✕ / Esc 关闭） |
+| 📋 **代码块复制** | 代码块右上角一键复制按钮 |
 | 🖊️ **富文本编辑器** | TipTap 所见即所得，保存为 Markdown |
 | 📥 **草稿与编辑** | 存草稿 / 发布 / 编辑续写，草稿永不公开 |
 | 🖼️ **图片上传** | 编辑器内选择本地图片 → Supabase Storage → 自动插入 |
@@ -85,7 +87,12 @@ my-blog/
 │   ├── components/
 │   │   ├── SiteHeader.tsx          # 顶部导航（毛玻璃）
 │   │   ├── SiteFooter.tsx          # 页脚（关于 / 社交 / 版权）
-│   │   ├── Markdown.tsx            # Markdown → HTML 渲染（RSC，代码高亮）
+│   │   ├── Markdown.tsx            # Markdown → HTML 渲染（RSC，shiki 双主题高亮）
+│   │   ├── ImageLightbox.tsx       # 文章图片点击放大（lightbox）
+│   │   ├── CodeBlockCopy.tsx       # 代码块复制按钮
+│   │   ├── ReadingProgress.tsx     # 文章阅读进度条
+│   │   ├── Toc.tsx                 # 文章目录（TOC）
+│   │   ├── ThemeToggle.tsx         # 深浅色主题切换
 │   │   └── Editor.tsx              # TipTap 富文本编辑器（client）
 │   ├── posts/
 │   │   └── [identifier]/
@@ -96,6 +103,12 @@ my-blog/
 │   │   └── AdminClient.tsx         # 后台交互（编辑器/草稿/编辑/删除）
 │   ├── login/
 │   │   └── page.tsx                # 登录页（useActionState 调 Server Actions）
+│   ├── tags/[slug]/                # 标签页（按标签筛选文章）
+│   ├── archives/                   # 归档页（按年月分组）
+│   ├── about/                      # 关于页
+│   ├── search/                     # 搜索页
+│   ├── feed.xml/                   # RSS 订阅（Atom）
+│   ├── og/                         # 动态 OpenGraph 分享图（edge，@vercel/og）
 │   ├── robots.ts                   # 搜索引擎爬虫规则
 │   ├── sitemap.ts                  # 站点地图（动态生成）
 │   └── favicon.ico
@@ -111,9 +124,11 @@ my-blog/
 ├── proxy.ts                        # 路由守卫（Next 16 中 middleware 更名为此）
 ├── drizzle.config.ts               # drizzle-kit 配置（schema → 迁移 SQL）
 ├── supabase/
-│   └── migrations/                 # 数据库迁移 SQL（0001~0006，手动在 SQL Editor 执行）
+│   └── migrations/                 # 数据库迁移 SQL（0001~0009，手动在 SQL Editor 执行）
 ├── scripts/
-│   └── generate-og.mjs             # 一次性脚本：生成 public/og.png
+│   ├── generate-og.mjs             # 一次性脚本：生成 public/og.png
+│   └── backup.mjs                  # 数据库备份脚本（导出全表 JSON 到 backups/）
+├── e2e/                            # Playwright E2E 测试（homepage/post/search/rss/auth）
 ├── public/
 │   └── og.png                      # OpenGraph 分享图（1200×630）
 ├── next.config.ts                  # Turbopack 根目录 / 远程图片白名单
@@ -193,6 +208,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `name` | text | 评论者昵称 |
 | `content` | text | 评论内容 |
 | `status` | text | 评论状态（当前均为 `approved`，为审核模式预留） |
+| `ip` | text（可空） | 评论者 IP（60 秒限流用，0009 迁移新增） |
 | `created_at` | timestamptz | 创建时间 |
 
 ### 表 `site_settings`
@@ -226,7 +242,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 公开读的文章图片存储桶（仅博主可上传/删除，RLS 策略见 `0002_rls.sql` / `0003_markdown_draft.sql`）。
 
-> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0006），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0009），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
 
 ---
 
@@ -296,3 +312,4 @@ git push origin main
 2. ~~**内容**：正文为纯文本，无 Markdown / 富文本 / 代码高亮~~ ✅ **已解决（Phase 1）**：Markdown 渲染 + TipTap 编辑器 + 草稿/编辑 + 图片上传，迁移已执行、测试通过
 3. ~~**功能**：无标签分类、搜索、分页、浏览量统计、RSS~~ ✅ **已解决（Phase 3）**：标签系统 + 搜索 + 分页 + 浏览量 + RSS + 归档 + 关于页 + 评论管理，迁移已执行、测试通过
 4. ~~**工程化**：无自动化测试、CI 流水线、错误监控、数据备份策略~~ ✅ **已解决（Phase 4）**：Vitest 单元测试（40 用例）+ Playwright E2E + GitHub Actions CI + Sentry 错误监控 + Vercel Analytics + 备份文档（见 `BACKUP.md`；Sentry DSN 配置后生效）
+5. **视觉风格**：博主对当前前端观感仍不满意（认为"太小儿科"）；已落地代码块双主题、图片 lightbox、阅读进度条、TOC 等体验深化；整体视觉方向（现代极简 / 杂志编辑 / 终端极客等）**待定案**（P1 优先级，见桌面优化方案文档）
