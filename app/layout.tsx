@@ -59,12 +59,39 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // 站点级结构化数据（WebSite + Person），供搜索引擎/AI 理解
+  const siteJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        name: "jianglai520 — 我的博客",
+        url: SITE_URL,
+        description: "个人技术博客，记录开发经验、学习笔记与生活随想。",
+        inLanguage: "zh-CN",
+      },
+      {
+        "@type": "Person",
+        name: "江来",
+        url: SITE_URL,
+      },
+    ],
+  };
+
   return (
     <html
       lang="zh-CN"
       suppressHydrationWarning
       className={`${notoSansSc.variable} ${spaceGrotesk.variable}`}
     >
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(siteJsonLd).replace(/</g, "\\u003c"),
+          }}
+        />
+      </head>
       <body className="min-h-screen antialiased">
         <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem>
           <SiteHeader />

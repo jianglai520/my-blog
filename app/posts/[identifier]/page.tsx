@@ -50,7 +50,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: post.excerpt || post.title,
       url: postUrl(post),
       type: "article",
-      images: [{ url: "/og.png", width: 1200, height: 630, alt: post.title }],
+      images: [
+        {
+          // 动态 OG 图：标题走 query（edge 运行时无法查库）
+          url: `/og?title=${encodeURIComponent(post.title)}`,
+          width: 1200,
+          height: 630,
+          alt: post.title,
+        },
+      ],
       publishedTime: post.created_at,
     },
   };
@@ -72,8 +80,27 @@ export default async function PostPage({ params }: Props) {
 
   const comments = await getComments(post.id);
 
+  // 文章级结构化数据（Article）
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: post.excerpt || undefined,
+    datePublished: post.created_at,
+    author: { "@type": "Person", name: "江来" },
+    image: post.cover_image || `${SITE_URL}/og?title=${encodeURIComponent(post.title)}`,
+    mainEntityOfPage: { "@type": "WebPage", "@id": postUrl(post) },
+    url: postUrl(post),
+  };
+
   return (
     <article className="mx-auto max-w-3xl px-4 py-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(articleJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       <Link
         href="/"
         className="mb-6 inline-flex items-center gap-1 text-sm text-fg-muted transition-colors hover:text-brand-300"
