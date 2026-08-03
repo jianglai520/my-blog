@@ -5,7 +5,8 @@ import { incrementView } from "@/app/actions/views";
 
 /**
  * 文章浏览量计数器（客户端）：
- * 挂载时检查 cookie，本篇文章当日未计过则调用 incrementView 并种 cookie 防刷。
+ * 每次打开文章页都 +1（博主选择「每次访问都 +1」，无防刷）。
+ * calledRef 防止 React StrictMode 下 effect 双调用导致的重复计数。
  */
 export default function ViewCounter({
   postId,
@@ -21,18 +22,8 @@ export default function ViewCounter({
     if (calledRef.current) return;
     calledRef.current = true;
 
-    const cookieName = `viewed_${postId}`;
-    const already = document.cookie
-      .split("; ")
-      .some((c) => c.startsWith(`${cookieName}=`));
-    if (already) return;
-
     incrementView(postId).then((n) => {
-      if (typeof n === "number") {
-        setCount(n);
-        // 24 小时后过期，允许再次计数
-        document.cookie = `${cookieName}=1; path=/; max-age=86400`;
-      }
+      if (typeof n === "number") setCount(n);
     });
   }, [postId]);
 
