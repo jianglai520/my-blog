@@ -19,8 +19,18 @@ function postUrl(post: { slug: string | null; id: number }): string {
   return post.slug ? `${SITE_URL}/posts/${post.slug}` : `${SITE_URL}/posts/${post.id}`;
 }
 
+/** Next 16 的 path 参数不自动解码，中文 slug 需显式 decodeURIComponent */
+function decodeIdentifier(id: string): string {
+  try {
+    return decodeURIComponent(id);
+  } catch {
+    return id;
+  }
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { identifier } = await params;
+  const { identifier: rawIdentifier } = await params;
+  const identifier = decodeIdentifier(rawIdentifier);
   const post = await getPostByIdentifier(identifier);
   if (!post) return { title: "文章未找到" };
 
@@ -43,7 +53,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PostPage({ params }: Props) {
-  const { identifier } = await params;
+  const { identifier: rawIdentifier } = await params;
+  const identifier = decodeIdentifier(rawIdentifier);
   const post = await getPostByIdentifier(identifier);
 
   if (!post) {

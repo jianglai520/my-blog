@@ -12,12 +12,22 @@ type Props = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
-  return { title: `标签 #${slug}` };
+  const { slug: rawSlug } = await params;
+  return { title: `标签 #${decodeSlug(rawSlug)}` };
+}
+
+/** Next 16 的 path 参数不自动解码，中文 slug 需显式 decodeURIComponent */
+function decodeSlug(slug: string): string {
+  try {
+    return decodeURIComponent(slug);
+  } catch {
+    return slug;
+  }
 }
 
 export default async function TagPage({ params, searchParams }: Props) {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = decodeSlug(rawSlug);
   const { page: pageStr } = await searchParams;
   const page = Math.max(1, Number(pageStr) || 1);
 
