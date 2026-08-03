@@ -9,6 +9,7 @@ import AttachmentEnhancer from "@/app/components/AttachmentEnhancer";
 import CodeBlockCopy from "@/app/components/CodeBlockCopy";
 import ReadingProgress from "@/app/components/ReadingProgress";
 import Toc from "@/app/components/Toc";
+import ImageLightbox from "@/app/components/ImageLightbox";
 import { getComments, getPostByIdentifier } from "@/lib/posts";
 import { formatDateTime } from "@/lib/format";
 
@@ -195,6 +196,8 @@ export default async function PostPage({ params }: Props) {
 
         <CommentForm postId={post.id} identifier={identifier} />
       </section>
+
+      <ImageLightbox />
     </article>
   );
 }
