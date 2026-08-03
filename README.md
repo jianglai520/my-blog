@@ -274,6 +274,8 @@ git push origin main
 - 环境变量：Vercel 项目 → Settings → Environment Variables
 - 私有仓库可见性：`my-blog` remote 为 SSH 方式
 
+> 🩺 排障：若 push 后 GitHub Actions 正常但 **Vercel 没自动部署**，检查 Vercel 项目 → Settings → Git → **Require Verified Commits** 开关是否误开（开启后只部署 GPG 签名提交，普通 commit 被静默跳过）；其次查 Usage 限额与 Git 连接状态。
+
 ---
 
 ## 📚 相关文档
