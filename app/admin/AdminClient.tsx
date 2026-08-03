@@ -14,6 +14,7 @@ import {
 import { deleteComment } from "@/app/actions/comments";
 import { logout } from "@/app/actions/auth";
 import { updateSiteSettings, type SettingsState } from "@/app/actions/settings";
+import { uploadAvatar } from "@/app/actions/uploads";
 import { slugify } from "@/lib/format";
 import type { SiteSettings } from "@/lib/site";
 import type { Post, Comment } from "@/lib/posts";
@@ -177,7 +178,7 @@ function PostForm({
             name="status"
             value="published"
             disabled={pending}
-            className="rounded-lg bg-gradient-to-r from-brand-600 to-brand-500 px-6 py-3 font-medium text-white transition-colors hover:from-brand-500 hover:to-glow-400 disabled:cursor-not-allowed disabled:bg-ink-600"
+            className="rounded-lg bg-gradient-to-r from-brand-600 to-brand-500 px-6 py-3 font-medium text-white transition-colors hover:from-brand-500 hover:to-glow-400 disabled:cursor-not-allowed disabled:bg-ink-600 disabled:text-fg-faint"
           >
             {pending ? "保存中..." : initial ? "📤 更新并发布" : "📝 发布"}
           </button>
@@ -218,6 +219,8 @@ function SettingsForm({ settings }: { settings: SiteSettings }) {
   const [email, setEmail] = useState(settings.email);
   const [avatarUrl, setAvatarUrl] = useState(settings.avatar_url);
   const [icp, setIcp] = useState(settings.icp);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [state, formAction, pending] = useActionState<SettingsState, FormData>(
     updateSiteSettings,
@@ -233,6 +236,27 @@ function SettingsForm({ settings }: { settings: SiteSettings }) {
       router.refresh();
     }
   }, [state.success, router]);
+
+  // 选择头像文件 → 直接调上传 Server Action（事件处理器里 setState 合法，不用 useActionState）
+  async function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setAvatarUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const result = await uploadAvatar({ url: null, message: "", success: false }, fd);
+      if (result.success && result.url) {
+        setAvatarUrl(result.url);
+        alert("✅ 头像已上传，点击下方「保存设置」生效");
+      } else {
+        alert(result.message);
+      }
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
 
   return (
     <div className="rounded-2xl border border-ink-700/60 bg-ink-900/50 p-8">
@@ -318,17 +342,37 @@ function SettingsForm({ settings }: { settings: SiteSettings }) {
           </div>
           <div>
             <label htmlFor="set-avatar" className="mb-2 block text-sm text-fg-muted">
-              头像图片 URL（可选）
+              头像图片（可上传或填 URL）
             </label>
-            <input
-              id="set-avatar"
-              name="avatar_url"
-              type="url"
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://.../avatar.png"
-              className={inputCls}
-            />
+            <div className="flex gap-2">
+              <input
+                id="set-avatar"
+                name="avatar_url"
+                type="url"
+                value={avatarUrl}
+                onChange={(e) => setAvatarUrl(e.target.value)}
+                placeholder="https://.../avatar.png"
+                className={inputCls}
+              />
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleAvatarFile}
+                className="sr-only"
+              />
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="flex-shrink-0 rounded-lg border border-brand-400/30 px-4 py-3 text-sm text-brand-300 transition-colors hover:bg-brand-400/10 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {avatarUploading ? "上传中…" : "上传"}
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-fg-faint">
+              支持 PNG / JPG / WebP，≤5MB；上传后点「保存设置」生效
+            </p>
           </div>
           <div>
             <label htmlFor="set-icp" className="mb-2 block text-sm text-fg-muted">
@@ -350,7 +394,7 @@ function SettingsForm({ settings }: { settings: SiteSettings }) {
           <button
             type="submit"
             disabled={pending}
-            className="rounded-lg bg-gradient-to-r from-brand-600 to-brand-500 px-6 py-3 font-medium text-white transition-colors hover:from-brand-500 hover:to-glow-400 disabled:cursor-not-allowed disabled:bg-ink-600"
+            className="rounded-lg bg-gradient-to-r from-brand-600 to-brand-500 px-6 py-3 font-medium text-white transition-colors hover:from-brand-500 hover:to-glow-400 disabled:cursor-not-allowed disabled:bg-ink-600 disabled:text-fg-faint"
           >
             {pending ? "保存中..." : "💾 保存设置"}
           </button>

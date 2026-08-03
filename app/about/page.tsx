@@ -49,7 +49,7 @@ export default async function AboutPage() {
                 className="h-full w-full rounded-full object-cover"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center rounded-full bg-ink-900 font-display text-2xl font-bold text-white">
+              <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-glow-500 font-display text-2xl font-bold text-white">
                 {settings.author_name.charAt(0)}
               </div>
             )}

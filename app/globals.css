@@ -48,7 +48,7 @@
 /* ================= 全局基础 ================= */
 
 html {
-  color-scheme: dark;
+  color-scheme: light dark;
   scroll-behavior: smooth;
 }
 
@@ -286,26 +286,16 @@ body::before {
   box-shadow: var(--shadow-glow);
 }
 
-/* Hero 头像光环 */
+/* Hero 头像（简洁细边框，去掉脉冲光晕） */
 .avatar-ring {
   position: relative;
   border-radius: 9999px;
-  background: linear-gradient(135deg, #c4b5fd, #a855f7 45%, #7c3aed);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.35), rgba(139, 92, 246, 0.10));
   padding: 3px;
-  box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.4), var(--shadow-glow-lg);
+  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.10);
 }
 .avatar-ring::after {
-  content: "";
-  position: absolute;
-  inset: -6px;
-  border-radius: 9999px;
-  background: radial-gradient(circle, rgba(168, 85, 247, 0.35), transparent 70%);
-  animation: avatar-pulse 3s ease-in-out infinite;
-  z-index: -1;
-}
-@keyframes avatar-pulse {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.06); }
+  display: none; /* 原脉冲光晕已移除 */
 }
 
 /* Hero 标题渐变动画（背景位移） */
@@ -385,4 +375,47 @@ body::before {
     radial-gradient(50rem 34rem at -10% 110%, rgba(88, 28, 135, 0.28), transparent 55%),
     radial-gradient(40rem 30rem at 50% 120%, rgba(147, 51, 234, 0.16), transparent 60%),
     var(--color-ink-950);
+}
+
+/* ================= 浅色模式（data-theme="light"）================= */
+
+:root[data-theme="light"] {
+  /* 语义变量：深墨 → 浅底（品牌紫不变） */
+  --color-ink-950: #f7f7fb;  /* 页面底：近白微紫 */
+  --color-ink-900: #ffffff;  /* 卡片底 */
+  --color-ink-800: #f2f2f8;  /* 输入/次级底 */
+  --color-ink-700: #e5e5ef;  /* 边框 */
+  --color-ink-600: #d4d4e2;  /* 强边框 */
+  --color-fg: #1a1a2e;       /* 主文字：深墨紫 */
+  --color-fg-muted: #5a5a72;
+  --color-fg-faint: #8b8ba3;
+  --shadow-glow: 0 0 24px 0 rgba(139, 92, 246, 0.12);
+  --shadow-glow-lg: 0 0 48px 0 rgba(168, 85, 247, 0.18);
+}
+
+/* 浅色：背景光斑淡化为淡紫 */
+:root[data-theme="light"] body::before {
+  background-image:
+    radial-gradient(60rem 40rem at 85% -10%, rgba(139, 92, 246, 0.10), transparent 60%),
+    radial-gradient(50rem 34rem at -10% 110%, rgba(139, 92, 246, 0.08), transparent 55%),
+    radial-gradient(40rem 30rem at 50% 120%, rgba(168, 85, 247, 0.06), transparent 60%),
+    var(--color-ink-950);
+}
+:root[data-theme="light"] body::after {
+  background:
+    radial-gradient(40rem 28rem at 50% -5%, rgba(124, 58, 237, 0.05), transparent 60%),
+    radial-gradient(30rem 20rem at 0% 100%, rgba(192, 132, 252, 0.04), transparent 55%);
+}
+
+/* 浅色：Markdown 细节淡化（代码块保持深色 github-dark） */
+:root[data-theme="light"] .markdown-body :not(pre) > code {
+  background: rgba(139, 92, 246, 0.10);
+  color: #6d28d9;
+}
+:root[data-theme="light"] .markdown-body blockquote {
+  background: rgba(139, 92, 246, 0.06);
+  color: var(--color-fg-muted);
+}
+:root[data-theme="light"] .markdown-body a {
+  color: #7c3aed;
 }
