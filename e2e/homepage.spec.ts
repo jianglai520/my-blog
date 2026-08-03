@@ -4,8 +4,9 @@ test("首页加载并展示文章列表", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle(/jianglai520/);
 
-  // 英雄区存在
-  await expect(page.getByText(/你好，我是航酱/)).toBeVisible();
+  // 英雄区存在（不依赖具体博主名——站点配置可后台修改）
+  await expect(page.locator("h1").first()).toBeVisible();
+  await expect(page.locator(".hero-title")).toBeVisible();
 
   // 文章列表标题（存在至少一个 h3 文章标题）
   const h3Count = await page.locator("h3").count();

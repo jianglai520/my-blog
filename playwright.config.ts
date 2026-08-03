@@ -12,13 +12,11 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    // 本地用 dev（快速）；CI 用生产构建
-    command: process.env.CI
-      ? "npm run build && npm run start"
-      : "npm run dev",
+    // 统一用生产模式（dev 按需编译在并发下不稳定，且与 CI 保持一致）
+    command: "npm run build && npm run start",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 180_000,
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });

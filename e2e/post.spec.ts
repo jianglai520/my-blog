@@ -1,7 +1,14 @@
 import { test, expect } from "@playwright/test";
 
 test("文章详情页渲染 Markdown 正文", async ({ page }) => {
-  await page.goto("/posts/7"); // 使用固定测试文章（测试1）
+  // 从首页动态获取第一篇文章链接，避免依赖固定文章 id（可能被删/slug 变化）
+  await page.goto("/");
+  const firstLink = page.locator("h3 a").first();
+  await expect(firstLink).toBeVisible();
+  const href = await firstLink.getAttribute("href");
+  expect(href).toMatch(/^\/posts\//);
+
+  await page.goto(href!);
   await expect(page.locator(".markdown-body")).toBeVisible();
   await expect(page.locator("h1").first()).toBeVisible();
 
