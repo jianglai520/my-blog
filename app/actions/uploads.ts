@@ -79,7 +79,7 @@ export async function uploadImage(
   formData: FormData
 ): Promise<UploadState> {
   const file = formData.get("file");
-  if (!(file instanceof File) && typeof file !== "object") {
+  if (!file || typeof file === "string" || typeof (file as File).arrayBuffer !== "function") {
     return { url: null, message: "❌ 请选择要上传的图片", success: false };
   }
   const date = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
@@ -92,7 +92,7 @@ export async function uploadAvatar(
   formData: FormData
 ): Promise<UploadState> {
   const file = formData.get("file");
-  if (!(file instanceof File) && typeof file !== "object") {
+  if (!file || typeof file === "string" || typeof (file as File).arrayBuffer !== "function") {
     return { url: null, message: "❌ 请选择要上传的图片", success: false };
   }
   return uploadToStorage(file as File, "avatars", 5 * 1024 * 1024);
