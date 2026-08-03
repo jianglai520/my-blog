@@ -203,6 +203,16 @@ body::before {
   background: transparent;
   padding: 0;
 }
+/* 代码块双主题：token 颜色走 --shiki-* 变量，默认深色（github-dark） */
+.markdown-body pre[data-theme*=" "] {
+  color: var(--shiki-dark);
+  background-color: var(--shiki-dark-bg);
+}
+.markdown-body pre[data-theme*=" "] code,
+.markdown-body pre[data-theme*=" "] code span {
+  color: var(--shiki-dark);
+  background: transparent;
+}
 .markdown-body [data-rehype-pretty-code-figure] {
   margin: 1.4rem 0;
 }
@@ -407,10 +417,19 @@ body::before {
     radial-gradient(30rem 20rem at 0% 100%, rgba(192, 132, 252, 0.04), transparent 55%);
 }
 
-/* 浅色：Markdown 细节淡化（代码块保持深色 github-dark） */
+/* 浅色：Markdown 细节淡化 */
 :root[data-theme="light"] .markdown-body :not(pre) > code {
   background: rgba(139, 92, 246, 0.10);
   color: #6d28d9;
+}
+/* 浅色：代码块切换 github-light（token 颜色 + 白底） */
+:root[data-theme="light"] .markdown-body pre[data-theme*=" "] {
+  color: var(--shiki-light);
+  background-color: var(--shiki-light-bg);
+}
+:root[data-theme="light"] .markdown-body pre[data-theme*=" "] code,
+:root[data-theme="light"] .markdown-body pre[data-theme*=" "] code span {
+  color: var(--shiki-light);
 }
 :root[data-theme="light"] .markdown-body blockquote {
   background: rgba(139, 92, 246, 0.06);
