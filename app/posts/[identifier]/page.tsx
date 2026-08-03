@@ -6,6 +6,9 @@ import CommentForm from "./CommentForm";
 import Markdown from "@/app/components/Markdown";
 import ViewCounter from "@/app/components/ViewCounter";
 import AttachmentEnhancer from "@/app/components/AttachmentEnhancer";
+import CodeBlockCopy from "@/app/components/CodeBlockCopy";
+import ReadingProgress from "@/app/components/ReadingProgress";
+import Toc from "@/app/components/Toc";
 import { getComments, getPostByIdentifier } from "@/lib/posts";
 import { formatDateTime } from "@/lib/format";
 
@@ -119,10 +122,16 @@ export default async function PostPage({ params }: Props) {
         ) : null}
       </header>
 
+      {/* 文章目录 TOC（扫描 h2/h3 生成） */}
+      <Toc />
       {/* 正文：Markdown 渲染（标题/列表/代码高亮/表格/图片） */}
       <Markdown source={post.content} />
       {/* 附件链接增强：PDF 新窗口预览、Office 文档加在线预览按钮 */}
       <AttachmentEnhancer />
+      {/* 代码块复制按钮 */}
+      <CodeBlockCopy />
+      {/* 阅读进度条（顶部） */}
+      <ReadingProgress />
 
       {/* ===== 评论区 ===== */}
       <section className="mt-14">
