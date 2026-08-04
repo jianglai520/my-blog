@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import SiteHeader from "./components/SiteHeader";
 import SiteFooter from "./components/SiteFooter";
+import BackToTop from "./components/BackToTop";
 
 const SITE_URL = "https://jianglai520.com";
 
@@ -99,6 +100,7 @@ export default function RootLayout({
             <main className="flex-1">{children}</main>
             <SiteFooter />
           </div>
+          <BackToTop />
         </ThemeProvider>
         <Analytics />
       </body>
