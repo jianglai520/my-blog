@@ -21,6 +21,7 @@ export default function SettingsForm({ settings }: { settings: SiteSettings }) {
   const [github, setGithub] = useState(settings.github);
   const [email, setEmail] = useState(settings.email);
   const [school, setSchool] = useState(settings.school);
+  const [schoolUrl, setSchoolUrl] = useState(settings.school_url);
   const [avatarUrl, setAvatarUrl] = useState(settings.avatar_url);
   const [icp, setIcp] = useState(settings.icp);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -155,6 +156,20 @@ export default function SettingsForm({ settings }: { settings: SiteSettings }) {
               value={school}
               onChange={(e) => setSchool(e.target.value)}
               placeholder="所在学校（显示在关于页）"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label htmlFor="set-school-url" className="mb-2 block text-sm text-fg-muted">
+              学校官网链接（可选，点击学校名可跳转）
+            </label>
+            <input
+              id="set-school-url"
+              name="school_url"
+              type="url"
+              value={schoolUrl}
+              onChange={(e) => setSchoolUrl(e.target.value)}
+              placeholder="https://www.example.edu.cn"
               className={inputCls}
             />
           </div>

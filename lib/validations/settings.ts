@@ -14,6 +14,13 @@ export const settingsSchema = z.object({
     .refine((v) => !v || v.startsWith("https://"), "GitHub 链接需以 https:// 开头"),
   email: z.string().trim().email("邮箱格式不正确").optional().or(z.literal("")),
   school: z.string().trim().max(50, "学校最长 50 字").optional().or(z.literal("")),
+  school_url: z
+    .string()
+    .trim()
+    .url("学校官网需为合法 URL")
+    .optional()
+    .or(z.literal(""))
+    .refine((v) => !v || v.startsWith("https://"), "学校官网链接需以 https:// 开头"),
   avatar_url: z
     .string()
     .trim()

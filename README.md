@@ -228,6 +228,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `intro` / `bio` | 一句话简介 / 关于页个人介绍 |
 | `github` / `email` | 社交链接 |
 | `school` | 学校（显示在关于页，可空） |
+| `school_url` | 学校官网链接（可空，填了学校名可点击跳转） |
 | `avatar_url` | 头像图片 URL |
 | `icp` | 备案号 |
 

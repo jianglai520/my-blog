@@ -14,6 +14,7 @@ export type SiteSettings = {
   github: string;
   email: string;
   school: string;
+  school_url: string;
   avatar_url: string;
   icp: string;
 };
@@ -25,6 +26,7 @@ const DEFAULTS: SiteSettings = {
   github: "",
   email: "",
   school: "",
+  school_url: "",
   avatar_url: "",
   icp: "",
 };
@@ -45,6 +47,7 @@ export const getSiteSettings = unstable_cache(
         github: map.get("github") || "",
         email: map.get("email") || "",
         school: map.get("school") || "",
+        school_url: map.get("school_url") || "",
         avatar_url: map.get("avatar_url") || "",
         icp: map.get("icp") || "",
       };

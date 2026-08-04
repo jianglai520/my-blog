@@ -72,7 +72,19 @@ export default async function AboutPage() {
           {settings.school && (
             <li className="flex items-center gap-2">
               <GraduationCap size={15} className="text-fg-faint" />
-              {settings.school}
+              {settings.school_url ? (
+                <a
+                  href={settings.school_url}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex items-center gap-1 text-brand-300 transition-colors hover:text-glow-400"
+                >
+                  {settings.school}
+                  <ExternalLink size={12} />
+                </a>
+              ) : (
+                settings.school
+              )}
             </li>
           )}
           {links.map((link) => (
