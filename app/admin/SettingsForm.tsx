@@ -20,6 +20,7 @@ export default function SettingsForm({ settings }: { settings: SiteSettings }) {
   const [bio, setBio] = useState(settings.bio);
   const [github, setGithub] = useState(settings.github);
   const [email, setEmail] = useState(settings.email);
+  const [school, setSchool] = useState(settings.school);
   const [avatarUrl, setAvatarUrl] = useState(settings.avatar_url);
   const [icp, setIcp] = useState(settings.icp);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -140,6 +141,20 @@ export default function SettingsForm({ settings }: { settings: SiteSettings }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label htmlFor="set-school" className="mb-2 block text-sm text-fg-muted">
+              学校
+            </label>
+            <input
+              id="set-school"
+              name="school"
+              type="text"
+              value={school}
+              onChange={(e) => setSchool(e.target.value)}
+              placeholder="所在学校（显示在关于页）"
               className={inputCls}
             />
           </div>

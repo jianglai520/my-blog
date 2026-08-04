@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { GitFork, Mail, FileText, ExternalLink } from "lucide-react";
+import { GitFork, Mail, GraduationCap, FileText, ExternalLink } from "lucide-react";
 import { getPublishedPosts } from "@/lib/posts";
 import { getSiteSettings } from "@/lib/site";
 
@@ -69,6 +69,12 @@ export default async function AboutPage() {
             <FileText size={15} className="text-fg-faint" />
             已发布文章：{total} 篇
           </li>
+          {settings.school && (
+            <li className="flex items-center gap-2">
+              <GraduationCap size={15} className="text-fg-faint" />
+              {settings.school}
+            </li>
+          )}
           {links.map((link) => (
             <li key={link.label} className="flex items-center gap-2">
               <link.icon size={15} className="text-fg-faint" />

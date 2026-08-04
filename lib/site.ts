@@ -13,6 +13,7 @@ export type SiteSettings = {
   bio: string;
   github: string;
   email: string;
+  school: string;
   avatar_url: string;
   icp: string;
 };
@@ -23,6 +24,7 @@ const DEFAULTS: SiteSettings = {
   bio: "你好，欢迎来到我的博客。这里记录技术实践、学习笔记与生活随想。",
   github: "",
   email: "",
+  school: "",
   avatar_url: "",
   icp: "",
 };
@@ -42,6 +44,7 @@ export const getSiteSettings = unstable_cache(
         bio: map.get("bio") || DEFAULTS.bio,
         github: map.get("github") || "",
         email: map.get("email") || "",
+        school: map.get("school") || "",
         avatar_url: map.get("avatar_url") || "",
         icp: map.get("icp") || "",
       };

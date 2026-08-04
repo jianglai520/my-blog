@@ -227,6 +227,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `author_name` | 博主名字（默认「江来」） |
 | `intro` / `bio` | 一句话简介 / 关于页个人介绍 |
 | `github` / `email` | 社交链接 |
+| `school` | 学校（显示在关于页，可空） |
 | `avatar_url` | 头像图片 URL |
 | `icp` | 备案号 |
 

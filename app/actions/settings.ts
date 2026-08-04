@@ -29,6 +29,7 @@ export async function updateSiteSettings(
     bio: String(formData.get("bio") || ""),
     github: String(formData.get("github") || ""),
     email: String(formData.get("email") || ""),
+    school: String(formData.get("school") || ""),
     avatar_url: String(formData.get("avatar_url") || ""),
     icp: String(formData.get("icp") || ""),
   });
