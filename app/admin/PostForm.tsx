@@ -48,10 +48,15 @@ export default function PostForm({
     if (state.success) onSavedRef.current();
   }, [state.success]);
 
-  // 标题变化时自动生成 slug 建议（若用户还没手动改过）
+  // 标题变化时自动生成 slug 建议（若用户还没手动改过）。
+  // 中文标题 slugify 会保留中文（如 测试1），不符合 URL slug 规范（zod 校验失败），
+  // 此时不自动生成，留空使用 id 链接；用户可手动填英文 slug。
   function handleTitleChange(value: string) {
     setTitle(value);
-    if (!slug) setSlug(slugify(value));
+    if (!slug) {
+      const candidate = slugify(value);
+      setSlug(/^[a-z0-9-]+$/i.test(candidate) ? candidate : "");
+    }
   }
 
   // 提交前把编辑器最新内容写入隐藏字段（编辑期间不维护 content state，避免大文档频繁重渲染）
