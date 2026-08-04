@@ -19,12 +19,18 @@ export default function CommentManager({
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [selectMode, setSelectMode] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   // 评论 → 所属文章标题
   const postById = new Map(posts.map((p) => [p.id, p]));
 
   const allSelected = comments.length > 0 && selected.size === comments.length;
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelected(new Set());
+  }
 
   function toggle(id: number) {
     setSelected((prev) => {
@@ -55,26 +61,45 @@ export default function CommentManager({
 
   return (
     <>
-      {/* 批量操作工具条 */}
+      {/* 工具条：默认隐藏勾选，点「多选」进入批量模式 */}
       <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
-        <label className="flex cursor-pointer items-center gap-2 text-fg-muted">
-          <input
-            type="checkbox"
-            checked={allSelected}
-            onChange={toggleAll}
-            className="h-4 w-4 accent-brand-500"
-          />
-          全选
-        </label>
-        <span className="text-fg-faint">已选 {selected.size} 条</span>
-        <button
-          type="button"
-          onClick={handleBatchDelete}
-          disabled={!selected.size || isPending}
-          className="rounded-lg border border-red-400/30 px-3 py-1 text-sm text-red-400 transition-colors hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {isPending ? "删除中…" : "🗑 批量删除"}
-        </button>
+        {selectMode ? (
+          <>
+            <label className="flex cursor-pointer items-center gap-2 text-fg-muted">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleAll}
+                className="h-4 w-4 accent-brand-500"
+              />
+              全选
+            </label>
+            <span className="text-fg-faint">已选 {selected.size} 条</span>
+            <button
+              type="button"
+              onClick={handleBatchDelete}
+              disabled={!selected.size || isPending}
+              className="rounded-lg border border-red-400/30 px-3 py-1 text-sm text-red-400 transition-colors hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {isPending ? "删除中…" : "🗑 批量删除"}
+            </button>
+            <button
+              type="button"
+              onClick={exitSelectMode}
+              className="rounded-lg border border-ink-600 px-3 py-1 text-sm text-fg-muted transition-colors hover:border-brand-500/50 hover:text-fg"
+            >
+              完成
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setSelectMode(true)}
+            className="rounded-lg border border-ink-600 px-3 py-1 text-sm text-fg-muted transition-colors hover:border-brand-500/50 hover:text-fg"
+          >
+            🔀 多选
+          </button>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -107,13 +132,15 @@ export default function CommentManager({
                 </div>
 
                 <div className="flex flex-shrink-0 items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(comment.id)}
-                    onChange={() => toggle(comment.id)}
-                    aria-label={`选择 ${comment.name} 的评论`}
-                    className="h-4 w-4 accent-brand-500"
-                  />
+                  {selectMode && (
+                    <input
+                      type="checkbox"
+                      checked={selected.has(comment.id)}
+                      onChange={() => toggle(comment.id)}
+                      aria-label={`选择 ${comment.name} 的评论`}
+                      className="h-4 w-4 accent-brand-500"
+                    />
+                  )}
                   <form
                     action={deleteComment}
                     onSubmit={(e) => {

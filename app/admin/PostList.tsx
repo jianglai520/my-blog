@@ -17,9 +17,15 @@ export default function PostList({
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [selectMode, setSelectMode] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const allSelected = posts.length > 0 && selected.size === posts.length;
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelected(new Set());
+  }
 
   function toggle(id: number) {
     setSelected((prev) => {
@@ -50,26 +56,45 @@ export default function PostList({
 
   return (
     <>
-      {/* 批量操作工具条 */}
+      {/* 工具条：默认隐藏勾选，点「多选」进入批量模式 */}
       <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
-        <label className="flex cursor-pointer items-center gap-2 text-fg-muted">
-          <input
-            type="checkbox"
-            checked={allSelected}
-            onChange={toggleAll}
-            className="h-4 w-4 accent-brand-500"
-          />
-          全选
-        </label>
-        <span className="text-fg-faint">已选 {selected.size} 篇</span>
-        <button
-          type="button"
-          onClick={handleBatchDelete}
-          disabled={!selected.size || isPending}
-          className="rounded-lg border border-red-400/30 px-3 py-1 text-sm text-red-400 transition-colors hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {isPending ? "删除中…" : "🗑 批量删除"}
-        </button>
+        {selectMode ? (
+          <>
+            <label className="flex cursor-pointer items-center gap-2 text-fg-muted">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleAll}
+                className="h-4 w-4 accent-brand-500"
+              />
+              全选
+            </label>
+            <span className="text-fg-faint">已选 {selected.size} 篇</span>
+            <button
+              type="button"
+              onClick={handleBatchDelete}
+              disabled={!selected.size || isPending}
+              className="rounded-lg border border-red-400/30 px-3 py-1 text-sm text-red-400 transition-colors hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {isPending ? "删除中…" : "🗑 批量删除"}
+            </button>
+            <button
+              type="button"
+              onClick={exitSelectMode}
+              className="rounded-lg border border-ink-600 px-3 py-1 text-sm text-fg-muted transition-colors hover:border-brand-500/50 hover:text-fg"
+            >
+              完成
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setSelectMode(true)}
+            className="rounded-lg border border-ink-600 px-3 py-1 text-sm text-fg-muted transition-colors hover:border-brand-500/50 hover:text-fg"
+          >
+            🔀 多选
+          </button>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -79,13 +104,15 @@ export default function PostList({
             className="flex items-center justify-between rounded-lg border border-ink-700/60 bg-ink-800/40 p-4 transition-colors hover:bg-ink-800"
           >
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              <input
-                type="checkbox"
-                checked={selected.has(post.id)}
-                onChange={() => toggle(post.id)}
-                aria-label={`选择文章 ${post.title}`}
-                className="h-4 w-4 flex-shrink-0 accent-brand-500"
-              />
+              {selectMode && (
+                <input
+                  type="checkbox"
+                  checked={selected.has(post.id)}
+                  onChange={() => toggle(post.id)}
+                  aria-label={`选择文章 ${post.title}`}
+                  className="h-4 w-4 flex-shrink-0 accent-brand-500"
+                />
+              )}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <a
