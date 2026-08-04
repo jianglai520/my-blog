@@ -16,8 +16,10 @@ export type PostWithTags = Post & { tags: { name: string; slug: string }[] };
 
 const PAGE_SIZE = 10;
 
-/** 把 drizzle 嵌套返回的 postTags 映射为 tags 数组 */
-function mapPostTags(post: Post & { postTags?: { tag: { name: string; slug: string } }[] }): PostWithTags {
+/** 把 drizzle 嵌套返回的 postTags 映射为 tags 数组（纯函数，可单测） */
+export function mapPostTags(
+  post: Post & { postTags?: { tag: { name: string; slug: string } }[] },
+): PostWithTags {
   return {
     ...post,
     tags: (post.postTags ?? []).map((pt) => ({ name: pt.tag.name, slug: pt.tag.slug })),
@@ -158,7 +160,9 @@ export async function searchPosts(q: string, limit = 20): Promise<PostWithTags[]
   return rows.map(mapPostTags);
 }
 
-/** 按年月归档：返回 [{ year, month, items: [{id,title,slug,created_at}] }] */
+/**
+ * 按年月归档：返回 [{ year, month, items: [{id,title,slug,created_at}] }]
+ */
 export async function getArchives(): Promise<
   { year: number; month: number; items: { id: number; title: string; slug: string | null; created_at: string }[] }[]
 > {
@@ -168,6 +172,13 @@ export async function getArchives(): Promise<
     .where(eq(posts.status, "published"))
     .orderBy(desc(posts.created_at));
 
+  return groupArchivesByMonth(rows);
+}
+
+/** 按年月分组（纯函数，可单测）；rows 已按时间倒序 */
+export function groupArchivesByMonth(
+  rows: { id: number; title: string; slug: string | null; created_at: string }[],
+): { year: number; month: number; items: { id: number; title: string; slug: string | null; created_at: string }[] }[] {
   const groups = new Map<string, { year: number; month: number; items: typeof rows }>();
   for (const row of rows) {
     const d = new Date(row.created_at);
