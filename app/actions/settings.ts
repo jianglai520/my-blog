@@ -34,6 +34,7 @@ export async function updateSiteSettings(
     avatar_url: String(formData.get("avatar_url") || ""),
     icp: String(formData.get("icp") || ""),
     skills: String(formData.get("skills") || ""),
+    projects: String(formData.get("projects") || ""),
   });
 
   if (!parsed.success) {

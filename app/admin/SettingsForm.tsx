@@ -7,6 +7,7 @@ import { updateSiteSettings, type SettingsState } from "@/app/actions/settings";
 import { uploadAvatar } from "@/app/actions/uploads";
 import type { SiteSettings } from "@/lib/site";
 import { parseSkills, serializeSkills, SKILL_GROUPS, type SkillItem } from "@/lib/skills";
+import { parseProjects, serializeProjects, type ProjectItem } from "@/lib/projects";
 import { inputCls } from "./shared";
 
 const initialSettingsState: SettingsState = { message: "", success: false };
@@ -26,6 +27,9 @@ export default function SettingsForm({ settings }: { settings: SiteSettings }) {
   const [avatarUrl, setAvatarUrl] = useState(settings.avatar_url);
   const [icp, setIcp] = useState(settings.icp);
   const [skillRows, setSkillRows] = useState<SkillItem[]>(() => parseSkills(settings.skills));
+  const [projectRows, setProjectRows] = useState<ProjectItem[]>(() =>
+    parseProjects(settings.projects),
+  );
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,6 +57,20 @@ export default function SettingsForm({ settings }: { settings: SiteSettings }) {
   }
   function addSkill() {
     setSkillRows((rows) => [...rows, { group: "其他", name: "", level: 3 }]);
+  }
+
+  // 项目行编辑：更新 / 删除 / 添加
+  function updateProject(idx: number, field: keyof ProjectItem, value: string) {
+    setProjectRows((rows) => rows.map((r, i) => (i === idx ? { ...r, [field]: value } : r)));
+  }
+  function removeProject(idx: number) {
+    setProjectRows((rows) => rows.filter((_, i) => i !== idx));
+  }
+  function addProject() {
+    setProjectRows((rows) => [
+      ...rows,
+      { name: "", year: "", description: "", tech: "", link: "", github: "", cover: "" },
+    ]);
   }
 
   // 选择头像文件 → 直接调上传 Server Action（事件处理器里 setState 合法，不用 useActionState）
@@ -298,6 +316,92 @@ export default function SettingsForm({ settings }: { settings: SiteSettings }) {
           </button>
           <p className="mt-1 text-xs text-fg-faint">
             分组可自由填写（建议：前端 / 后端 / 数据库 / 工具）；熟练度 1~5。保存后 /skills 页按分组展示。
+          </p>
+        </div>
+
+        {/* 项目展示：动态编辑，保存时序列化 JSON 写入隐藏字段 */}
+        <input type="hidden" name="projects" value={serializeProjects(projectRows)} />
+        <div>
+          <label className="mb-2 block text-sm text-fg-muted">
+            项目展示 <span className="text-fg-faint">（/projects 页展示，可空）</span>
+          </label>
+          <div className="space-y-4">
+            {projectRows.length === 0 && (
+              <p className="text-sm text-fg-faint">还没有项目，点下方「添加项目」开始。</p>
+            )}
+            {projectRows.map((project, idx) => (
+              <div
+                key={idx}
+                className="rounded-xl border border-ink-700/60 bg-ink-800/40 p-4"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-sm font-medium text-fg-muted">项目 #{idx + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeProject(idx)}
+                    aria-label={`删除项目 ${project.name || idx + 1}`}
+                    className="rounded-lg border border-red-400/30 px-2.5 py-1 text-sm text-red-400 transition-colors hover:bg-red-400/10"
+                  >
+                    ✕ 删除
+                  </button>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    value={project.name}
+                    onChange={(e) => updateProject(idx, "name", e.target.value)}
+                    placeholder="项目名称（如：我的博客）"
+                    className={`${inputCls} px-3 py-2`}
+                  />
+                  <input
+                    value={project.year}
+                    onChange={(e) => updateProject(idx, "year", e.target.value)}
+                    placeholder="年份（如 2026）"
+                    className={`${inputCls} px-3 py-2`}
+                  />
+                  <input
+                    value={project.tech}
+                    onChange={(e) => updateProject(idx, "tech", e.target.value)}
+                    placeholder="技术栈（逗号分隔，如 Next.js, TypeScript）"
+                    className={`${inputCls} px-3 py-2 sm:col-span-2`}
+                  />
+                  <input
+                    value={project.link}
+                    onChange={(e) => updateProject(idx, "link", e.target.value)}
+                    placeholder="项目链接（可选，如 https://jianglai520.com）"
+                    className={`${inputCls} px-3 py-2`}
+                  />
+                  <input
+                    value={project.github}
+                    onChange={(e) => updateProject(idx, "github", e.target.value)}
+                    placeholder="GitHub 仓库（可选）"
+                    className={`${inputCls} px-3 py-2`}
+                  />
+                  <input
+                    value={project.cover}
+                    onChange={(e) => updateProject(idx, "cover", e.target.value)}
+                    placeholder="封面图 URL（可选）"
+                    className={`${inputCls} px-3 py-2 sm:col-span-2`}
+                  />
+                  <textarea
+                    value={project.description}
+                    onChange={(e) => updateProject(idx, "description", e.target.value)}
+                    placeholder="项目简介"
+                    rows={2}
+                    className={`${inputCls} resize-y px-3 py-2 sm:col-span-2`}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={addProject}
+            className="mt-3 rounded-lg border border-brand-400/30 px-4 py-2 text-sm text-brand-300 transition-colors hover:bg-brand-400/10"
+          >
+            ➕ 添加项目
+          </button>
+          <p className="mt-1 text-xs text-fg-faint">
+            封面图需在 next.config.ts 允许的图源（supabase.co / unsplash / jsdelivr）；链接以 https:// 开头。
           </p>
         </div>
 
