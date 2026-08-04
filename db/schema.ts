@@ -45,6 +45,15 @@ export const comments = pgTable("comments", {
   created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
 
+/** 留言板留言 */
+export const guestbookMessages = pgTable("guestbook_messages", {
+  id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
+  name: text("name").notNull(),
+  content: text("content").notNull(),
+  ip: text("ip"),
+  created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+});
+
 /** 用户资料（关联 auth.users，仅本 schema 内管理博主标记） */
 export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey(),
@@ -101,6 +110,7 @@ export const postTagsRelations = relations(postTags, ({ one }) => ({
 export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
+export type GuestbookMessage = typeof guestbookMessages.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
 export type Profile = typeof profiles.$inferSelect;
 export type Tag = typeof tags.$inferSelect;

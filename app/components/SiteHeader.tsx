@@ -23,6 +23,9 @@ export default function SiteHeader() {
           <Link href="/archives" className="nav-link rounded-md px-3 py-2 text-sm text-fg-muted transition-colors hover:text-fg">
             归档
           </Link>
+          <Link href="/guestbook" className="nav-link rounded-md px-3 py-2 text-sm text-fg-muted transition-colors hover:text-fg">
+            留言板
+          </Link>
           <Link href="/about" className="nav-link rounded-md px-3 py-2 text-sm text-fg-muted transition-colors hover:text-fg">
             关于
           </Link>

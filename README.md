@@ -66,6 +66,7 @@ npm run lint      # ESLint
 | ⚙️ **站点设置** | 后台可随时修改博主名/简介/GitHub/邮箱/**头像（可上传或填 URL）**/备案号，前台即时生效 |
 | 🌗 **深浅色主题** | header 切换按钮；跟随系统偏好 + 手动选择记忆（localStorage） |
 | 💬 评论区 | 昵称 + 内容，即时显示；后台可单删 / **多选批量删除**（IP 60 秒限流） |
+| 💬 **留言板** | 独立留言页 `/guestbook`（导航入口），匿名可发 + IP 限流，后台可删 |
 | 🔐 登录 | Supabase Auth 邮箱登录（单管理员） |
 | 🛡️ 后台管理 | 服务端鉴权；文章管理（发布/编辑/删除/草稿/**多选批量删除**）+ **评论管理**（单删/批量删除） |
 | 🌐 自定义域名 | jianglai520.com 已绑定 Vercel |
@@ -130,7 +131,7 @@ my-blog/
 ├── proxy.ts                        # 路由守卫（Next 16 中 middleware 更名为此）
 ├── drizzle.config.ts               # drizzle-kit 配置（schema → 迁移 SQL）
 ├── supabase/
-│   └── migrations/                 # 数据库迁移 SQL（0001~0010，手动在 SQL Editor 执行）
+│   └── migrations/                 # 数据库迁移 SQL（0001~0011，手动在 SQL Editor 执行）
 ├── scripts/
 │   ├── generate-og.mjs             # 一次性脚本：生成 public/og.png
 │   ├── backup.mjs                  # 数据库备份脚本（导出全表 JSON 到 backups/）
@@ -218,6 +219,16 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `ip` | text（可空） | 评论者 IP（60 秒限流用，0009 迁移新增） |
 | `created_at` | timestamptz | 创建时间 |
 
+### 表 `guestbook_messages`（留言板）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | int8 / PK | 主键 |
+| `name` | text | 留言者昵称 |
+| `content` | text | 留言内容 |
+| `ip` | text（可空） | 留言者 IP（60 秒限流用） |
+| `created_at` | timestamptz | 创建时间 |
+
 ### 表 `site_settings`
 
 站点配置（key-value，管理员后台「站点设置」可随时修改，前台即时生效）：
@@ -233,7 +244,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `icp` | 备案号 |
 
 ### 表 `tags` / `post_tags`
-
 | 表 | 说明 |
 |----|------|
 | `tags` | 标签（`name` / `slug` 唯一） |
@@ -251,7 +261,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 公开读的文章图片存储桶（仅博主可上传/删除，RLS 策略见 `0002_rls.sql` / `0003_markdown_draft.sql`）。
 
-> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0010），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0011），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
 
 ---
 

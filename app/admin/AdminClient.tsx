@@ -7,24 +7,28 @@ import { logout } from "@/app/actions/auth";
 import PostForm from "./PostForm";
 import PostList from "./PostList";
 import CommentManager from "./CommentManager";
+import GuestbookManager from "./GuestbookManager";
 import SettingsForm from "./SettingsForm";
 import type { AdminPost } from "./shared";
 import type { SiteSettings } from "@/lib/site";
 import type { Comment } from "@/lib/posts";
+import type { GuestbookMessage } from "@/db/schema";
 
 /**
  * 后台主界面：顶部导航 + Tab 切换 + 组合各管理模块。
- * 子模块拆分为 PostForm / PostList / CommentManager / SettingsForm。
+ * 子模块拆分为 PostForm / PostList / CommentManager / GuestbookManager / SettingsForm。
  */
 export default function AdminClient({
   userEmail,
   posts,
   comments,
+  guestbookMessages,
   siteSettings,
 }: {
   userEmail: string;
   posts: AdminPost[];
   comments: Comment[];
+  guestbookMessages: GuestbookMessage[];
   siteSettings: SiteSettings;
 }) {
   const router = useRouter();
@@ -136,6 +140,13 @@ export default function AdminClient({
             <span className="text-sm font-normal text-fg-faint">（最新 200 条）</span>
           </h2>
           <CommentManager comments={comments} posts={posts} />
+
+          {/* 留言板留言 */}
+          <h2 className="mb-6 mt-10 text-xl font-bold text-fg">
+            📝 留言板留言{" "}
+            <span className="text-sm font-normal text-fg-faint">（最新 {guestbookMessages.length} 条）</span>
+          </h2>
+          <GuestbookManager messages={guestbookMessages} />
         </div>
       ) : (
         <SettingsForm settings={siteSettings} />
