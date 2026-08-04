@@ -34,7 +34,7 @@
 | 错误监控 | **Sentry**（`SENTRY_DSN` 配置后生效）+ 自定义 `error.tsx` / `global-error.tsx` |
 | 访问分析 | **Vercel Analytics**（`@vercel/analytics`，Dashboard 开启） |
 | 数据备份 | 见 **`BACKUP.md`**：`scripts/backup.mjs` 导出 JSON + `scripts/restore-drill.mjs` 恢复演练（临时 schema 校验，已执行通过） |
-| 性能优化 | 首页数据缓存：`unstable_cache`（60s）+ 写操作 `updateTag` 即时失效（响应约 4.7 倍提速） |
+| 性能优化 | 首页数据缓存（`unstable_cache` 60s + `updateTag` 即时失效，响应约 4.7 倍提速）；发布链路优化（编辑器 ref 提交，编辑期零序列化/零重渲染，支持大文档） |
 
 ```bash
 npm test          # 单元测试
@@ -65,9 +65,9 @@ npm run lint      # ESLint
 | 🗂 **归档 / 关于** | 按年月归档页、个人关于页（**个人信息后台可配置**） |
 | ⚙️ **站点设置** | 后台可随时修改博主名/简介/GitHub/邮箱/**头像（可上传或填 URL）**/备案号，前台即时生效 |
 | 🌗 **深浅色主题** | header 切换按钮；跟随系统偏好 + 手动选择记忆（localStorage） |
-| 💬 评论区 | 昵称 + 内容，即时显示；后台可删除 |
+| 💬 评论区 | 昵称 + 内容，即时显示；后台可单删 / **多选批量删除**（IP 60 秒限流） |
 | 🔐 登录 | Supabase Auth 邮箱登录（单管理员） |
-| 🛡️ 后台管理 | 服务端鉴权；文章管理（发布/编辑/删除/草稿）+ **评论管理** |
+| 🛡️ 后台管理 | 服务端鉴权；文章管理（发布/编辑/删除/草稿/**多选批量删除**）+ **评论管理**（单删/批量删除） |
 | 🌐 自定义域名 | jianglai520.com 已绑定 Vercel |
 
 ---
@@ -130,7 +130,7 @@ my-blog/
 ├── proxy.ts                        # 路由守卫（Next 16 中 middleware 更名为此）
 ├── drizzle.config.ts               # drizzle-kit 配置（schema → 迁移 SQL）
 ├── supabase/
-│   └── migrations/                 # 数据库迁移 SQL（0001~0009，手动在 SQL Editor 执行）
+│   └── migrations/                 # 数据库迁移 SQL（0001~0010，手动在 SQL Editor 执行）
 ├── scripts/
 │   ├── generate-og.mjs             # 一次性脚本：生成 public/og.png
 │   ├── backup.mjs                  # 数据库备份脚本（导出全表 JSON 到 backups/）
@@ -249,7 +249,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 公开读的文章图片存储桶（仅博主可上传/删除，RLS 策略见 `0002_rls.sql` / `0003_markdown_draft.sql`）。
 
-> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0009），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0010），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
 
 ---
 
