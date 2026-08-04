@@ -27,6 +27,16 @@
 
 ## 恢复演练（每季度一次）
 
+**演练 JSON 备份可恢复**（推荐，安全不碰生产表）：
+
+```bash
+node scripts/backup.mjs       # ① 产出 backups/yyyy-mm-dd.json
+node scripts/restore-drill.mjs # ② 临时 schema restore_test 重建全表 → 校验行数 → 自动清理
+```
+
+- `restore-drill.mjs` 在**临时 schema**（`restore_test`）里复制表结构 + 插入全部数据，对比每张表行数与备份一致，最后自动清理——全程不触碰生产表
+- 输出 6 张表全部 ✅ 即演练通过（已执行：2026-08-03 全表行数一致）
+
 **恢复表数据**（用导出的 .sql）：
 1. Supabase → SQL Editor → 粘贴 .sql 内容运行（会重建数据；表结构已存在时可先 `DROP TABLE IF EXISTS` 相关表）
 2. 验证：`SELECT count(*) FROM posts;` 与备份前一致
