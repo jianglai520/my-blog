@@ -68,6 +68,7 @@ npm run lint      # ESLint
 | 💬 评论区 | 昵称 + 内容，即时显示；后台可单删 / **多选批量删除**（IP 60 秒限流） |
 | 💬 **留言板** | 独立留言页 `/guestbook`（导航入口），匿名可发 + IP 限流，后台可删 |
 | 🏷️ **技能页** | `/skills` 技能清单页（后台配置「名称｜熟练度」，进度条 + 星级展示） |
+| 🤖 **AI 问答** | 文章页悬浮「问 AI」，基于本文内容回答（DeepSeek，IP 限流防刷） |
 | 🔐 登录 | Supabase Auth 邮箱登录（单管理员） |
 | 🛡️ 后台管理 | 服务端鉴权；文章管理（发布/编辑/删除/草稿/**多选批量删除**）+ **评论管理**（单删/批量删除） |
 | 🌐 自定义域名 | jianglai520.com 已绑定 Vercel |
@@ -176,6 +177,7 @@ npm run lint    # ESLint 检查
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目 URL | Supabase 控制台 → Project Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 公开匿名密钥（anon key） | 同上 |
 | `DATABASE_URL` | **服务端专用**数据库连接串（Drizzle 直连用，**不带 NEXT_PUBLIC_ 前缀**） | Supabase → Project Settings → Database → Connection string → **Transaction pooler**（端口 6543） |
+| `DEEPSEEK_API_KEY` | **服务端专用**AI 问答密钥（站内「问 AI」用，**不带 NEXT_PUBLIC_ 前缀**） | DeepSeek 开放平台 → API Keys |
 
 > ⚠️ `DATABASE_URL` 是能直连数据库的服务端密钥：只在 `.env.local` / Vercel 服务端环境变量里，**绝不暴露给浏览器**（Vercel 配置时**不勾选** "Expose to Client"）。
 
