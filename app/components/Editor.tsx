@@ -1,6 +1,12 @@
 "use client";
 
-import { startTransition, useEffect, useRef } from "react";
+import {
+  forwardRef,
+  startTransition,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from "react";
 import { useActionState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -45,38 +51,47 @@ function ToolbarButton({
   );
 }
 
-export default function Editor({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (md: string) => void;
-}) {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const attachRef = useRef<HTMLInputElement>(null);
-  const attachNameRef = useRef("附件");
-  const [uploadState, uploadAction, uploadPending] = useActionState(
-    uploadImage,
-    initialUploadState
-  );
-  const [attachState, attachAction, attachPending] = useActionState(
-    uploadAttachment,
-    initialUploadState
-  );
+/** 编辑器句柄：提交时父组件通过 ref 读取最新 Markdown（避免编辑期间频繁序列化） */
+export type EditorHandle = { getMarkdown: () => string };
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Image.configure({ inline: false, allowBase64: false }),
-      Markdown,
-    ],
-    content: value,
-    contentType: "markdown", // 关键：声明初始 content 为 Markdown，否则被当 JSON 解析
-    immediatelyRender: false,
-    onUpdate: ({ editor }) => {
-      onChange(editor.getMarkdown());
-    },
-  });
+const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string) => void }>(
+  function Editor({ value, onChange }, ref) {
+    const fileRef = useRef<HTMLInputElement>(null);
+    const attachRef = useRef<HTMLInputElement>(null);
+    const attachNameRef = useRef("附件");
+    const [uploadState, uploadAction, uploadPending] = useActionState(
+      uploadImage,
+      initialUploadState
+    );
+    const [attachState, attachAction, attachPending] = useActionState(
+      uploadAttachment,
+      initialUploadState
+    );
+
+    const editor = useEditor({
+      extensions: [
+        StarterKit,
+        Image.configure({ inline: false, allowBase64: false }),
+        Markdown,
+      ],
+      content: value,
+      contentType: "markdown", // 关键：声明初始 content 为 Markdown，否则被当 JSON 解析
+      immediatelyRender: false,
+      onUpdate: ({ editor }) => {
+        // 性能：仅当父组件需要实时内容时才序列化。
+        // PostForm 提交时通过 ref 读 getMarkdown()，编辑期间零序列化、零父组件重渲染。
+        if (onChange) onChange(editor.getMarkdown());
+      },
+    });
+
+    // 暴露最新 Markdown（父组件提交时调用；editor 未就绪返回空串）
+    useImperativeHandle(
+      ref,
+      () => ({
+        getMarkdown: () => editor?.getMarkdown() ?? "",
+      }),
+      [editor],
+    );
 
   // 选择本地图片后立即上传（useActionState 的 action 需在 startTransition 内调用）
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -260,4 +275,6 @@ export default function Editor({
       />
     </div>
   );
-}
+});
+
+export default Editor;

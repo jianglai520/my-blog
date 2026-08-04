@@ -12,7 +12,11 @@ export const postSchema = z.object({
     .or(z.literal("")),
   excerpt: z.string().trim().max(200, "摘要最长 200 字").optional().or(z.literal("")),
   coverImage: z.string().trim().url("封面图需为合法 URL").optional().or(z.literal("")),
-  content: z.string().trim().min(1, "内容不能为空"),
+  content: z
+    .string()
+    .trim()
+    .min(1, "内容不能为空")
+    .max(500_000, "内容过长（超过 50 万字符），请精简后重试"),
   status: z.enum(["draft", "published"]).default("published"),
   tags: z.string().trim().max(200, "标签最多 200 字").optional().or(z.literal("")),
 });

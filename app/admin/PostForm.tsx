@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useActionState } from "react";
-import Editor from "@/app/components/Editor";
+import Editor, { type EditorHandle } from "@/app/components/Editor";
 import {
   createPost,
   updatePost,
@@ -27,10 +27,11 @@ export default function PostForm({
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [excerpt, setExcerpt] = useState(initial?.excerpt ?? "");
   const [coverImage, setCoverImage] = useState(initial?.cover_image ?? "");
-  const [content, setContent] = useState(initial?.content ?? "");
   const [tags, setTags] = useState(
     initial?.post_tags?.map((pt) => pt.tag.name).join(", ") ?? "",
   );
+  // 正文不走 React state：编辑期间零重渲染/零序列化，提交时从 Editor ref 读取
+  const editorRef = useRef<EditorHandle>(null);
 
   const action = initial ? updatePost : createPost;
   const [state, formAction, pending] = useActionState<PostFormState, FormData>(
@@ -53,6 +54,15 @@ export default function PostForm({
     if (!slug) setSlug(slugify(value));
   }
 
+  // 提交前把编辑器最新内容写入隐藏字段（编辑期间不维护 content state，避免大文档频繁重渲染）
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    const md = editorRef.current?.getMarkdown();
+    if (md != null) {
+      const input = e.currentTarget.elements.namedItem("content");
+      if (input instanceof HTMLInputElement) input.value = md;
+    }
+  }
+
   return (
     <div className="mb-8 rounded-2xl border border-ink-700/60 bg-ink-900/50 p-8">
       <h2 className="mb-6 flex items-center gap-3 text-xl font-bold text-fg">
@@ -71,10 +81,10 @@ export default function PostForm({
         )}
       </h2>
 
-      <form action={formAction} className="space-y-5" id="post-form">
+      <form action={formAction} onSubmit={handleSubmit} className="space-y-5" id="post-form">
         {initial && <input type="hidden" name="postId" value={initial.id} />}
-        {/* Editor 是 ProseMirror div 不进 FormData，必须用隐藏字段同步内容 */}
-        <input type="hidden" name="content" value={content} />
+        {/* Editor 是 ProseMirror div 不进 FormData，提交时由 onSubmit 写入最新 Markdown */}
+        <input type="hidden" name="content" defaultValue="" />
 
         <div>
           <label htmlFor="post-title" className="mb-2 block text-sm text-fg-muted">
@@ -156,7 +166,7 @@ export default function PostForm({
           <label className="mb-2 block text-sm text-fg-muted">
             文章内容 <span className="text-fg-faint">· Markdown / 所见即所得</span>
           </label>
-          <Editor value={content} onChange={setContent} />
+          <Editor ref={editorRef} value={initial?.content ?? ""} />
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
