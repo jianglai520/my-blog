@@ -8,6 +8,7 @@ import PostForm from "./PostForm";
 import PostList from "./PostList";
 import CommentManager from "./CommentManager";
 import GuestbookManager from "./GuestbookManager";
+import ProjectManager from "./ProjectManager";
 import SettingsForm from "./SettingsForm";
 import type { AdminPost } from "./shared";
 import type { SiteSettings } from "@/lib/site";
@@ -16,7 +17,7 @@ import type { GuestbookMessage } from "@/db/schema";
 
 /**
  * 后台主界面：顶部导航 + Tab 切换 + 组合各管理模块。
- * 子模块拆分为 PostForm / PostList / CommentManager / GuestbookManager / SettingsForm。
+ * 子模块拆分为 PostForm / PostList / CommentManager / GuestbookManager / ProjectManager / SettingsForm。
  */
 export default function AdminClient({
   userEmail,
@@ -34,7 +35,7 @@ export default function AdminClient({
   const router = useRouter();
   const [editing, setEditing] = useState<AdminPost | null>(null);
   const [formVersion, setFormVersion] = useState(0);
-  const [tab, setTab] = useState<"posts" | "comments" | "settings">("posts");
+  const [tab, setTab] = useState<"posts" | "comments" | "projects" | "settings">("posts");
 
   // 保存成功：退出编辑模式 + 递增 key 重置表单 + 刷新列表
   function handleSaved() {
@@ -92,6 +93,16 @@ export default function AdminClient({
           💬 评论管理（{comments.length}）
         </button>
         <button
+          onClick={() => setTab("projects")}
+          className={`rounded-t-lg px-4 py-2 text-sm transition-colors ${
+            tab === "projects"
+              ? "border-b-2 border-brand-500 text-fg"
+              : "text-fg-muted hover:text-fg"
+          }`}
+        >
+          📁 项目管理
+        </button>
+        <button
           onClick={() => setTab("settings")}
           className={`rounded-t-lg px-4 py-2 text-sm transition-colors ${
             tab === "settings"
@@ -147,6 +158,17 @@ export default function AdminClient({
             <span className="text-sm font-normal text-fg-faint">（最新 {guestbookMessages.length} 条）</span>
           </h2>
           <GuestbookManager messages={guestbookMessages} />
+        </div>
+      ) : tab === "projects" ? (
+        /* 项目管理 */
+        <div className="rounded-2xl border border-ink-700/60 bg-ink-900/50 p-8">
+          <h2 className="mb-6 text-xl font-bold text-fg">
+            📁 项目管理{" "}
+            <span className="text-sm font-normal text-fg-faint">
+              （展示在 /projects 页）
+            </span>
+          </h2>
+          <ProjectManager initialData={siteSettings.projects} />
         </div>
       ) : (
         <SettingsForm settings={siteSettings} />
