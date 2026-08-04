@@ -22,14 +22,14 @@ export default function GuestbookForm() {
     <form action={formAction} className="space-y-4">
       <div>
         <label htmlFor="gb-name" className="mb-2 block text-sm text-fg-muted">
-          昵称
+          昵称 <span className="text-fg-faint">（可选，留空显示为「匿名」）</span>
         </label>
         <input
           id="gb-name"
           name="name"
           type="text"
           maxLength={30}
-          placeholder="怎么称呼你？"
+          placeholder="匿名"
           className={inputCls}
         />
       </div>
