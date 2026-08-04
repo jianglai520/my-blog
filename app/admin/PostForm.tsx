@@ -59,11 +59,21 @@ export default function PostForm({
     }
   }
 
-  // 提交前把编辑器最新内容写入隐藏字段（编辑期间不维护 content state，避免大文档频繁重渲染）
+  // 提交前兜底：非法 slug（含中文/空格/特殊字符）自动清空，改用 id 链接；
+  // 再把编辑器最新内容写入隐藏字段（编辑期间不维护 content state，避免大文档频繁重渲染）
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
+    const slugInput = form.elements.namedItem("slug");
+    if (
+      slugInput instanceof HTMLInputElement &&
+      slugInput.value &&
+      !/^[a-z0-9-]+$/i.test(slugInput.value)
+    ) {
+      slugInput.value = "";
+    }
     const md = editorRef.current?.getMarkdown();
     if (md != null) {
-      const input = e.currentTarget.elements.namedItem("content");
+      const input = form.elements.namedItem("content");
       if (input instanceof HTMLInputElement) input.value = md;
     }
   }
