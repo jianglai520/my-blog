@@ -5,7 +5,11 @@ import PostList from "@/app/admin/PostList";
 import type { AdminPost } from "@/app/admin/shared";
 
 // Server Action 不真实执行，仅验证渲染与回调
-vi.mock("@/app/actions/posts", () => ({ deletePost: vi.fn() }));
+vi.mock("@/app/actions/posts", () => ({
+  deletePost: vi.fn(),
+  batchDeletePosts: vi.fn(),
+}));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 const basePost = {
   author_id: null,

@@ -87,3 +87,24 @@ export async function deleteComment(formData: FormData): Promise<void> {
   revalidatePath("/");
   revalidatePath("/admin");
 }
+
+/** 批量删除评论（仅博主） */
+export async function batchDeleteComments(ids: number[]): Promise<void> {
+  if (!ids.length) return;
+
+  try {
+    await requireAdmin();
+  } catch {
+    return; // 非博主：静默拒绝
+  }
+
+  const supabase = await getServerSupabase();
+  const { error } = await supabase.from("comments").delete().in("id", ids);
+  if (error) {
+    console.error("批量删除评论失败:", error);
+    return;
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+}

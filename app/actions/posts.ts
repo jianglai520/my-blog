@@ -236,3 +236,28 @@ export async function deletePost(formData: FormData): Promise<void> {
   revalidatePath("/sitemap.xml");
   updateTag("posts");
 }
+
+/** 批量删除文章（仅博主）：先删评论（兜底）再删文章，一次刷新缓存 */
+export async function batchDeletePosts(ids: number[]): Promise<void> {
+  if (!ids.length) return;
+
+  try {
+    await requireAdmin();
+  } catch {
+    return; // 非博主：静默拒绝
+  }
+
+  const supabase = await getServerSupabase();
+  await supabase.from("comments").delete().in("post_id", ids);
+  const { error } = await supabase.from("posts").delete().in("id", ids);
+  if (error) {
+    console.error("批量删除文章失败:", error);
+    return;
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  revalidatePath("/archives");
+  revalidatePath("/sitemap.xml");
+  updateTag("posts");
+}
