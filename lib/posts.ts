@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import { posts, comments, tags as tagsTable, postTags, type Post, type Comment } from "@/db/schema";
 
@@ -26,30 +27,36 @@ function mapPostTags(post: Post & { postTags?: { tag: { name: string; slug: stri
 /**
  * 已发布文章分页列表（首页 / 标签页用），按时间倒序。
  * 返回 { posts, total }；page 从 1 开始。
+ *
+ * 缓存：unstable_cache（60s）+ tag "posts"（发布/编辑/删除时 revalidateTag 立即失效）。
  */
-export async function getPublishedPosts(
-  page = 1,
-  pageSize = PAGE_SIZE,
-): Promise<{ posts: PostWithTags[]; total: number }> {
-  const offset = (page - 1) * pageSize;
+export const getPublishedPosts = unstable_cache(
+  async (
+    page = 1,
+    pageSize = PAGE_SIZE,
+  ): Promise<{ posts: PostWithTags[]; total: number }> => {
+    const offset = (page - 1) * pageSize;
 
-  const [rows, countRows] = await Promise.all([
-    db.query.posts.findMany({
-      where: eq(posts.status, "published"),
-      with: { postTags: { with: { tag: true } } },
-      orderBy: [desc(posts.created_at)],
-      limit: pageSize,
-      offset,
-    }),
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(posts)
-      .where(eq(posts.status, "published")),
-  ]);
+    const [rows, countRows] = await Promise.all([
+      db.query.posts.findMany({
+        where: eq(posts.status, "published"),
+        with: { postTags: { with: { tag: true } } },
+        orderBy: [desc(posts.created_at)],
+        limit: pageSize,
+        offset,
+      }),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(posts)
+        .where(eq(posts.status, "published")),
+    ]);
 
-  const total = Number(countRows[0]?.count ?? 0);
-  return { posts: rows.map(mapPostTags), total };
-}
+    const total = Number(countRows[0]?.count ?? 0);
+    return { posts: rows.map(mapPostTags), total };
+  },
+  ["published-posts"],
+  { revalidate: 60, tags: ["posts"] },
+);
 
 /**
  * 按 slug 或 id 查已发布文章（公开访问），带标签。

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { postSchema, type PostFormInput } from "@/lib/validations/posts";
 import { slugify } from "@/lib/format";
@@ -145,6 +145,7 @@ export async function createPost(
   revalidatePath("/archives");
   revalidatePath("/sitemap.xml");
   revalidatePath("/admin");
+  updateTag("posts");
   return {
     message: status === "published" ? "✅ 发布成功！" : "✅ 草稿已保存！",
     success: true,
@@ -201,6 +202,7 @@ export async function updatePost(
   revalidatePath("/admin");
   revalidatePath("/archives");
   revalidatePath("/sitemap.xml");
+  updateTag("posts");
   if (updated?.slug) revalidatePath(`/posts/${updated.slug}`);
   return {
     message: status === "published" ? "✅ 已发布！" : "✅ 草稿已更新！",
@@ -228,4 +230,5 @@ export async function deletePost(formData: FormData): Promise<void> {
 
   revalidatePath("/admin");
   revalidatePath("/");
+  updateTag("posts");
 }

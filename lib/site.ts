@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import { siteSettings } from "@/db/schema";
 
@@ -26,22 +27,29 @@ const DEFAULTS: SiteSettings = {
   icp: "",
 };
 
-/** 读取全部站点配置（合并默认值） */
-export async function getSiteSettings(): Promise<SiteSettings> {
-  try {
-    const rows = await db.select().from(siteSettings);
-    const map = new Map(rows.map((r) => [r.key, r.value]));
-    return {
-      author_name: map.get("author_name") || DEFAULTS.author_name,
-      intro: map.get("intro") || DEFAULTS.intro,
-      bio: map.get("bio") || DEFAULTS.bio,
-      github: map.get("github") || "",
-      email: map.get("email") || "",
-      avatar_url: map.get("avatar_url") || "",
-      icp: map.get("icp") || "",
-    };
-  } catch (error) {
-    console.error("读取站点配置失败，使用默认值:", error);
-    return { ...DEFAULTS };
-  }
-}
+/**
+ * 读取全部站点配置（合并默认值）。
+ * 缓存：unstable_cache（60s）+ tag "site"（后台保存设置时 revalidateTag 立即失效）。
+ */
+export const getSiteSettings = unstable_cache(
+  async (): Promise<SiteSettings> => {
+    try {
+      const rows = await db.select().from(siteSettings);
+      const map = new Map(rows.map((r) => [r.key, r.value]));
+      return {
+        author_name: map.get("author_name") || DEFAULTS.author_name,
+        intro: map.get("intro") || DEFAULTS.intro,
+        bio: map.get("bio") || DEFAULTS.bio,
+        github: map.get("github") || "",
+        email: map.get("email") || "",
+        avatar_url: map.get("avatar_url") || "",
+        icp: map.get("icp") || "",
+      };
+    } catch (error) {
+      console.error("读取站点配置失败，使用默认值:", error);
+      return { ...DEFAULTS };
+    }
+  },
+  ["site-settings"],
+  { revalidate: 60, tags: ["site"] },
+);

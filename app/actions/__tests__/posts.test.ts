@@ -5,7 +5,7 @@ vi.mock("@/lib/server/supabase", () => ({
   getServerSupabase: vi.fn(),
   requireAdmin: vi.fn(),
 }));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), updateTag: vi.fn() }));
 
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { createPost, updatePost } from "@/app/actions/posts";

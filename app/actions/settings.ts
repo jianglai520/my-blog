@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { settingsSchema, type SettingsInput } from "@/lib/validations/settings";
 
@@ -58,5 +58,6 @@ export async function updateSiteSettings(
   revalidatePath("/");
   revalidatePath("/about");
   revalidatePath("/admin");
+  updateTag("site");
   return { message: "✅ 站点设置已保存！", success: true };
 }
