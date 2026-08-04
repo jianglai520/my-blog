@@ -33,6 +33,7 @@ export async function updateSiteSettings(
     school_url: String(formData.get("school_url") || ""),
     avatar_url: String(formData.get("avatar_url") || ""),
     icp: String(formData.get("icp") || ""),
+    skills: String(formData.get("skills") || ""),
   });
 
   if (!parsed.success) {

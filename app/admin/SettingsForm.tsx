@@ -24,6 +24,7 @@ export default function SettingsForm({ settings }: { settings: SiteSettings }) {
   const [schoolUrl, setSchoolUrl] = useState(settings.school_url);
   const [avatarUrl, setAvatarUrl] = useState(settings.avatar_url);
   const [icp, setIcp] = useState(settings.icp);
+  const [skills, setSkills] = useState(settings.skills);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -221,6 +222,24 @@ export default function SettingsForm({ settings }: { settings: SiteSettings }) {
               className={inputCls}
             />
           </div>
+        </div>
+
+        <div>
+          <label htmlFor="set-skills" className="mb-2 block text-sm text-fg-muted">
+            技能清单（技能页展示，可空）
+          </label>
+          <textarea
+            id="set-skills"
+            name="skills"
+            value={skills}
+            onChange={(e) => setSkills(e.target.value)}
+            rows={6}
+            placeholder={'每行一个技能：名称 | 熟练度(1-5)\n例如：\nNext.js | 4\nTypeScript | 3\nPostgreSQL | 3'}
+            className={`${inputCls} resize-y font-mono text-sm`}
+          />
+          <p className="mt-1 text-xs text-fg-faint">
+            格式：每行「技能名 | 1-5」，用竖线分隔；保存后 /skills 页按熟练度显示进度条
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
