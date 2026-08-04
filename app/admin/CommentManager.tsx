@@ -35,13 +35,15 @@ export default function CommentManager({
               <span className="text-xs text-fg-faint">
                 {new Date(comment.created_at).toLocaleString("zh-CN")}
               </span>
-              {post && (
+              {post ? (
                 <a
                   href={`/posts/${post.slug ?? post.id}`}
                   className="text-xs text-brand-300 hover:underline"
                 >
                   → 《{post.title}》
                 </a>
+              ) : (
+                <span className="text-xs text-fg-faint">（文章已删除）</span>
               )}
             </div>
             <p className="text-fg-muted">{comment.content}</p>

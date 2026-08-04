@@ -222,6 +222,8 @@ export async function deletePost(formData: FormData): Promise<void> {
   }
 
   const supabase = await getServerSupabase();
+  // 先删该文章下的评论（数据库外键已配置级联删除，此处为应用层兜底保险）
+  await supabase.from("comments").delete().eq("post_id", postId);
   const { error } = await supabase.from("posts").delete().eq("id", postId);
   if (error) {
     console.error("删除文章失败:", error);
