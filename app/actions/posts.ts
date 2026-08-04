@@ -230,5 +230,7 @@ export async function deletePost(formData: FormData): Promise<void> {
 
   revalidatePath("/admin");
   revalidatePath("/");
+  revalidatePath("/archives");
+  revalidatePath("/sitemap.xml");
   updateTag("posts");
 }
