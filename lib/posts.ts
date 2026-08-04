@@ -160,14 +160,31 @@ export async function searchPosts(q: string, limit = 20): Promise<PostWithTags[]
   return rows.map(mapPostTags);
 }
 
+/** 归档条目（归档页展示用） */
+export type ArchiveItem = {
+  id: number;
+  title: string;
+  slug: string | null;
+  excerpt: string | null;
+  view_count: number;
+  created_at: string;
+};
+
 /**
- * 按年月归档：返回 [{ year, month, items: [{id,title,slug,created_at}] }]
+ * 按年月归档：返回 [{ year, month, items }]
  */
 export async function getArchives(): Promise<
-  { year: number; month: number; items: { id: number; title: string; slug: string | null; created_at: string }[] }[]
+  { year: number; month: number; items: ArchiveItem[] }[]
 > {
   const rows = await db
-    .select({ id: posts.id, title: posts.title, slug: posts.slug, created_at: posts.created_at })
+    .select({
+      id: posts.id,
+      title: posts.title,
+      slug: posts.slug,
+      excerpt: posts.excerpt,
+      view_count: posts.view_count,
+      created_at: posts.created_at,
+    })
     .from(posts)
     .where(eq(posts.status, "published"))
     .orderBy(desc(posts.created_at));
@@ -177,9 +194,9 @@ export async function getArchives(): Promise<
 
 /** 按年月分组（纯函数，可单测）；rows 已按时间倒序 */
 export function groupArchivesByMonth(
-  rows: { id: number; title: string; slug: string | null; created_at: string }[],
-): { year: number; month: number; items: { id: number; title: string; slug: string | null; created_at: string }[] }[] {
-  const groups = new Map<string, { year: number; month: number; items: typeof rows }>();
+  rows: ArchiveItem[],
+): { year: number; month: number; items: ArchiveItem[] }[] {
+  const groups = new Map<string, { year: number; month: number; items: ArchiveItem[] }>();
   for (const row of rows) {
     const d = new Date(row.created_at);
     const key = `${d.getFullYear()}-${d.getMonth() + 1}`;

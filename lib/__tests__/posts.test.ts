@@ -77,8 +77,8 @@ describe("groupArchivesByMonth", () => {
 
   it("同一月份的文章归为一组，保持传入顺序", () => {
     const rows = [
-      { id: 1, title: "A", slug: "a", created_at: "2026-08-10T00:00:00Z" },
-      { id: 2, title: "B", slug: "b", created_at: "2026-08-02T00:00:00Z" },
+      { id: 1, title: "A", slug: "a", excerpt: null, view_count: 1, created_at: "2026-08-10T00:00:00Z" },
+      { id: 2, title: "B", slug: "b", excerpt: null, view_count: 2, created_at: "2026-08-02T00:00:00Z" },
     ];
     const groups = groupArchivesByMonth(rows);
     expect(groups).toHaveLength(1);
@@ -89,9 +89,9 @@ describe("groupArchivesByMonth", () => {
 
   it("跨年跨月分为多组", () => {
     const rows = [
-      { id: 3, title: "C", slug: "c", created_at: "2026-08-01T00:00:00Z" },
-      { id: 2, title: "B", slug: "b", created_at: "2026-01-15T00:00:00Z" },
-      { id: 1, title: "A", slug: "a", created_at: "2025-12-31T00:00:00Z" },
+      { id: 3, title: "C", slug: "c", excerpt: null, view_count: 1, created_at: "2026-08-01T00:00:00Z" },
+      { id: 2, title: "B", slug: "b", excerpt: null, view_count: 2, created_at: "2026-01-15T00:00:00Z" },
+      { id: 1, title: "A", slug: "a", excerpt: null, view_count: 3, created_at: "2025-12-31T00:00:00Z" },
     ];
     const groups = groupArchivesByMonth(rows);
     expect(groups).toHaveLength(3);
