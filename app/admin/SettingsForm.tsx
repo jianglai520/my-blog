@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { updateSiteSettings, type SettingsState } from "@/app/actions/settings";
 import { uploadAvatar } from "@/app/actions/uploads";
 import type { SiteSettings } from "@/lib/site";
+import { parseSkills, serializeSkills, SKILL_GROUPS, type SkillItem } from "@/lib/skills";
 import { inputCls } from "./shared";
 
 const initialSettingsState: SettingsState = { message: "", success: false };
@@ -24,7 +25,7 @@ export default function SettingsForm({ settings }: { settings: SiteSettings }) {
   const [schoolUrl, setSchoolUrl] = useState(settings.school_url);
   const [avatarUrl, setAvatarUrl] = useState(settings.avatar_url);
   const [icp, setIcp] = useState(settings.icp);
-  const [skills, setSkills] = useState(settings.skills);
+  const [skillRows, setSkillRows] = useState<SkillItem[]>(() => parseSkills(settings.skills));
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -42,6 +43,17 @@ export default function SettingsForm({ settings }: { settings: SiteSettings }) {
       router.refresh();
     }
   }, [state.success, router]);
+
+  // 技能行编辑：更新 / 删除 / 添加
+  function updateSkill(idx: number, field: keyof SkillItem, value: string | number) {
+    setSkillRows((rows) => rows.map((r, i) => (i === idx ? { ...r, [field]: value } : r)));
+  }
+  function removeSkill(idx: number) {
+    setSkillRows((rows) => rows.filter((_, i) => i !== idx));
+  }
+  function addSkill() {
+    setSkillRows((rows) => [...rows, { group: "其他", name: "", level: 3 }]);
+  }
 
   // 选择头像文件 → 直接调上传 Server Action（事件处理器里 setState 合法，不用 useActionState）
   async function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -224,21 +236,68 @@ export default function SettingsForm({ settings }: { settings: SiteSettings }) {
           </div>
         </div>
 
+        {/* 技能清单：动态行编辑，保存时序列化 JSON 写入隐藏字段 */}
+        <input type="hidden" name="skills" value={serializeSkills(skillRows)} />
         <div>
-          <label htmlFor="set-skills" className="mb-2 block text-sm text-fg-muted">
-            技能清单（技能页展示，可空）
+          <label className="mb-2 block text-sm text-fg-muted">
+            技能清单 <span className="text-fg-faint">（技能页展示，可空）</span>
           </label>
-          <textarea
-            id="set-skills"
-            name="skills"
-            value={skills}
-            onChange={(e) => setSkills(e.target.value)}
-            rows={6}
-            placeholder={'每行一个技能：名称 | 熟练度(1-5)\n例如：\nNext.js | 4\nTypeScript | 3\nPostgreSQL | 3'}
-            className={`${inputCls} resize-y font-mono text-sm`}
-          />
+          <div className="space-y-2">
+            {skillRows.length === 0 && (
+              <p className="text-sm text-fg-faint">还没有技能，点下方「添加技能」开始。</p>
+            )}
+            {skillRows.map((row, idx) => (
+              <div key={idx} className="flex flex-wrap items-center gap-2">
+                <input
+                  value={row.group}
+                  list="skill-groups"
+                  onChange={(e) => updateSkill(idx, "group", e.target.value)}
+                  placeholder="分组"
+                  className={`${inputCls} w-24 flex-shrink-0 px-3 py-2`}
+                />
+                <input
+                  value={row.name}
+                  onChange={(e) => updateSkill(idx, "name", e.target.value)}
+                  placeholder="技能名（如 Next.js）"
+                  className={`${inputCls} min-w-0 flex-1 px-3 py-2`}
+                />
+                <select
+                  value={row.level}
+                  onChange={(e) => updateSkill(idx, "level", Number(e.target.value))}
+                  aria-label="熟练度"
+                  className={`${inputCls} w-16 flex-shrink-0 px-2 py-2`}
+                >
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => removeSkill(idx)}
+                  aria-label={`删除 ${row.name || "该技能"}`}
+                  className="flex-shrink-0 rounded-lg border border-red-400/30 px-2.5 py-2 text-sm text-red-400 transition-colors hover:bg-red-400/10"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+          <datalist id="skill-groups">
+            {SKILL_GROUPS.map((g) => (
+              <option key={g} value={g} />
+            ))}
+          </datalist>
+          <button
+            type="button"
+            onClick={addSkill}
+            className="mt-3 rounded-lg border border-brand-400/30 px-4 py-2 text-sm text-brand-300 transition-colors hover:bg-brand-400/10"
+          >
+            ➕ 添加技能
+          </button>
           <p className="mt-1 text-xs text-fg-faint">
-            格式：每行「技能名 | 1-5」，用竖线分隔；保存后 /skills 页按熟练度显示进度条
+            分组可自由填写（建议：前端 / 后端 / 数据库 / 工具）；熟练度 1~5。保存后 /skills 页按分组展示。
           </p>
         </div>
 
