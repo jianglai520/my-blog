@@ -28,12 +28,13 @@
 
 | 能力 | 说明 |
 |------|------|
-| 单元测试 | **Vitest**（40 个用例）：`lib/format`、zod 校验层、Server Actions 权限分支 |
-| E2E 测试 | **Playwright**（chromium）：首页/文章/搜索/RSS/登录（`npm run test:e2e`） |
+| 单元测试 | **Vitest**（49 个用例）：`lib/format`、zod 校验层、Server Actions 权限分支、数据层纯函数与 mock 查询 |
+| E2E 测试 | **Playwright**（chromium 9 用例）：首页/文章/搜索/RSS/登录（`npm run test:e2e`，登录用例需 `TEST_EMAIL`/`TEST_PASSWORD`） |
 | CI 流水线 | **GitHub Actions**（`.github/workflows/ci.yml`）：push/PR 自动跑 lint + 单测 + 构建（+ E2E） |
 | 错误监控 | **Sentry**（`SENTRY_DSN` 配置后生效）+ 自定义 `error.tsx` / `global-error.tsx` |
 | 访问分析 | **Vercel Analytics**（`@vercel/analytics`，Dashboard 开启） |
-| 数据备份 | 见 **`BACKUP.md`**（手动导出 + 迁移脚本 + 恢复演练） |
+| 数据备份 | 见 **`BACKUP.md`**：`scripts/backup.mjs` 导出 JSON + `scripts/restore-drill.mjs` 恢复演练（临时 schema 校验，已执行通过） |
+| 性能优化 | 首页数据缓存：`unstable_cache`（60s）+ 写操作 `updateTag` 即时失效（响应约 4.7 倍提速） |
 
 ```bash
 npm test          # 单元测试
@@ -100,7 +101,12 @@ my-blog/
 │   │       └── CommentForm.tsx     # 评论表单（调用 Server Action）
 │   ├── admin/
 │   │   ├── page.tsx                # 后台入口（服务端鉴权，未登录/非博主重定向）
-│   │   └── AdminClient.tsx         # 后台交互（编辑器/草稿/编辑/删除）
+│   │   ├── AdminClient.tsx         # 后台主界面（导航 + Tab + 组合子模块）
+│   │   ├── PostForm.tsx            # 写作 / 编辑表单（TipTap 编辑器）
+│   │   ├── PostList.tsx            # 文章管理列表（编辑/删除）
+│   │   ├── CommentManager.tsx      # 评论管理列表
+│   │   ├── SettingsForm.tsx        # 站点设置（含头像上传）
+│   │   └── shared.ts               # 共享输入样式 + AdminPost 类型
 │   ├── login/
 │   │   └── page.tsx                # 登录页（useActionState 调 Server Actions）
 │   ├── tags/[slug]/                # 标签页（按标签筛选文章）
@@ -127,7 +133,8 @@ my-blog/
 │   └── migrations/                 # 数据库迁移 SQL（0001~0009，手动在 SQL Editor 执行）
 ├── scripts/
 │   ├── generate-og.mjs             # 一次性脚本：生成 public/og.png
-│   └── backup.mjs                  # 数据库备份脚本（导出全表 JSON 到 backups/）
+│   ├── backup.mjs                  # 数据库备份脚本（导出全表 JSON 到 backups/）
+│   └── restore-drill.mjs           # 备份恢复演练（临时 schema 重建 + 行数校验，安全不碰生产表）
 ├── e2e/                            # Playwright E2E 测试（homepage/post/search/rss/auth）
 ├── public/
 │   └── og.png                      # OpenGraph 分享图（1200×630）
