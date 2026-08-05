@@ -40,7 +40,10 @@ export default function SkillManager({ initialData }: { initialData: string }) {
 
       <div className="space-y-2">
         {rows.map((row, idx) => (
-          <div key={idx} className="flex flex-wrap items-center gap-2">
+          <div
+            key={idx}
+            className="flex flex-wrap items-center gap-3 rounded-xl border border-ink-700/60 bg-ink-800/40 p-3 transition-colors hover:border-brand-500/30"
+          >
             <input
               value={row.group}
               list="skill-groups"
@@ -54,18 +57,25 @@ export default function SkillManager({ initialData }: { initialData: string }) {
               placeholder="技能名（如 Next.js）"
               className={`${inputCls} min-w-0 flex-1 px-3 py-2`}
             />
-            <select
-              value={row.level}
-              onChange={(e) => update(idx, "level", Number(e.target.value))}
-              aria-label="熟练度"
-              className={`${inputCls} w-16 flex-shrink-0 px-2 py-2`}
-            >
+            {/* 熟练度：星级点选 */}
+            <div className="flex flex-shrink-0 items-center gap-0.5" aria-label={`熟练度 ${row.level}/5`}>
               {[1, 2, 3, 4, 5].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => update(idx, "level", n)}
+                  aria-label={`熟练度 ${n}`}
+                  className={`text-lg leading-none transition-transform hover:scale-125 ${
+                    n <= row.level ? "text-amber-400" : "text-ink-600 hover:text-ink-500"
+                  }`}
+                >
+                  ★
+                </button>
               ))}
-            </select>
+            </div>
+            <span className="flex-shrink-0 text-xs text-fg-faint">
+              {row.level}/5
+            </span>
             <button
               type="button"
               onClick={() => remove(idx)}
