@@ -25,6 +25,12 @@
 - **方式一**（免费档）：Storage → Buckets → `post-images` → 逐个下载（图片多时繁琐）
 - **方式二**：用 `supabase` CLI 或第三方工具（如 rclone）同步到本地/网盘
 
+## 自动备份（GitHub Actions）
+
+- **`.github/workflows/backup.yml`**：每周一 02:17 UTC 自动执行 `node scripts/backup.mjs`，备份 JSON 上传为 **Actions artifact（保留 90 天）**；可在 Actions 页面手动触发（Run workflow）
+- 依赖 GitHub Secrets：`DATABASE_URL`（已有）
+- 下载：GitHub → Actions → 「定时数据库备份」→ 最新一次 run → Artifacts → 下载 `db-backup-*`
+
 ## 恢复演练（每季度一次）
 
 **演练 JSON 备份可恢复**（推荐，安全不碰生产表）：
