@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteComment, batchDeleteComments } from "@/app/actions/comments";
+import { formatDateTime } from "@/lib/format";
 import type { Comment } from "@/lib/posts";
 import type { AdminPost } from "./shared";
 
@@ -115,7 +116,7 @@ export default function CommentManager({
                   <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                     <span className="font-medium text-fg">{comment.name}</span>
                     <span className="text-xs text-fg-faint">
-                      {new Date(comment.created_at).toLocaleString("zh-CN")}
+                      {formatDateTime(comment.created_at)}
                     </span>
                     {post ? (
                       <a

@@ -1,6 +1,7 @@
 "use client";
 
 import { deleteGuestbookMessage } from "@/app/actions/guestbook";
+import { formatDateTime } from "@/lib/format";
 import type { GuestbookMessage } from "@/db/schema";
 
 /**
@@ -25,7 +26,7 @@ export default function GuestbookManager({
           <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <span className="font-medium text-fg">{message.name}</span>
             <span className="text-xs text-fg-faint">
-              {new Date(message.created_at).toLocaleString("zh-CN")}
+              {formatDateTime(message.created_at)}
             </span>
           </div>
           <p className="whitespace-pre-wrap text-fg-muted">{message.content}</p>

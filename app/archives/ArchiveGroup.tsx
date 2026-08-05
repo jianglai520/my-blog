@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Eye, ChevronDown, ChevronRight } from "lucide-react";
+import { formatDate } from "@/lib/format";
 import type { ArchiveItem } from "@/lib/posts";
 
 /**
@@ -62,7 +63,7 @@ export default function ArchiveGroup({
                     <Eye size={12} /> {item.view_count}
                   </span>
                 )}
-                <span>{new Date(item.created_at).toLocaleDateString("zh-CN")}</span>
+                <span>{formatDate(item.created_at)}</span>
               </div>
             </li>
           ))}

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deletePost, batchDeletePosts } from "@/app/actions/posts";
+import { formatDate } from "@/lib/format";
 import type { AdminPost } from "./shared";
 
 /**
@@ -135,7 +136,7 @@ export default function PostList({
                 <p className="mt-1 text-sm text-fg-faint">
                   {post.slug ? `/posts/${post.slug}` : `/posts/${post.id}`}
                   {" · "}
-                  {new Date(post.created_at).toLocaleDateString("zh-CN")}
+                  {formatDate(post.created_at)}
                 </p>
               </div>
             </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getGuestbookMessages } from "@/lib/guestbook";
+import { formatDateTime } from "@/lib/format";
 import GuestbookForm from "./GuestbookForm";
 
 export const metadata: Metadata = { title: "留言板" };
@@ -48,7 +49,7 @@ export default async function GuestbookPage() {
                   <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                     <span className="font-medium text-fg">{message.name}</span>
                     <span className="text-xs text-fg-faint">
-                      {new Date(message.created_at).toLocaleString("zh-CN")}
+                      {formatDateTime(message.created_at)}
                     </span>
                   </div>
                   <p className="whitespace-pre-wrap text-fg-muted">{message.content}</p>
