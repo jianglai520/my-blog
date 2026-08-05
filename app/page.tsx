@@ -54,7 +54,9 @@ export default async function Home({
           <h1 className="text-4xl font-bold leading-tight sm:text-5xl">
             <span className="hero-title font-display">你好，我是{settings.author_name}</span>
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-lg text-fg-muted">{settings.intro}</p>
+          <p className="mx-auto mt-5 max-w-xl font-display text-xl italic leading-relaxed text-fg-muted">
+            {settings.intro}
+          </p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm text-fg-muted">
             <span>✍️ 记录开发随笔</span>
