@@ -69,7 +69,7 @@ npm run lint      # ESLint
 | 💬 **留言板** | 独立留言页 `/guestbook`（导航入口），匿名可发 + IP 限流，后台可删 |
 | 🏷️ **技能页** | `/skills` 技能清单页（后台配置「名称｜熟练度」，进度条 + 星级展示） |
 | 📁 **项目展示** | `/projects` 项目卡片页（后台配置名称/描述/技术栈/链接，面试展示） |
-| 🤖 **AI 问答** | 文章页悬浮「问 AI」，基于本文内容回答（DeepSeek，IP 限流防刷） |
+| 🤖 **AI 问答（RAG）** | 文章页悬浮「问 AI」，**全站文章向量检索**回答（pgvector + BGE-M3 + DeepSeek，IP 限流防刷） |
 | 🔝 **返回顶部** | 长文滚动后右下角一键回顶（平滑滚动，AI 按钮上方） |
 | 🎭 **404 趣味页** | 个性化 404（大号渐变 + 快捷入口），文章/标签不存在也走这里 |
 | 📤 **分享按钮** | 文章页一键分享：复制链接 / 微博 / QQ / X |
@@ -138,7 +138,7 @@ my-blog/
 ├── proxy.ts                        # 路由守卫（Next 16 中 middleware 更名为此）
 ├── drizzle.config.ts               # drizzle-kit 配置（schema → 迁移 SQL）
 ├── supabase/
-│   └── migrations/                 # 数据库迁移 SQL（0001~0011，手动在 SQL Editor 执行）
+│   └── migrations/                 # 数据库迁移 SQL（0001~0012，手动在 SQL Editor 执行）
 ├── scripts/
 │   ├── generate-og.mjs             # 一次性脚本：生成 public/og.png
 │   ├── backup.mjs                  # 数据库备份脚本（导出全表 JSON 到 backups/）
@@ -182,7 +182,8 @@ npm run lint    # ESLint 检查
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目 URL | Supabase 控制台 → Project Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 公开匿名密钥（anon key） | 同上 |
 | `DATABASE_URL` | **服务端专用**数据库连接串（Drizzle 直连用，**不带 NEXT_PUBLIC_ 前缀**） | Supabase → Project Settings → Database → Connection string → **Transaction pooler**（端口 6543） |
-| `DEEPSEEK_API_KEY` | **服务端专用**AI 问答密钥（站内「问 AI」用，**不带 NEXT_PUBLIC_ 前缀**） | DeepSeek 开放平台 → API Keys |
+| `DEEPSEEK_API_KEY` | **服务端专用**AI 问答密钥（站内「问 AI」回答生成，**不带 NEXT_PUBLIC_ 前缀**） | DeepSeek 开放平台 → API Keys |
+| `EMBEDDING_API_KEY` | **服务端专用**向量化密钥（RAG 检索用，BGE-M3，**不带 NEXT_PUBLIC_ 前缀**） | 硅基流动 → API Keys |
 
 > ⚠️ `DATABASE_URL` 是能直连数据库的服务端密钥：只在 `.env.local` / Vercel 服务端环境变量里，**绝不暴露给浏览器**（Vercel 配置时**不勾选** "Expose to Client"）。
 
@@ -237,10 +238,19 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `ip` | text（可空） | 留言者 IP（60 秒限流用） |
 | `created_at` | timestamptz | 创建时间 |
 
+### 表 `article_chunks`（AI 问答 RAG 分块）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | int8 / PK | 主键 |
+| `post_id` | int8 | 关联 `posts.id`（删除级联清分块） |
+| `chunk_index` | int | 块序号 |
+| `content` | text | 块文本（约 500 字，重叠 50） |
+| `embedding` | vector(1024) | BGE-M3 向量（pgvector，余弦索引） |
+
 ### 表 `site_settings`
 
 站点配置（key-value，管理员后台「站点设置」可随时修改，前台即时生效）：
-
 | key | 说明 |
 |-----|------|
 | `author_name` | 博主名字（默认「江来」） |
@@ -270,7 +280,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 公开读的文章图片存储桶（仅博主可上传/删除，RLS 策略见 `0002_rls.sql` / `0003_markdown_draft.sql`）。
 
-> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0011），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0012），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
 
 ---
 
