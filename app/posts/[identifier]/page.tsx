@@ -11,6 +11,7 @@ import ReadingProgress from "@/app/components/ReadingProgress";
 import Toc from "@/app/components/Toc";
 import ImageLightbox from "@/app/components/ImageLightbox";
 import AIChatButton from "@/app/components/AIChatButton";
+import ShareButton from "@/app/components/ShareButton";
 import { getComments, getPostByIdentifier } from "@/lib/posts";
 import { formatDateTime } from "@/lib/format";
 
@@ -130,6 +131,9 @@ export default async function PostPage({ params }: Props) {
         <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-fg-faint">
           <span>发布于 {formatDateTime(post.created_at)}</span>
           <ViewCounter postId={post.id} initialCount={post.view_count ?? 0} />
+        </div>
+        <div className="mt-3">
+          <ShareButton title={post.title} />
         </div>
         {post.tags.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
