@@ -30,7 +30,7 @@ export default function SiteHeader() {
             技能
           </Link>
           <Link href="/guestbook" className="nav-link rounded-md px-3 py-2 text-sm text-fg-muted transition-colors hover:text-fg">
-            留言板
+            留言
           </Link>
           <Link href="/about" className="nav-link rounded-md px-3 py-2 text-sm text-fg-muted transition-colors hover:text-fg">
             关于
