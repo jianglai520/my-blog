@@ -9,6 +9,7 @@ import PostList from "./PostList";
 import CommentManager from "./CommentManager";
 import GuestbookManager from "./GuestbookManager";
 import ProjectManager from "./ProjectManager";
+import SkillManager from "./SkillManager";
 import SettingsForm from "./SettingsForm";
 import type { AdminPost } from "./shared";
 import type { SiteSettings } from "@/lib/site";
@@ -17,7 +18,7 @@ import type { GuestbookMessage } from "@/db/schema";
 
 /**
  * 后台主界面：顶部导航 + Tab 切换 + 组合各管理模块。
- * 子模块拆分为 PostForm / PostList / CommentManager / GuestbookManager / ProjectManager / SettingsForm。
+ * 子模块拆分为 PostForm / PostList / CommentManager / GuestbookManager / ProjectManager / SkillManager / SettingsForm。
  */
 export default function AdminClient({
   userEmail,
@@ -35,7 +36,9 @@ export default function AdminClient({
   const router = useRouter();
   const [editing, setEditing] = useState<AdminPost | null>(null);
   const [formVersion, setFormVersion] = useState(0);
-  const [tab, setTab] = useState<"posts" | "comments" | "projects" | "settings">("posts");
+  const [tab, setTab] = useState<"posts" | "comments" | "projects" | "skills" | "settings">(
+    "posts",
+  );
 
   // 保存成功：退出编辑模式 + 递增 key 重置表单 + 刷新列表
   function handleSaved() {
@@ -101,6 +104,16 @@ export default function AdminClient({
           }`}
         >
           📁 项目管理
+        </button>
+        <button
+          onClick={() => setTab("skills")}
+          className={`rounded-t-lg px-4 py-2 text-sm transition-colors ${
+            tab === "skills"
+              ? "border-b-2 border-brand-500 text-fg"
+              : "text-fg-muted hover:text-fg"
+          }`}
+        >
+          🏷️ 技能管理
         </button>
         <button
           onClick={() => setTab("settings")}
@@ -169,6 +182,17 @@ export default function AdminClient({
             </span>
           </h2>
           <ProjectManager initialData={siteSettings.projects} />
+        </div>
+      ) : tab === "skills" ? (
+        /* 技能管理 */
+        <div className="rounded-2xl border border-ink-700/60 bg-ink-900/50 p-8">
+          <h2 className="mb-6 text-xl font-bold text-fg">
+            🏷️ 技能管理{" "}
+            <span className="text-sm font-normal text-fg-faint">
+              （展示在 /skills 页）
+            </span>
+          </h2>
+          <SkillManager initialData={siteSettings.skills} />
         </div>
       ) : (
         <SettingsForm settings={siteSettings} />
