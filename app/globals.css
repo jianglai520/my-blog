@@ -438,3 +438,19 @@ body::before {
 :root[data-theme="light"] .markdown-body a {
   color: #7c3aed;
 }
+/* 浅色：正文基础文字改深色（prose-invert 默认白字，浅色模式下必须覆盖） */
+:root[data-theme="light"] .markdown-body,
+:root[data-theme="light"] .markdown-body p,
+:root[data-theme="light"] .markdown-body h1,
+:root[data-theme="light"] .markdown-body h2,
+:root[data-theme="light"] .markdown-body h3,
+:root[data-theme="light"] .markdown-body h4,
+:root[data-theme="light"] .markdown-body li,
+:root[data-theme="light"] .markdown-body strong,
+:root[data-theme="light"] .markdown-body th,
+:root[data-theme="light"] .markdown-body td {
+  color: var(--color-fg);
+}
+:root[data-theme="light"] .markdown-body li::marker {
+  color: var(--color-fg-muted);
+}
