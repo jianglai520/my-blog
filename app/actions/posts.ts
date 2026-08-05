@@ -4,6 +4,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { postSchema, type PostFormInput } from "@/lib/validations/posts";
 import { slugify } from "@/lib/format";
+import { syncPostChunks, deletePostChunks } from "@/lib/rag";
 
 export type PostFormState = {
   message: string;
@@ -141,6 +142,15 @@ export async function createPost(
 
   await syncPostTags(supabase, created.id, tags ?? "");
 
+  // 发布文章 → 同步 AI 检索索引（草稿不索引；失败不影响发布，可后续全量重建）
+  if (status === "published") {
+    try {
+      await syncPostChunks(supabase, created.id, content);
+    } catch (e) {
+      console.error("同步文章检索索引失败:", e);
+    }
+  }
+
   revalidatePath("/");
   revalidatePath("/archives");
   revalidatePath("/sitemap.xml");
@@ -198,6 +208,15 @@ export async function updatePost(
 
   await syncPostTags(supabase, postId, tags ?? "");
 
+  // 发布/更新文章 → 同步 AI 检索索引（草稿不索引；失败不影响保存）
+  if (status === "published") {
+    try {
+      await syncPostChunks(supabase, postId, content);
+    } catch (e) {
+      console.error("同步文章检索索引失败:", e);
+    }
+  }
+
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/archives");
@@ -222,8 +241,9 @@ export async function deletePost(formData: FormData): Promise<void> {
   }
 
   const supabase = await getServerSupabase();
-  // 先删该文章下的评论（数据库外键已配置级联删除，此处为应用层兜底保险）
+  // 先删该文章下的评论 + AI 索引分块（外键已级联，此处为应用层兜底保险）
   await supabase.from("comments").delete().eq("post_id", postId);
+  await deletePostChunks(supabase, postId);
   const { error } = await supabase.from("posts").delete().eq("id", postId);
   if (error) {
     console.error("删除文章失败:", error);
