@@ -35,6 +35,7 @@ export async function updateSiteSettings(
     icp: String(formData.get("icp") || ""),
     skills: String(formData.get("skills") || ""),
     projects: String(formData.get("projects") || ""),
+    resume: String(formData.get("resume") || ""),
   });
 
   if (!parsed.success) {

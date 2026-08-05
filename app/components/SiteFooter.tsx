@@ -1,4 +1,5 @@
-import { GitFork, Mail, Feather } from "lucide-react";
+import Link from "next/link";
+import { GitFork, Mail, Feather, FileText } from "lucide-react";
 import { getSiteSettings } from "@/lib/site";
 
 export default async function SiteFooter() {
@@ -10,7 +11,7 @@ export default async function SiteFooter() {
   ].filter(Boolean) as { label: string; href: string; icon: typeof GitFork }[];
 
   return (
-    <footer className="border-t border-ink-700/60 bg-ink-900/60">
+    <footer className="site-footer border-t border-ink-700/60 bg-ink-900/60">
       <div className="mx-auto max-w-5xl px-4 py-12">
         <div className="grid gap-10 md:grid-cols-3">
           <div>
@@ -54,6 +55,12 @@ export default async function SiteFooter() {
               信息
             </h2>
             <ul className="space-y-2 text-sm text-fg-muted">
+              <li>
+                <Link href="/resume" className="inline-flex items-center gap-2 text-fg-muted transition-colors hover:text-brand-300">
+                  <FileText size={14} className="text-fg-faint" />
+                  在线简历
+                </Link>
+              </li>
               <li className="flex items-center gap-2 text-fg-faint">
                 <Feather size={14} />
                 © {new Date().getFullYear()} {settings.author_name} · jianglai520.com

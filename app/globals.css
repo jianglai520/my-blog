@@ -454,3 +454,36 @@ body::before {
 :root[data-theme="light"] .markdown-body li::marker {
   color: var(--color-fg-muted);
 }
+
+/* ================= 打印样式（在线简历导出 PDF） ================= */
+@media print {
+  .site-header,
+  .site-footer,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  .resume-page {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  .resume-card {
+    border: none !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .resume-card h1,
+  .resume-card h2,
+  .resume-card h3 {
+    color: #000 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .resume-card p,
+  .resume-card span {
+    color: #333 !important;
+  }
+}

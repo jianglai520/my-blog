@@ -19,6 +19,7 @@ export type SiteSettings = {
   icp: string;
   skills: string;
   projects: string;
+  resume: string;
 };
 
 const DEFAULTS: SiteSettings = {
@@ -33,6 +34,7 @@ const DEFAULTS: SiteSettings = {
   icp: "",
   skills: "[]",
   projects: "[]",
+  resume: "[]",
 };
 
 /**
@@ -56,6 +58,7 @@ export const getSiteSettings = unstable_cache(
         icp: map.get("icp") || "",
         skills: map.get("skills") || "[]",
         projects: map.get("projects") || "[]",
+        resume: map.get("resume") || "[]",
       };
     } catch (error) {
       console.error("读取站点配置失败，使用默认值:", error);

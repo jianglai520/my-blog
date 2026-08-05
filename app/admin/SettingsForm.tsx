@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { updateSiteSettings, type SettingsState } from "@/app/actions/settings";
 import { uploadAvatar } from "@/app/actions/uploads";
 import type { SiteSettings } from "@/lib/site";
+import { parseResume, serializeResume, RESUME_TYPES, type ResumeItem } from "@/lib/resume";
 import { inputCls } from "./shared";
 
 const initialSettingsState: SettingsState = { message: "", success: false };
@@ -24,6 +25,7 @@ export default function SettingsForm({ settings }: { settings: SiteSettings }) {
   const [schoolUrl, setSchoolUrl] = useState(settings.school_url);
   const [avatarUrl, setAvatarUrl] = useState(settings.avatar_url);
   const [icp, setIcp] = useState(settings.icp);
+  const [resumeRows, setResumeRows] = useState<ResumeItem[]>(() => parseResume(settings.resume));
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -41,6 +43,20 @@ export default function SettingsForm({ settings }: { settings: SiteSettings }) {
       router.refresh();
     }
   }, [state.success, router]);
+
+  // 简历经历行编辑：更新 / 删除 / 添加
+  function updateResume(idx: number, field: keyof ResumeItem, value: string) {
+    setResumeRows((rows) => rows.map((r, i) => (i === idx ? { ...r, [field]: value } : r)));
+  }
+  function removeResume(idx: number) {
+    setResumeRows((rows) => rows.filter((_, i) => i !== idx));
+  }
+  function addResume() {
+    setResumeRows((rows) => [
+      ...rows,
+      { type: "经历", title: "", org: "", time: "", desc: "" },
+    ]);
+  }
 
   // 选择头像文件 → 直接调上传 Server Action（事件处理器里 setState 合法，不用 useActionState）
   async function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -221,6 +237,86 @@ export default function SettingsForm({ settings }: { settings: SiteSettings }) {
               className={inputCls}
             />
           </div>
+        </div>
+
+        {/* 简历经历：动态编辑，保存时序列化 JSON 写入隐藏字段 */}
+        <input type="hidden" name="resume" value={serializeResume(resumeRows)} />
+        <div>
+          <label className="mb-2 block text-sm text-fg-muted">
+            简历经历 <span className="text-fg-faint">（/resume 在线简历页展示，可空）</span>
+          </label>
+          <div className="space-y-3">
+            {resumeRows.length === 0 && (
+              <p className="text-sm text-fg-faint">还没有经历，点下方「添加经历」开始。</p>
+            )}
+            {resumeRows.map((item, idx) => (
+              <div
+                key={idx}
+                className="rounded-xl border border-ink-700/60 bg-ink-800/40 p-4"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-sm font-medium text-fg-muted">经历 #{idx + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeResume(idx)}
+                    aria-label={`删除经历 ${item.title || idx + 1}`}
+                    className="rounded-lg border border-red-400/30 px-2.5 py-1 text-sm text-red-400 transition-colors hover:bg-red-400/10"
+                  >
+                    ✕ 删除
+                  </button>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <select
+                    value={item.type}
+                    onChange={(e) => updateResume(idx, "type", e.target.value)}
+                    aria-label="类型"
+                    className={`${inputCls} px-3 py-2`}
+                  >
+                    {RESUME_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    value={item.time}
+                    onChange={(e) => updateResume(idx, "time", e.target.value)}
+                    placeholder="时间（如 2024.09 - 2028.06）"
+                    className={`${inputCls} px-3 py-2`}
+                  />
+                  <input
+                    value={item.title}
+                    onChange={(e) => updateResume(idx, "title", e.target.value)}
+                    placeholder="标题（如：兰州大学 计算机专业）"
+                    className={`${inputCls} px-3 py-2`}
+                  />
+                  <input
+                    value={item.org}
+                    onChange={(e) => updateResume(idx, "org", e.target.value)}
+                    placeholder="机构/公司（可选）"
+                    className={`${inputCls} px-3 py-2`}
+                  />
+                  <textarea
+                    value={item.desc}
+                    onChange={(e) => updateResume(idx, "desc", e.target.value)}
+                    placeholder="描述（一句话，可选）"
+                    rows={2}
+                    className={`${inputCls} resize-y px-3 py-2 sm:col-span-2`}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={addResume}
+            className="mt-3 rounded-lg border border-brand-400/30 px-4 py-2 text-sm text-brand-300 transition-colors hover:bg-brand-400/10"
+          >
+            ➕ 添加经历
+          </button>
+          <p className="mt-1 text-xs text-fg-faint">
+            类型可选：教育 / 经历 / 奖项；保存后 /resume 页展示。
+          </p>
         </div>
 
         <div className="flex items-center gap-3">

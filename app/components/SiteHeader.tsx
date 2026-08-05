@@ -4,7 +4,7 @@ import ThemeToggle from "./ThemeToggle";
 
 export default function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-ink-700/60 bg-ink-950/70 backdrop-blur-md">
+    <header className="site-header sticky top-0 z-40 border-b border-ink-700/60 bg-ink-950/70 backdrop-blur-md">
       <div className="gradient-top-line" />
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4">
         <Link href="/" className="group flex items-center gap-2">
