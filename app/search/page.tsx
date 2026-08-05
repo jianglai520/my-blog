@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import PostCard from "@/app/components/PostCard";
 import { searchPosts } from "@/lib/posts";
+import SearchForm from "./SearchForm";
+import SearchResultItem from "./SearchResultItem";
 
 type Props = {
   searchParams: Promise<{ q?: string }>;
@@ -19,7 +20,7 @@ export default async function SearchPage({ searchParams }: Props) {
   const posts = query ? await searchPosts(query) : [];
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
+    <div className="mx-auto max-w-3xl px-4 py-12">
       <Link href="/" className="mb-6 inline-block text-sm text-fg-muted transition-colors hover:text-brand-300">
         ← 返回首页
       </Link>
@@ -33,8 +34,11 @@ export default async function SearchPage({ searchParams }: Props) {
         )}
       </h1>
 
+      {/* 搜索框（可改词重新搜） */}
+      <SearchForm initial={query} />
+
       {!query ? (
-        <p className="text-fg-faint">在上方搜索框输入关键词开始搜索。</p>
+        <p className="text-sm text-fg-faint">输入关键词开始搜索。</p>
       ) : posts.length === 0 ? (
         <div className="rounded-2xl border border-ink-700/60 bg-ink-900/50 py-16 text-center">
           <p className="text-lg text-fg-muted">没有找到相关文章</p>
@@ -42,10 +46,10 @@ export default async function SearchPage({ searchParams }: Props) {
         </div>
       ) : (
         <>
-          <p className="mb-8 text-sm text-fg-faint">找到 {posts.length} 篇文章</p>
-          <div className="grid gap-5">
+          <p className="mb-5 text-sm text-fg-faint">找到 {posts.length} 篇文章</p>
+          <div className="space-y-4">
             {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
+              <SearchResultItem key={post.id} post={post} query={query} />
             ))}
           </div>
         </>
