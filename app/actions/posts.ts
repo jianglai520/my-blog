@@ -100,7 +100,7 @@ async function syncPostTags(
   if (error) console.error("同步标签失败:", error.message);
 }
 
-/** 发布新文章：zod 校验 → 博主鉴权 → 写库 → 刷新缓存 */
+/** 发布新文章：zod 校验 → 博主鉴权 → 写库 → 同步索引/标签 → 刷新缓存 */
 export async function createPost(
   _prev: PostFormState,
   formData: FormData
@@ -108,61 +108,70 @@ export async function createPost(
   const parsed = parseForm(formData);
   if (!parsed.ok) return { message: parsed.message, success: false };
 
-  let admin;
   try {
-    admin = await requireAdmin();
-  } catch (e) {
+    let admin;
+    try {
+      admin = await requireAdmin();
+    } catch (e) {
+      return {
+        message: `❌ ${e instanceof Error ? e.message : "无权限执行此操作"}`,
+        success: false,
+      };
+    }
+
+    const { title, slug, excerpt, coverImage, content, status, tags } = parsed.data;
+    const supabase = await getServerSupabase();
+    const finalSlug = slug ? await ensureUniqueSlug(supabase, slug) : null;
+    const { data: created, error } = await supabase
+      .from("posts")
+      .insert({
+        title,
+        slug: finalSlug,
+        excerpt: excerpt || null,
+        cover_image: coverImage || null,
+        content,
+        status,
+        published: status === "published",
+        author_id: admin.id,
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      return { message: `❌ 发布失败：${error.message}`, success: false };
+    }
+
+    await syncPostTags(supabase, created.id, tags ?? "");
+
+    // 发布文章 → 同步 AI 检索索引（草稿不索引；失败不影响发布，可后续全量重建）
+    if (status === "published") {
+      try {
+        await syncPostChunks(supabase, created.id, content);
+      } catch (e) {
+        console.error("同步文章检索索引失败:", e);
+      }
+    }
+
+    revalidatePath("/");
+    revalidatePath("/archives");
+    revalidatePath("/sitemap.xml");
+    revalidatePath("/admin");
+    updateTag("posts");
     return {
-      message: `❌ ${e instanceof Error ? e.message : "无权限执行此操作"}`,
+      message: status === "published" ? "✅ 发布成功！" : "✅ 草稿已保存！",
+      success: true,
+    };
+  } catch (e) {
+    // 兜底：任何异常都转为错误消息，绝不抛给前端（否则 action reject → 表单闪回）
+    console.error("createPost 异常:", e);
+    return {
+      message: `❌ 发布失败：${e instanceof Error ? e.message : "未知错误，请稍后重试"}`,
       success: false,
     };
   }
-
-  const { title, slug, excerpt, coverImage, content, status, tags } = parsed.data;
-  const supabase = await getServerSupabase();
-  const finalSlug = slug ? await ensureUniqueSlug(supabase, slug) : null;
-  const { data: created, error } = await supabase
-    .from("posts")
-    .insert({
-      title,
-      slug: finalSlug,
-      excerpt: excerpt || null,
-      cover_image: coverImage || null,
-      content,
-      status,
-      published: status === "published",
-      author_id: admin.id,
-    })
-    .select("id")
-    .single();
-
-  if (error) {
-    return { message: `❌ 发布失败：${error.message}`, success: false };
-  }
-
-  await syncPostTags(supabase, created.id, tags ?? "");
-
-  // 发布文章 → 同步 AI 检索索引（草稿不索引；失败不影响发布，可后续全量重建）
-  if (status === "published") {
-    try {
-      await syncPostChunks(supabase, created.id, content);
-    } catch (e) {
-      console.error("同步文章检索索引失败:", e);
-    }
-  }
-
-  revalidatePath("/");
-  revalidatePath("/archives");
-  revalidatePath("/sitemap.xml");
-  revalidatePath("/admin");
-  updateTag("posts");
-  return {
-    message: status === "published" ? "✅ 发布成功！" : "✅ 草稿已保存！",
-    success: true,
-  };
 }
 
-/** 编辑已有文章（含草稿续写 / 发布）：校验 → 博主鉴权 → 更新 → 刷新缓存 */
+/** 编辑已有文章（含草稿续写 / 发布）：校验 → 博主鉴权 → 更新 → 同步索引/标签 → 刷新缓存 */
 export async function updatePost(
   _prev: PostFormState,
   formData: FormData
@@ -176,57 +185,66 @@ export async function updatePost(
   if (!parsed.ok) return { message: parsed.message, success: false };
 
   try {
-    await requireAdmin();
-  } catch (e) {
+    try {
+      await requireAdmin();
+    } catch (e) {
+      return {
+        message: `❌ ${e instanceof Error ? e.message : "无权限执行此操作"}`,
+        success: false,
+      };
+    }
+
+    const { title, slug, excerpt, coverImage, content, status, tags } = parsed.data;
+    const supabase = await getServerSupabase();
+    const finalSlug = slug ? await ensureUniqueSlug(supabase, slug, postId) : null;
+    const { data: updated, error } = await supabase
+      .from("posts")
+      .update({
+        title,
+        slug: finalSlug,
+        excerpt: excerpt || null,
+        cover_image: coverImage || null,
+        content,
+        status,
+        published: status === "published",
+      })
+      .eq("id", postId)
+      .select("slug,status")
+      .maybeSingle();
+
+    if (error) {
+      return { message: `❌ 保存失败：${error.message}`, success: false };
+    }
+
+    await syncPostTags(supabase, postId, tags ?? "");
+
+    // 发布/更新文章 → 同步 AI 检索索引（草稿不索引；失败不影响保存）
+    if (status === "published") {
+      try {
+        await syncPostChunks(supabase, postId, content);
+      } catch (e) {
+        console.error("同步文章检索索引失败:", e);
+      }
+    }
+
+    revalidatePath("/");
+    revalidatePath("/admin");
+    revalidatePath("/archives");
+    revalidatePath("/sitemap.xml");
+    updateTag("posts");
+    if (updated?.slug) revalidatePath(`/posts/${updated.slug}`);
     return {
-      message: `❌ ${e instanceof Error ? e.message : "无权限执行此操作"}`,
+      message: status === "published" ? "✅ 已发布！" : "✅ 草稿已更新！",
+      success: true,
+    };
+  } catch (e) {
+    // 兜底：任何异常都转为错误消息，绝不抛给前端
+    console.error("updatePost 异常:", e);
+    return {
+      message: `❌ 保存失败：${e instanceof Error ? e.message : "未知错误，请稍后重试"}`,
       success: false,
     };
   }
-
-  const { title, slug, excerpt, coverImage, content, status, tags } = parsed.data;
-  const supabase = await getServerSupabase();
-  const finalSlug = slug ? await ensureUniqueSlug(supabase, slug, postId) : null;
-  const { data: updated, error } = await supabase
-    .from("posts")
-    .update({
-      title,
-      slug: finalSlug,
-      excerpt: excerpt || null,
-      cover_image: coverImage || null,
-      content,
-      status,
-      published: status === "published",
-    })
-    .eq("id", postId)
-    .select("slug,status")
-    .maybeSingle();
-
-  if (error) {
-    return { message: `❌ 保存失败：${error.message}`, success: false };
-  }
-
-  await syncPostTags(supabase, postId, tags ?? "");
-
-  // 发布/更新文章 → 同步 AI 检索索引（草稿不索引；失败不影响保存）
-  if (status === "published") {
-    try {
-      await syncPostChunks(supabase, postId, content);
-    } catch (e) {
-      console.error("同步文章检索索引失败:", e);
-    }
-  }
-
-  revalidatePath("/");
-  revalidatePath("/admin");
-  revalidatePath("/archives");
-  revalidatePath("/sitemap.xml");
-  updateTag("posts");
-  if (updated?.slug) revalidatePath(`/posts/${updated.slug}`);
-  return {
-    message: status === "published" ? "✅ 已发布！" : "✅ 草稿已更新！",
-    success: true,
-  };
 }
 
 /** 删除文章：博主鉴权 → 删除 → 刷新缓存 */
@@ -240,21 +258,25 @@ export async function deletePost(formData: FormData): Promise<void> {
     return; // 非博主：静默拒绝
   }
 
-  const supabase = await getServerSupabase();
-  // 先删该文章下的评论 + AI 索引分块（外键已级联，此处为应用层兜底保险）
-  await supabase.from("comments").delete().eq("post_id", postId);
-  await deletePostChunks(supabase, postId);
-  const { error } = await supabase.from("posts").delete().eq("id", postId);
-  if (error) {
-    console.error("删除文章失败:", error);
-    return;
-  }
+  try {
+    const supabase = await getServerSupabase();
+    // 先删该文章下的评论 + AI 索引分块（外键已级联，此处为应用层兜底保险）
+    await supabase.from("comments").delete().eq("post_id", postId);
+    await deletePostChunks(supabase, postId);
+    const { error } = await supabase.from("posts").delete().eq("id", postId);
+    if (error) {
+      console.error("删除文章失败:", error);
+      return;
+    }
 
-  revalidatePath("/admin");
-  revalidatePath("/");
-  revalidatePath("/archives");
-  revalidatePath("/sitemap.xml");
-  updateTag("posts");
+    revalidatePath("/admin");
+    revalidatePath("/");
+    revalidatePath("/archives");
+    revalidatePath("/sitemap.xml");
+    updateTag("posts");
+  } catch (e) {
+    console.error("deletePost 异常:", e);
+  }
 }
 
 /** 批量删除文章（仅博主）：先删评论（兜底）再删文章，一次刷新缓存 */
