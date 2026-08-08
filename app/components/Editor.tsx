@@ -10,6 +10,7 @@ import {
 import { useActionState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { OrderedList, BulletList } from "@tiptap/extension-list";
 import { Markdown } from "@tiptap/markdown";
 import Image from "@tiptap/extension-image";
 import { uploadImage, uploadAttachment, type UploadState } from "@/app/actions/uploads";
@@ -54,6 +55,16 @@ function ToolbarButton({
 /** 编辑器句柄：提交时父组件通过 ref 读取最新 Markdown（避免编辑期间频繁序列化） */
 export type EditorHandle = { getMarkdown: () => string };
 
+/**
+ * 禁用有序/无序列表的「输入自动检测」：
+ * 输入 `1.` / `-` 后回车会触发列表转换把文本吞掉（ProseMirror input rule 行为）。
+ * 覆写 addInputRules 返回空数组——列表仍可通过工具栏按钮创建，但输入不再自动转列表。
+ */
+const ListWithoutAutoDetect = [
+  OrderedList.extend({ addInputRules() { return []; } }),
+  BulletList.extend({ addInputRules() { return []; } }),
+];
+
 const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string) => void }>(
   function Editor({ value, onChange }, ref) {
     const fileRef = useRef<HTMLInputElement>(null);
@@ -70,7 +81,8 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
 
     const editor = useEditor({
       extensions: [
-        StarterKit,
+        StarterKit.configure({ orderedList: false, bulletList: false }),
+        ...ListWithoutAutoDetect,
         Image.configure({ inline: false, allowBase64: false }),
         Markdown,
       ],
