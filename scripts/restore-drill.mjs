@@ -10,11 +10,15 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, "..");
 
-// 读取 .env.local 中的 DATABASE_URL（避免手动 export）
-const envPath = join(rootDir, ".env.local");
-const envContent = readFileSync(envPath, "utf8");
-const match = envContent.match(/^DATABASE_URL=(.*)$/m);
-const DATABASE_URL = match?.[1]?.trim() || process.env.DATABASE_URL;
+// 读取 .env.local 中的 DATABASE_URL；CI 无 .env.local 时降级环境变量
+let DATABASE_URL = process.env.DATABASE_URL ?? "";
+try {
+  const envContent = readFileSync(join(rootDir, ".env.local"), "utf8");
+  const match = envContent.match(/^DATABASE_URL=(.*)$/m);
+  if (match?.[1]) DATABASE_URL = match[1].trim();
+} catch {
+  // 无 .env.local（如 CI），使用环境变量
+}
 
 if (!DATABASE_URL) {
   console.error("❌ 未找到 DATABASE_URL（.env.local 或环境变量）");

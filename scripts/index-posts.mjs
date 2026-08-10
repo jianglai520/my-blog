@@ -8,8 +8,13 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, "..");
 
-// 读取 .env.local（DATABASE_URL + EMBEDDING_API_KEY）
-const envContent = readFileSync(join(rootDir, ".env.local"), "utf8");
+// 读取 .env.local（DATABASE_URL + EMBEDDING_API_KEY）；CI 无 .env.local 时降级环境变量
+let envContent = "";
+try {
+  envContent = readFileSync(join(rootDir, ".env.local"), "utf8");
+} catch {
+  // 无 .env.local（如 CI），仅用环境变量
+}
 const getEnv = (key) => {
   const m = envContent.match(new RegExp(`^${key}=(.*)$`, "m"));
   return (m?.[1]?.trim() || process.env[key]) ?? "";
