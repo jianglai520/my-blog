@@ -102,23 +102,16 @@ export default function PostForm({
         )}
       </h2>
 
-      <form action={formAction} onSubmit={handleSubmit} className="relative space-y-5" id="post-form">
+      <form action={formAction} onSubmit={handleSubmit} className="space-y-5" id="post-form">
         {initial && <input type="hidden" name="postId" value={initial.id} />}
         {/* Editor 是 ProseMirror div 不进 FormData，提交时由 onSubmit 写入最新 Markdown */}
         <input type="hidden" name="content" defaultValue="" />
 
-        {/* 提交遮罩：发布/保存进行中，给用户明确反馈 */}
+        {/* 提交状态提示：不遮挡表单，仅显示进度文案 */}
         {pending && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-2xl bg-ink-950/70 backdrop-blur-sm">
-            <Loader2 size={30} className="animate-spin text-brand-300" />
-            <p className="font-medium text-fg">
-              {actionType === "draft" ? "💾 正在保存草稿…" : "🚀 正在发布文章…"}
-            </p>
-            <p className="text-xs text-fg-faint">
-              {actionType === "draft"
-                ? "请稍候，马上就好"
-                : "🔍 正在同步 AI 检索索引…"}
-            </p>
+          <div className="flex items-center gap-2 text-sm text-fg-muted">
+            <Loader2 size={16} className="animate-spin text-brand-300" />
+            {actionType === "draft" ? "💾 正在保存草稿…" : "🚀 正在发布文章…"}
           </div>
         )}
 
