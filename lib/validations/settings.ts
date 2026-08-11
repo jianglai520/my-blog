@@ -28,9 +28,6 @@ export const settingsSchema = z.object({
     .optional()
     .or(z.literal("")),
   icp: z.string().trim().max(50, "备案号最长 50 字").optional().or(z.literal("")),
-  skills: z.string().trim().max(2000, "技能列表过长").optional().or(z.literal("")),
-  projects: z.string().trim().max(8000, "项目数据过长").optional().or(z.literal("")),
-  resume: z.string().trim().max(8000, "简历经历过长").optional().or(z.literal("")),
 });
 
 export type SettingsInput = z.infer<typeof settingsSchema>;
