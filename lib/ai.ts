@@ -26,7 +26,7 @@ export async function embedTexts(texts: string[]): Promise<number[][]> {
       Authorization: `Bearer ${getApiKey()}`,
     },
     body: JSON.stringify({ model: EMBEDDING_MODEL, input: texts }),
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(8_000), // 收紧超时：避免发布/检索长时间等待
   });
 
   if (!res.ok) {

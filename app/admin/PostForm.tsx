@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useActionState } from "react";
+import { Loader2 } from "lucide-react";
 import Editor, { type EditorHandle } from "@/app/components/Editor";
 import {
   createPost,
@@ -38,14 +39,19 @@ export default function PostForm({
     action,
     initialState
   );
+  // 当前提交动作（发布 or 草稿），用于遮罩文案
+  const [actionType, setActionType] = useState<"publish" | "draft">("publish");
 
-  // 保存成功后：通知父组件刷新列表 / 退出编辑（用 ref 包装回调，避免 effect 依赖抖动）
+  // 保存成功后：先短暂展示成功提示，再通知父组件刷新/退出编辑
   const onSavedRef = useRef(onSaved);
   useEffect(() => {
     onSavedRef.current = onSaved;
   });
   useEffect(() => {
-    if (state.success) onSavedRef.current();
+    if (state.success) {
+      const t = setTimeout(() => onSavedRef.current(), 800);
+      return () => clearTimeout(t);
+    }
   }, [state.success]);
 
   // 标题变化时自动生成 slug 建议（若用户还没手动改过）。
@@ -96,10 +102,25 @@ export default function PostForm({
         )}
       </h2>
 
-      <form action={formAction} onSubmit={handleSubmit} className="space-y-5" id="post-form">
+      <form action={formAction} onSubmit={handleSubmit} className="relative space-y-5" id="post-form">
         {initial && <input type="hidden" name="postId" value={initial.id} />}
         {/* Editor 是 ProseMirror div 不进 FormData，提交时由 onSubmit 写入最新 Markdown */}
         <input type="hidden" name="content" defaultValue="" />
+
+        {/* 提交遮罩：发布/保存进行中，给用户明确反馈 */}
+        {pending && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-2xl bg-ink-950/70 backdrop-blur-sm">
+            <Loader2 size={30} className="animate-spin text-brand-300" />
+            <p className="font-medium text-fg">
+              {actionType === "draft" ? "💾 正在保存草稿…" : "🚀 正在发布文章…"}
+            </p>
+            <p className="text-xs text-fg-faint">
+              {actionType === "draft"
+                ? "请稍候，马上就好"
+                : "🔍 正在同步 AI 检索索引…"}
+            </p>
+          </div>
+        )}
 
         <div>
           <label htmlFor="post-title" className="mb-2 block text-sm text-fg-muted">
@@ -190,18 +211,30 @@ export default function PostForm({
             name="status"
             value="published"
             disabled={pending}
-            className="rounded-lg bg-gradient-to-r from-brand-600 to-brand-500 px-6 py-3 font-medium text-white transition-colors hover:from-brand-500 hover:to-glow-400 disabled:cursor-not-allowed disabled:bg-ink-600 disabled:text-fg-faint"
+            onClick={() => setActionType("publish")}
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand-600 to-brand-500 px-6 py-3 font-medium text-white transition-colors hover:from-brand-500 hover:to-glow-400 disabled:cursor-not-allowed disabled:bg-ink-600 disabled:text-fg-faint"
           >
-            {pending ? "保存中..." : initial ? "📤 更新并发布" : "📝 发布"}
+            {pending && actionType === "publish" ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : null}
+            {pending && actionType === "publish"
+              ? "发布中…"
+              : initial
+                ? "📤 更新并发布"
+                : "📝 发布"}
           </button>
           <button
             type="submit"
             name="status"
             value="draft"
             disabled={pending}
-            className="rounded-lg border border-ink-600 px-6 py-3 font-medium text-fg-muted transition-colors hover:border-brand-500/50 hover:text-fg disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={() => setActionType("draft")}
+            className="inline-flex items-center gap-2 rounded-lg border border-ink-600 px-6 py-3 font-medium text-fg-muted transition-colors hover:border-brand-500/50 hover:text-fg disabled:cursor-not-allowed disabled:opacity-40"
           >
-            💾 保存草稿
+            {pending && actionType === "draft" ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : null}
+            {pending && actionType === "draft" ? "保存中…" : "💾 保存草稿"}
           </button>
 
           {state.message && (
