@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { updateSiteSettings, type SettingsState } from "@/app/actions/settings";
-import { uploadAvatar } from "@/app/actions/uploads";
+import { uploadImageToStorage } from "@/lib/browser/upload";
 import type { SiteSettings } from "@/lib/site";
 import { parseResume, serializeResume, RESUME_TYPES, type ResumeItem } from "@/lib/resume";
 import { inputCls } from "./shared";
@@ -58,16 +58,14 @@ export default function SettingsForm({ settings }: { settings: SiteSettings }) {
     ]);
   }
 
-  // 选择头像文件 → 直接调上传 Server Action（事件处理器里 setState 合法，不用 useActionState）
+  // 选择头像文件 → 浏览器直传 Supabase Storage（不走 Server Action 中转，更快）
   async function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
     setAvatarUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const result = await uploadAvatar({ url: null, message: "", success: false }, fd);
+      const result = await uploadImageToStorage(file, "avatars");
       if (result.success && result.url) {
         setAvatarUrl(result.url);
         alert("✅ 头像已上传，点击下方「保存设置」生效");

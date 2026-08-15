@@ -9,12 +9,11 @@ import {
   updatePost,
   type PostFormState,
 } from "@/app/actions/posts";
-import { uploadImage, type UploadState } from "@/app/actions/uploads";
+import { uploadImageToStorage, type UploadResult } from "@/lib/browser/upload";
 import { slugify } from "@/lib/format";
 import { inputCls, type AdminPost } from "./shared";
 
 const initialState: PostFormState = { message: "", success: false };
-const initialUploadState: UploadState = { url: null, message: "", success: false };
 
 /**
  * 写作 / 编辑表单（创建 / 编辑共用；父组件 key 变化即重挂载重置）。
@@ -35,10 +34,10 @@ export default function PostForm({
   );
   // 正文不走 React state：编辑期间零重渲染/零序列化，提交时从 Editor ref 读取
   const editorRef = useRef<EditorHandle>(null);
-  // 封面图本地上传：隐藏 file input + 直接 await uploadImage server action
+  // 封面图本地上传：隐藏 file input + 浏览器直传 Supabase Storage（不走 Server Action 中转，更快）
   const coverRef = useRef<HTMLInputElement>(null);
   const [coverPending, setCoverPending] = useState(false);
-  const [coverMessage, setCoverMessage] = useState<UploadState>(initialUploadState);
+  const [coverMessage, setCoverMessage] = useState<UploadResult>({ url: null, message: "", success: false });
 
   const action = initial ? updatePost : createPost;
   const [state, formAction, pending] = useActionState<PostFormState, FormData>(
@@ -60,16 +59,15 @@ export default function PostForm({
     }
   }, [state.success]);
 
-  // 选择本地封面图后立即上传，成功后把公开 URL 写入输入框
+  // 选择本地封面图后立即直传，成功后把公开 URL 写入输入框
   async function handleCoverFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const fd = new FormData();
-    fd.append("file", file);
+    const date = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
     setCoverPending(true);
-    setCoverMessage(initialUploadState);
+    setCoverMessage({ url: null, message: "", success: false });
     try {
-      const res = await uploadImage(initialUploadState, fd);
+      const res = await uploadImageToStorage(file, `posts/${date}`);
       if (res.success && res.url) {
         setCoverImage(res.url);
       }

@@ -2,21 +2,22 @@
 
 import {
   forwardRef,
-  startTransition,
-  useEffect,
   useImperativeHandle,
   useRef,
   useState,
 } from "react";
-import { useActionState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { OrderedList, BulletList } from "@tiptap/extension-list";
 import { Markdown } from "@tiptap/markdown";
 import Image from "@tiptap/extension-image";
-import { uploadImage, uploadAttachment, type UploadState } from "@/app/actions/uploads";
+import {
+  uploadImageToStorage,
+  uploadAttachmentToStorage,
+  type UploadResult,
+} from "@/lib/browser/upload";
 
-const initialUploadState: UploadState = { url: null, message: "", success: false };
+const initialUploadState: UploadResult = { url: null, message: "", success: false };
 
 /** 常用表情分组（工具栏「表情」面板展示，点击插入光标处） */
 const EMOJI_GROUPS: { label: string; items: string[] }[] = [
@@ -91,14 +92,10 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
     const fileRef = useRef<HTMLInputElement>(null);
     const attachRef = useRef<HTMLInputElement>(null);
     const attachNameRef = useRef("附件");
-    const [uploadState, uploadAction, uploadPending] = useActionState(
-      uploadImage,
-      initialUploadState
-    );
-    const [attachState, attachAction, attachPending] = useActionState(
-      uploadAttachment,
-      initialUploadState
-    );
+    const [uploadState, setUploadState] = useState<UploadResult>(initialUploadState);
+    const [attachState, setAttachState] = useState<UploadResult>(initialUploadState);
+    const [uploadPending, setUploadPending] = useState(false);
+    const [attachPending, setAttachPending] = useState(false);
     // 表情面板开关
     const [showEmoji, setShowEmoji] = useState(false);
 
@@ -128,30 +125,46 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
       [editor],
     );
 
-  // 选择本地图片后立即上传（useActionState 的 action 需在 startTransition 内调用）
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  // 选择本地图片后浏览器直传，成功后插入编辑器
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const fd = new FormData();
-    fd.append("file", file);
-    startTransition(() => {
-      uploadAction(fd);
-    });
-    // 重置 input，允许下次选择同一文件再次触发 change
-    e.target.value = "";
+    const date = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+    setUploadPending(true);
+    setUploadState(initialUploadState);
+    try {
+      const res = await uploadImageToStorage(file, `posts/${date}`);
+      setUploadState(res);
+      if (res.success && res.url && editor) {
+        editor.chain().focus().setImage({ src: res.url }).run();
+      }
+    } finally {
+      setUploadPending(false);
+      // 重置 input，允许下次选择同一文件再次触发 change
+      e.target.value = "";
+    }
   }
 
-  // 选择附件后立即上传
-  function handleAttachChange(e: React.ChangeEvent<HTMLInputElement>) {
+  // 选择附件后浏览器直传，成功后插入下载链接（Markdown 语法，用原始文件名）
+  async function handleAttachChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     attachNameRef.current = file.name; // 记录原始文件名（存储路径是 UUID，插入链接时用原名）
-    const fd = new FormData();
-    fd.append("file", file);
-    startTransition(() => {
-      attachAction(fd);
-    });
-    e.target.value = "";
+    const date = new Date().toISOString().slice(0, 10);
+    setAttachPending(true);
+    setAttachState(initialUploadState);
+    try {
+      const res = await uploadAttachmentToStorage(file, `attachments/${date}`);
+      setAttachState(res);
+      if (res.success && res.url && editor) {
+        const filename = attachNameRef.current || "附件";
+        const md = `[📎 ${filename}](${res.url})`;
+        editor.chain().focus().insertContent(md, { contentType: "markdown" }).run();
+      }
+    } finally {
+      setAttachPending(false);
+      e.target.value = "";
+    }
   }
 
   // 插入表情到光标处，然后收起面板
@@ -159,22 +172,6 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
     editor?.chain().focus().insertContent(emoji).run();
     setShowEmoji(false);
   }
-
-  // 图片上传成功后插入编辑器
-  useEffect(() => {
-    if (uploadState.success && uploadState.url && editor) {
-      editor.chain().focus().setImage({ src: uploadState.url }).run();
-    }
-  }, [uploadState, editor]);
-
-  // 附件上传成功后插入下载链接（Markdown 语法，用原始文件名）
-  useEffect(() => {
-    if (attachState.success && attachState.url && editor) {
-      const filename = attachNameRef.current || "附件";
-      const md = `[📎 ${filename}](${attachState.url})`;
-      editor.chain().focus().insertContent(md, { contentType: "markdown" }).run();
-    }
-  }, [attachState, editor]);
 
   if (!editor) {
     return <div className="min-h-[320px] rounded-xl border border-ink-700/60 bg-ink-900/50" />;

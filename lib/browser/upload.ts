@@ -1,9 +1,9 @@
-"use server";
+"use client";
 
 import { randomUUID } from "node:crypto";
-import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
+import { getBrowserSupabase } from "./supabase";
 
-export type UploadState = {
+export type UploadResult = {
   url: string | null;
   message: string;
   success: boolean;
@@ -40,8 +40,9 @@ const EXT_BY_MIME: Record<string, string> = {
 };
 
 /**
- * 通用上传：博主鉴权 → 文件校验 → 上传到 post-images bucket 指定目录 → 返回公开 URL。
- * bucket RLS 仅博主可写（`post_images_admin_insert`），浏览器端不接触任何存储密钥。
+ * 浏览器直传 Supabase Storage（不走 Server Action 中转，上传更快）。
+ * 依赖 RLS 策略 `post_images_admin_insert`（仅博主可插入）保证安全：
+ * 未登录/非博主调用 storage.upload 会被 RLS 拒绝。
  */
 async function uploadToStorage(
   file: File,
@@ -49,17 +50,7 @@ async function uploadToStorage(
   maxSize: number,
   allowedTypes: Set<string>,
   label: string,
-): Promise<UploadState> {
-  try {
-    await requireAdmin();
-  } catch (e) {
-    return {
-      url: null,
-      message: `❌ ${e instanceof Error ? e.message : "无权限执行此操作"}`,
-      success: false,
-    };
-  }
-
+): Promise<UploadResult> {
   // 不依赖 instanceof（跨 realm 可能失效），用鸭子类型判断 File
   if (
     !file ||
@@ -86,14 +77,17 @@ async function uploadToStorage(
       ? "text/plain; charset=utf-8"
       : file.type;
 
-  const supabase = await getServerSupabase();
-  const buffer = await file.arrayBuffer();
+  const supabase = getBrowserSupabase();
   const { error } = await supabase.storage
     .from("post-images")
-    .upload(path, buffer, { contentType, upsert: false });
+    .upload(path, file, { contentType, upsert: false });
 
   if (error) {
     console.error("文件上传失败:", error);
+    // RLS 拒绝时给出明确提示（未登录/非博主）
+    if (error.message?.includes("row-level security") || error.status === 403) {
+      return { url: null, message: "❌ 无上传权限（仅博主可上传）", success: false };
+    }
     return { url: null, message: "❌ 上传失败，请稍后重试", success: false };
   }
 
@@ -101,39 +95,15 @@ async function uploadToStorage(
   return { url: data.publicUrl, message: "✅ 上传成功", success: true };
 }
 
-/** 上传文章图片（编辑器用，≤5MB） */
-export async function uploadImage(
-  _prev: UploadState,
-  formData: FormData
-): Promise<UploadState> {
-  const file = formData.get("file");
-  if (!file || typeof file === "string" || typeof (file as File).arrayBuffer !== "function") {
-    return { url: null, message: "❌ 请选择要上传的图片", success: false };
-  }
-  const date = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
-  return uploadToStorage(file as File, `posts/${date}`, 5 * 1024 * 1024, IMAGE_TYPES, "图片");
+/** 上传图片（封面图 / 正文插图用，≤5MB） */
+export async function uploadImageToStorage(file: File, folder: string): Promise<UploadResult> {
+  return uploadToStorage(file, folder, 5 * 1024 * 1024, IMAGE_TYPES, "图片");
 }
 
-/** 上传头像（后台站点设置用，≤5MB，PNG/JPG/WebP） */
-export async function uploadAvatar(
-  _prev: UploadState,
-  formData: FormData
-): Promise<UploadState> {
-  const file = formData.get("file");
-  if (!file || typeof file === "string" || typeof (file as File).arrayBuffer !== "function") {
-    return { url: null, message: "❌ 请选择要上传的图片", success: false };
-  }
-  return uploadToStorage(file as File, "avatars", 5 * 1024 * 1024, IMAGE_TYPES, "图片");
-}
-
-/** 上传附件（编辑器用，PDF/Word/Excel/压缩包等，≤20MB） */
-export async function uploadAttachment(
-  _prev: UploadState,
-  formData: FormData
-): Promise<UploadState> {
-  const file = formData.get("file");
-  if (!file || typeof file === "string" || typeof (file as File).arrayBuffer !== "function") {
-    return { url: null, message: "❌ 请选择要上传的文档", success: false };
-  }
-  return uploadToStorage(file as File, "attachments", 20 * 1024 * 1024, ATTACHMENT_TYPES, "文档");
+/** 上传附件（PDF/Word/Excel/压缩包等，≤20MB） */
+export async function uploadAttachmentToStorage(
+  file: File,
+  folder: string,
+): Promise<UploadResult> {
+  return uploadToStorage(file, folder, 20 * 1024 * 1024, ATTACHMENT_TYPES, "文档");
 }

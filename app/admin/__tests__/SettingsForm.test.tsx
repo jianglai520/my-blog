@@ -5,7 +5,7 @@ import type { SiteSettings } from "@/lib/site";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/app/actions/settings", () => ({ updateSiteSettings: vi.fn() }));
-vi.mock("@/app/actions/uploads", () => ({ uploadAvatar: vi.fn() }));
+vi.mock("@/lib/browser/upload", () => ({ uploadImageToStorage: vi.fn() }));
 
 const baseSettings: SiteSettings = {
   author_name: "江来",
