@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mapPostTags, groupArchivesByMonth, getPublishedPosts } from "@/lib/posts";
+import { postHref } from "@/lib/format";
 
 /* ============ mock：unstable_cache 透传 + db 查询 ============ */
 
@@ -65,6 +66,22 @@ describe("mapPostTags", () => {
   it("postTags 为空数组时返回空数组", () => {
     const result = mapPostTags({ ...basePost, postTags: [] });
     expect(result.tags).toEqual([]);
+  });
+});
+
+/* ============ 纯函数：文章详情页链接 ============ */
+
+describe("postHref", () => {
+  it("有 slug 用 slug", () => {
+    expect(postHref({ id: 1, slug: "my-first-post" })).toBe("/posts/my-first-post");
+  });
+
+  it("无 slug 回退 id", () => {
+    expect(postHref({ id: 1, slug: null })).toBe("/posts/1");
+  });
+
+  it("纯数字 slug 回退 id（避免与 /posts/<id> 冲突、重定向循环）", () => {
+    expect(postHref({ id: 42, slug: "5" })).toBe("/posts/42");
   });
 });
 

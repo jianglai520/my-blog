@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Eye } from "lucide-react";
-import { formatDate, stripMarkdown } from "@/lib/format";
+import { formatDate, stripMarkdown, postHref } from "@/lib/format";
 import type { PostWithTags } from "@/lib/posts";
 
 /**
@@ -10,7 +10,7 @@ import type { PostWithTags } from "@/lib/posts";
  * 避免 <a> 嵌套 <a>（HTML 规范禁止，会引起 hydration 错误）。
  */
 export default function PostCard({ post }: { post: PostWithTags }) {
-  const postUrl = `/posts/${post.slug ?? post.id}`;
+  const postUrl = postHref(post);
 
   return (
     <div className="gradient-card group relative block overflow-hidden rounded-2xl">

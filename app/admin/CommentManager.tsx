@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteComment, batchDeleteComments } from "@/app/actions/comments";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, postHref } from "@/lib/format";
 import type { Comment } from "@/lib/posts";
 import type { AdminPost } from "./shared";
 
@@ -120,7 +120,7 @@ export default function CommentManager({
                     </span>
                     {post ? (
                       <a
-                        href={`/posts/${post.slug ?? post.id}`}
+                        href={postHref(post)}
                         className="text-xs text-brand-300 hover:underline"
                       >
                         → 《{post.title}》

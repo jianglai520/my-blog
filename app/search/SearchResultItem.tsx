@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { formatDate, stripMarkdown } from "@/lib/format";
+import { formatDate, stripMarkdown, postHref } from "@/lib/format";
 import type { PostWithTags } from "@/lib/posts";
 
 function escapeRegExp(s: string): string {
@@ -36,7 +36,7 @@ export default function SearchResultItem({
   query: string;
 }) {
   const excerpt = post.excerpt || stripMarkdown(post.content).slice(0, 150);
-  const url = `/posts/${post.slug ?? post.id}`;
+  const url = postHref(post);
 
   return (
     <article className="rounded-xl border border-ink-700/60 bg-ink-900/50 p-4 transition-colors hover:border-brand-500/30">

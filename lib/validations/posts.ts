@@ -7,6 +7,7 @@ export const postSchema = z.object({
     .string()
     .trim()
     .regex(/^[a-z0-9-]+$/i, "slug 只能包含字母、数字和连字符")
+    .refine((v) => !/^\d+$/.test(v), "slug 不能是纯数字（会与文章 id 链接冲突）")
     .max(100)
     .optional()
     .or(z.literal("")),

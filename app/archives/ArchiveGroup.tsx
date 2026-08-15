@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Eye, ChevronDown, ChevronRight } from "lucide-react";
-import { formatDate } from "@/lib/format";
+import { formatDate, postHref } from "@/lib/format";
 import type { ArchiveItem } from "@/lib/posts";
 
 /**
@@ -46,7 +46,7 @@ export default function ArchiveGroup({
             >
               <div className="min-w-0 flex-1">
                 <Link
-                  href={`/posts/${item.slug ?? item.id}`}
+                  href={postHref(item)}
                   className="text-fg transition-colors hover:text-brand-300"
                 >
                   {item.title}

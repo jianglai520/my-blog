@@ -67,10 +67,12 @@ export const getPublishedPosts = unstable_cache(
 export async function getPostByIdentifier(identifier: string): Promise<PostWithTags | null> {
   const numId = /^\d+$/.test(identifier) ? Number(identifier) : null;
 
-  const conditions = [eq(posts.slug, identifier)];
-  if (numId !== null) {
-    conditions.push(eq(posts.id, numId));
-  }
+  // 纯数字 identifier 只按 id 匹配：避免与数字 slug 混淆。
+  // 若某文章 slug 恰好是纯数字（如 "5"），按 slug 查会与 /posts/<id> 冲突
+  // 甚至引发重定向循环（详情页会对纯数字 identifier 重定向到 slug）。
+  const conditions = numId !== null
+    ? [eq(posts.id, numId)]
+    : [eq(posts.slug, identifier)];
 
   const row = await db.query.posts.findFirst({
     where: and(eq(posts.status, "published"), or(...conditions)),

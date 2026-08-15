@@ -13,7 +13,7 @@ import ImageLightbox from "@/app/components/ImageLightbox";
 import AIChatButton from "@/app/components/AIChatButton";
 import ShareButton from "@/app/components/ShareButton";
 import { getComments, getPostByIdentifier } from "@/lib/posts";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, postHref } from "@/lib/format";
 
 const SITE_URL = "https://jianglai520.com";
 
@@ -21,9 +21,9 @@ type Props = {
   params: Promise<{ identifier: string }>;
 };
 
-/** 从文章生成语义化 URL（有 slug 用 slug，否则回退 id） */
+/** 从文章生成语义化 URL（有非数字 slug 用 slug，否则回退 id；纯数字 slug 视为无效） */
 function postUrl(post: { slug: string | null; id: number }): string {
-  return post.slug ? `${SITE_URL}/posts/${post.slug}` : `${SITE_URL}/posts/${post.id}`;
+  return `${SITE_URL}${postHref(post)}`;
 }
 
 /** Next 16 的 path 参数不自动解码，中文 slug 需显式 decodeURIComponent */
@@ -76,8 +76,9 @@ export default async function PostPage({ params }: Props) {
     notFound();
   }
 
-  // 兼容旧链接：访问 /posts/<数字id> 时，若文章有 slug，永久重定向到语义化 URL
-  if (/^\d+$/.test(identifier) && post.slug) {
+  // 兼容旧链接：访问 /posts/<数字id> 时，若文章有非数字 slug，永久重定向到语义化 URL。
+  // 纯数字 slug 不做此重定向（slug 形如 "5" 会与 /posts/<id> 冲突引发重定向循环）。
+  if (/^\d+$/.test(identifier) && post.slug && !/^\d+$/.test(post.slug)) {
     permanentRedirect(`/posts/${post.slug}`);
   }
 

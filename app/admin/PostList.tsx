@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deletePost, batchDeletePosts } from "@/app/actions/posts";
-import { formatDate } from "@/lib/format";
+import { formatDate, postHref } from "@/lib/format";
 import type { AdminPost } from "./shared";
 
 /**
@@ -117,7 +117,7 @@ export default function PostList({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <a
-                    href={`/posts/${post.slug ?? post.id}`}
+                    href={postHref(post)}
                     className="block truncate text-lg font-medium text-fg transition-colors hover:text-brand-300"
                   >
                     {post.title}
@@ -134,7 +134,7 @@ export default function PostList({
                   ) : null}
                 </div>
                 <p className="mt-1 text-sm text-fg-faint">
-                  {post.slug ? `/posts/${post.slug}` : `/posts/${post.id}`}
+                  {postHref(post)}
                   {" · "}
                   {formatDate(post.created_at)}
                 </p>

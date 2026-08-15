@@ -20,6 +20,15 @@ export function formatDateTime(input: string): string {
   });
 }
 
+/**
+ * 文章详情页链接（纯函数，可单测）。
+ * 纯数字 slug 一律回退用 id：数字 slug 会与 /posts/<id> 链接冲突，
+ * 既会让 /posts/<数字> 被解析为 id 查询，也可能造成重定向循环。
+ */
+export function postHref(post: { slug: string | null; id: number }): string {
+  return post.slug && !/^\d+$/.test(post.slug) ? `/posts/${post.slug}` : `/posts/${post.id}`;
+}
+
 /** 从标题生成 slug（用于后台表单的建议值） */
 export function slugify(title: string): string {
   return title

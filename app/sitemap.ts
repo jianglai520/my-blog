@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getPublishedPosts, getTags } from "@/lib/posts";
+import { postHref } from "@/lib/format";
 
 const SITE_URL = "https://jianglai520.com";
 
@@ -18,7 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   const postEntries = posts.map((post): MetadataRoute.Sitemap[number] => {
-    const path = post.slug ? `/posts/${post.slug}` : `/posts/${post.id}`;
+    const path = postHref(post);
     return {
       url: `${SITE_URL}${path}`,
       lastModified: post.created_at,

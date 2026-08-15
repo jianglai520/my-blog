@@ -34,6 +34,11 @@ describe("postSchema", () => {
     expect(r.success).toBe(false);
   });
 
+  it("纯数字 slug 被拒（会与 /posts/<id> 链接冲突）", () => {
+    const r = postSchema.safeParse({ ...base, slug: "5" });
+    expect(r.success).toBe(false);
+  });
+
   it("非法封面 URL 被拒", () => {
     const r = postSchema.safeParse({ ...base, coverImage: "not-a-url" });
     expect(r.success).toBe(false);

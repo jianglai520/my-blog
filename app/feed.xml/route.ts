@@ -1,5 +1,5 @@
 import { getPublishedPosts } from "@/lib/posts";
-import { stripMarkdown } from "@/lib/format";
+import { stripMarkdown, postHref } from "@/lib/format";
 
 const SITE_URL = "https://jianglai520.com";
 
@@ -18,7 +18,7 @@ export async function GET() {
 
   const items = posts
     .map((post) => {
-      const link = `${SITE_URL}/posts/${post.slug ?? post.id}`;
+      const link = `${SITE_URL}${postHref(post)}`;
       const summary =
         post.excerpt || stripMarkdown(post.content).slice(0, 200);
       const date = new Date(post.created_at).toISOString();
