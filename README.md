@@ -60,6 +60,7 @@ npm run lint      # ESLint
 | 🖼️ **图片上传** | 编辑器内选择本地图片 → Supabase Storage → 自动插入 |
 | 🖼️ **封面图上传** | 写文章可**本地上传**封面图（≤5MB，存 Supabase Storage，自动填入 URL）或粘贴外链图床地址 |
 | 📎 **附件上传** | 文章可插入 PDF/Word/Excel/压缩包，生成下载链接（≤20MB） |
+| 😀 **表情插入** | 编辑器工具栏「表情」面板，常用 emoji 分组点击插入光标处 |
 | 🏷️ **标签系统** | 写文章打标签；`/tags/xxx` 标签页；首页卡片显示标签 |
 | 🔍 **搜索** | 导航搜索框（防抖），标题/摘要/正文模糊搜索 |
 | 📡 **RSS** | `/feed.xml`（Atom），layout 注入订阅链接 |
@@ -104,7 +105,7 @@ my-blog/
 │   │   ├── ReadingProgress.tsx     # 文章阅读进度条
 │   │   ├── Toc.tsx                 # 文章目录（TOC）
 │   │   ├── ThemeToggle.tsx         # 深浅色主题切换
-│   │   └── Editor.tsx              # TipTap 富文本编辑器（client）
+│   │   └── Editor.tsx              # TipTap 富文本编辑器（client，工具栏含表情插入）
 │   ├── posts/
 │   │   └── [identifier]/
 │   │       ├── page.tsx            # 文章详情页（slug/id 双解析）
