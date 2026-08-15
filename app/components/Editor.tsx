@@ -6,6 +6,7 @@ import {
   useEffect,
   useImperativeHandle,
   useRef,
+  useState,
 } from "react";
 import { useActionState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -16,6 +17,26 @@ import Image from "@tiptap/extension-image";
 import { uploadImage, uploadAttachment, type UploadState } from "@/app/actions/uploads";
 
 const initialUploadState: UploadState = { url: null, message: "", success: false };
+
+/** 常用表情分组（工具栏「表情」面板展示，点击插入光标处） */
+const EMOJI_GROUPS: { label: string; items: string[] }[] = [
+  {
+    label: "笑脸",
+    items: ["😀", "😄", "😁", "😂", "🤣", "😊", "😇", "🙂", "😉", "😍", "🤩", "😘", "😜", "🤪", "🤔", "🤗", "😎", "🥳", "😴", "😭"],
+  },
+  {
+    label: "手势",
+    items: ["👍", "👎", "👏", "🙌", "🙏", "🤝", "💪", "👌", "✌️", "🤞", "🫡", "👀", "🙈", "💅"],
+  },
+  {
+    label: "心与情感",
+    items: ["❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "💖", "💘", "💯", "🔥", "✨", "⭐", "🎉", "🎊"],
+  },
+  {
+    label: "日常",
+    items: ["📌", "📖", "📝", "✏️", "💻", "🖥️", "📱", "☕", "🍵", "🍕", "🍜", "🍰", "🎮", "🎧", "🎬", "📷", "🌙", "☀️", "🌈", "🚀"],
+  },
+];
 
 const btnCls = (active: boolean) =>
   `rounded-md px-2 py-1 text-sm transition-colors disabled:opacity-40 ${
@@ -78,6 +99,8 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
       uploadAttachment,
       initialUploadState
     );
+    // 表情面板开关
+    const [showEmoji, setShowEmoji] = useState(false);
 
     const editor = useEditor({
       extensions: [
@@ -129,6 +152,12 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
       attachAction(fd);
     });
     e.target.value = "";
+  }
+
+  // 插入表情到光标处，然后收起面板
+  function insertEmoji(emoji: string) {
+    editor?.chain().focus().insertContent(emoji).run();
+    setShowEmoji(false);
   }
 
   // 图片上传成功后插入编辑器
@@ -232,6 +261,13 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
         >
           📎
         </ToolbarButton>
+        <ToolbarButton
+          title="插入表情"
+          onClick={() => setShowEmoji((v) => !v)}
+          active={showEmoji}
+        >
+          😀
+        </ToolbarButton>
         <span className="mx-1 h-5 w-px bg-ink-700" />
         <ToolbarButton
           title="撤销"
@@ -263,6 +299,30 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
                     : ""}
         </span>
       </div>
+
+      {/* ===== 表情面板 ===== */}
+      {showEmoji && (
+        <div className="max-h-56 overflow-y-auto border-b border-ink-700/60 bg-ink-800/60 px-3 py-2">
+          {EMOJI_GROUPS.map((group) => (
+            <div key={group.label} className="mb-1.5 last:mb-0">
+              <p className="mb-1 text-xs text-fg-faint">{group.label}</p>
+              <div className="flex flex-wrap gap-0.5">
+                {group.items.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    title={emoji}
+                    onClick={() => insertEmoji(emoji)}
+                    className="rounded-md p-1 text-lg transition-colors hover:bg-brand-500/20"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ===== 编辑区 ===== */}
       <EditorContent
