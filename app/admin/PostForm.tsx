@@ -2,17 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useActionState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, ImagePlus } from "lucide-react";
 import Editor, { type EditorHandle } from "@/app/components/Editor";
 import {
   createPost,
   updatePost,
   type PostFormState,
 } from "@/app/actions/posts";
+import { uploadImage, type UploadState } from "@/app/actions/uploads";
 import { slugify } from "@/lib/format";
 import { inputCls, type AdminPost } from "./shared";
 
 const initialState: PostFormState = { message: "", success: false };
+const initialUploadState: UploadState = { url: null, message: "", success: false };
 
 /**
  * 写作 / 编辑表单（创建 / 编辑共用；父组件 key 变化即重挂载重置）。
@@ -33,13 +35,17 @@ export default function PostForm({
   );
   // 正文不走 React state：编辑期间零重渲染/零序列化，提交时从 Editor ref 读取
   const editorRef = useRef<EditorHandle>(null);
+  // 封面图本地上传：隐藏 file input + 直接 await uploadImage server action
+  const coverRef = useRef<HTMLInputElement>(null);
+  const [coverPending, setCoverPending] = useState(false);
+  const [coverMessage, setCoverMessage] = useState<UploadState>(initialUploadState);
 
   const action = initial ? updatePost : createPost;
   const [state, formAction, pending] = useActionState<PostFormState, FormData>(
     action,
     initialState
   );
-  // 当前提交动作（发布 or 草稿），用于遮罩文案
+  // 当前提交动作（发布 or 草稿），用于按钮文案
   const [actionType, setActionType] = useState<"publish" | "draft">("publish");
 
   // 保存成功后：先短暂展示成功提示，再通知父组件刷新/退出编辑
@@ -53,6 +59,26 @@ export default function PostForm({
       return () => clearTimeout(t);
     }
   }, [state.success]);
+
+  // 选择本地封面图后立即上传，成功后把公开 URL 写入输入框
+  async function handleCoverFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("file", file);
+    setCoverPending(true);
+    setCoverMessage(initialUploadState);
+    try {
+      const res = await uploadImage(initialUploadState, fd);
+      if (res.success && res.url) {
+        setCoverImage(res.url);
+      }
+      setCoverMessage(res);
+    } finally {
+      setCoverPending(false);
+      e.target.value = "";
+    }
+  }
 
   // 标题变化时自动生成 slug 建议（若用户还没手动改过）。
   // 中文标题 slugify 会保留中文（如 测试1），不符合 URL slug 规范（zod 校验失败），
@@ -178,17 +204,48 @@ export default function PostForm({
 
         <div>
           <label htmlFor="post-cover" className="mb-2 block text-sm text-fg-muted">
-            封面图 URL（可选）
+            封面图（可选）
           </label>
-          <input
-            id="post-cover"
-            name="coverImage"
-            type="text"
-            value={coverImage}
-            onChange={(e) => setCoverImage(e.target.value)}
-            placeholder="https://.../cover.jpg（需在 next.config.ts 允许的图源）"
-            className={inputCls}
-          />
+          <div className="flex gap-2">
+            <input
+              id="post-cover"
+              name="coverImage"
+              type="text"
+              value={coverImage}
+              onChange={(e) => setCoverImage(e.target.value)}
+              placeholder="粘贴图片 URL，或点击右侧「本地上传」"
+              className={inputCls}
+            />
+            <input
+              ref={coverRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={handleCoverFileChange}
+            />
+            <button
+              type="button"
+              disabled={coverPending}
+              onClick={() => coverRef.current?.click()}
+              className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-ink-600 px-4 py-2.5 text-sm font-medium text-fg-muted transition-colors hover:border-brand-500/50 hover:text-fg disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {coverPending ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <ImagePlus size={15} />
+              )}
+              {coverPending ? "上传中…" : "本地上传"}
+            </button>
+          </div>
+          {coverMessage.message && (
+            <p
+              className={`mt-1.5 text-xs ${
+                coverMessage.success ? "text-emerald-400" : "text-red-400"
+              }`}
+            >
+              {coverMessage.message}
+            </p>
+          )}
         </div>
 
         <div>
