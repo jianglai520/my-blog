@@ -28,7 +28,7 @@
 
 | 能力 | 说明 |
 |------|------|
-| 单元测试 | **Vitest**（60 个用例）：`lib/format`、zod 校验层、Server Actions 权限分支、数据层纯函数与 mock 查询、组件渲染（RTL） |
+| 单元测试 | **Vitest**（66 个用例）：`lib/format`、zod 校验层、Server Actions 权限分支、数据层纯函数与 mock 查询、组件渲染（RTL） |
 | E2E 测试 | **Playwright**（chromium 9 用例）：首页/文章/搜索/RSS/登录（`npm run test:e2e`，登录用例需 `TEST_EMAIL`/`TEST_PASSWORD`） |
 | CI 流水线 | **GitHub Actions**（`.github/workflows/ci.yml`）：push/PR 自动跑 lint + 单测 + 构建（+ E2E） |
 | 错误监控 | **Sentry**（`SENTRY_DSN` 配置后生效）+ 自定义 `error.tsx` / `global-error.tsx` |
@@ -58,6 +58,7 @@ npm run lint      # ESLint
 | 🖊️ **富文本编辑器** | TipTap 所见即所得，保存为 Markdown |
 | 📥 **草稿与编辑** | 存草稿 / 发布 / 编辑续写，草稿永不公开 |
 | 🖼️ **图片上传** | 编辑器内选择本地图片 → Supabase Storage → 自动插入 |
+| 🖼️ **封面图上传** | 写文章可**本地上传**封面图（≤5MB，存 Supabase Storage，自动填入 URL）或粘贴外链图床地址 |
 | 📎 **附件上传** | 文章可插入 PDF/Word/Excel/压缩包，生成下载链接（≤20MB） |
 | 🏷️ **标签系统** | 写文章打标签；`/tags/xxx` 标签页；首页卡片显示标签 |
 | 🔍 **搜索** | 导航搜索框（防抖），标题/摘要/正文模糊搜索 |
@@ -111,7 +112,7 @@ my-blog/
 │   ├── admin/
 │   │   ├── page.tsx                # 后台入口（服务端鉴权，未登录/非博主重定向）
 │   │   ├── AdminClient.tsx         # 后台主界面（导航 + Tab + 组合子模块）
-│   │   ├── PostForm.tsx            # 写作 / 编辑表单（TipTap 编辑器）
+│   │   ├── PostForm.tsx            # 写作 / 编辑表单（TipTap 编辑器 + 封面上传）
 │   │   ├── PostList.tsx            # 文章管理列表（编辑/删除）
 │   │   ├── CommentManager.tsx      # 评论管理列表
 │   │   ├── SettingsForm.tsx        # 站点设置（含头像上传）
@@ -350,5 +351,5 @@ git push origin main
 1. ~~**安全**：数据增删改由浏览器端直接调用 Supabase anon key 完成~~ ✅ **已解决（Phase 0）**
 2. ~~**内容**：正文为纯文本，无 Markdown / 富文本 / 代码高亮~~ ✅ **已解决（Phase 1）**：Markdown 渲染 + TipTap 编辑器 + 草稿/编辑 + 图片上传，迁移已执行、测试通过
 3. ~~**功能**：无标签分类、搜索、分页、浏览量统计、RSS~~ ✅ **已解决（Phase 3）**：标签系统 + 搜索 + 分页 + 浏览量 + RSS + 归档 + 关于页 + 评论管理，迁移已执行、测试通过
-4. ~~**工程化**：无自动化测试、CI 流水线、错误监控、数据备份策略~~ ✅ **已解决（Phase 4）**：Vitest 单元测试（60 用例）+ Playwright E2E（9 用例）+ GitHub Actions CI + Sentry 错误监控 + Vercel Analytics + 备份与恢复演练（见 `BACKUP.md`；Sentry DSN 配置后生效）
+4. ~~**工程化**：无自动化测试、CI 流水线、错误监控、数据备份策略~~ ✅ **已解决（Phase 4）**：Vitest 单元测试（66 用例）+ Playwright E2E（9 用例）+ GitHub Actions CI + Sentry 错误监控 + Vercel Analytics + 备份与恢复演练（见 `BACKUP.md`；Sentry DSN 配置后生效）
 5. **视觉风格**：博主对当前前端观感仍不满意（认为"太小儿科"）；已落地代码块双主题、图片 lightbox、阅读进度条、TOC 等体验深化；整体视觉方向（现代极简 / 杂志编辑 / 终端极客等）**待定案**（P1 优先级，见桌面优化方案文档）
