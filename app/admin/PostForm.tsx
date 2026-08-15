@@ -72,6 +72,14 @@ export default function PostForm({
         setCoverImage(res.url);
       }
       setCoverMessage(res);
+    } catch (err) {
+      // 兜底：直传抛异常（网络/会话等）时也要明确提示，绝不静默失败
+      console.error("封面上传异常:", err);
+      setCoverMessage({
+        url: null,
+        message: `❌ 上传失败：${err instanceof Error ? err.message : "未知错误"}（请检查登录状态与网络后重试）`,
+        success: false,
+      });
     } finally {
       setCoverPending(false);
       e.target.value = "";

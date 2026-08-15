@@ -138,6 +138,13 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
       if (res.success && res.url && editor) {
         editor.chain().focus().setImage({ src: res.url }).run();
       }
+    } catch (err) {
+      console.error("图片上传异常:", err);
+      setUploadState({
+        url: null,
+        message: `❌ 上传失败：${err instanceof Error ? err.message : "未知错误"}（请检查登录状态与网络后重试）`,
+        success: false,
+      });
     } finally {
       setUploadPending(false);
       // 重置 input，允许下次选择同一文件再次触发 change
@@ -161,6 +168,13 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
         const md = `[📎 ${filename}](${res.url})`;
         editor.chain().focus().insertContent(md, { contentType: "markdown" }).run();
       }
+    } catch (err) {
+      console.error("附件上传异常:", err);
+      setAttachState({
+        url: null,
+        message: `❌ 上传失败：${err instanceof Error ? err.message : "未知错误"}（请检查登录状态与网络后重试）`,
+        success: false,
+      });
     } finally {
       setAttachPending(false);
       e.target.value = "";

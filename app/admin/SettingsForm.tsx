@@ -72,6 +72,9 @@ export default function SettingsForm({ settings }: { settings: SiteSettings }) {
       } else {
         alert(result.message);
       }
+    } catch (err) {
+      console.error("头像上传异常:", err);
+      alert(`❌ 上传失败：${err instanceof Error ? err.message : "未知错误"}（请检查登录状态与网络后重试）`);
     } finally {
       setAvatarUploading(false);
     }
