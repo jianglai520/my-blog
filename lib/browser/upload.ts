@@ -1,6 +1,5 @@
 "use client";
 
-import { randomUUID } from "node:crypto";
 import { getBrowserSupabase } from "./supabase";
 
 export type UploadResult = {
@@ -69,7 +68,8 @@ async function uploadToStorage(
   }
 
   const ext = EXT_BY_MIME[file.type] ?? "bin";
-  const path = `${folder}/${randomUUID()}.${ext}`;
+  // 浏览器原生 Web Crypto API（node:crypto 在客户端不可用）
+  const path = `${folder}/${crypto.randomUUID()}.${ext}`;
 
   // text/markdown 非标准 MIME，浏览器不认识会导致乱码/无法下载 → 统一用 text/plain; charset=utf-8
   const contentType =
