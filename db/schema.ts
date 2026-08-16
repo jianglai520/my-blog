@@ -121,6 +121,7 @@ export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
 export type GuestbookMessage = typeof guestbookMessages.$inferSelect;
+export type Message = typeof messages.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
 export type Profile = typeof profiles.$inferSelect;
 export type Tag = typeof tags.$inferSelect;
