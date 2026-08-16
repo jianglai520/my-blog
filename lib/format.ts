@@ -62,3 +62,22 @@ export function stripMarkdown(md: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+/**
+ * 统计 Markdown 文章的中文/英文混合字数（纯函数，可单测）。
+ * 中文按「字符」计（汉字/标点），连续英文/数字按「词」计。
+ * 典型博客中文阅读速度 ~400 字/分钟，英文 ~200 词/分钟，混合按 300 字/分钟折算。
+ */
+export function countWords(md: string): number {
+  const text = stripMarkdown(md);
+  const cjk = text.match(/[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]/g)?.length ?? 0;
+  const latin = text.match(/[a-zA-Z0-9]+(?:['’-][a-zA-Z0-9]+)*/g)?.length ?? 0;
+  return cjk + latin;
+}
+
+/** 阅读时长（分钟）：混合内容按 300 字/分钟折算，不足 1 分钟按 1 分钟计 */
+export function readingMinutes(md: string): number {
+  const words = countWords(md);
+  if (words <= 0) return 1;
+  return Math.max(1, Math.round(words / 300));
+}

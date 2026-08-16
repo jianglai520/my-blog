@@ -13,7 +13,7 @@ import ImageLightbox from "@/app/components/ImageLightbox";
 import AIChatButton from "@/app/components/AIChatButton";
 import ShareButton from "@/app/components/ShareButton";
 import { getComments, getPostByIdentifier } from "@/lib/posts";
-import { formatDateTime, postHref } from "@/lib/format";
+import { formatDateTime, postHref, readingMinutes } from "@/lib/format";
 
 const SITE_URL = "https://jianglai520.com";
 
@@ -83,6 +83,7 @@ export default async function PostPage({ params }: Props) {
   }
 
   const comments = await getComments(post.id);
+  const minutes = post.content ? readingMinutes(post.content) : null;
 
   // 文章级结构化数据（Article）
   const articleJsonLd = {
@@ -131,6 +132,7 @@ export default async function PostPage({ params }: Props) {
         </h1>
         <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-fg-faint">
           <span>发布于 {formatDateTime(post.created_at)}</span>
+          {minutes != null && <span>⏱ {minutes} 分钟阅读</span>}
           <ViewCounter postId={post.id} initialCount={post.view_count ?? 0} />
         </div>
         <div className="mt-3">

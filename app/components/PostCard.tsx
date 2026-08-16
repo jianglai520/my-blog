@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Eye } from "lucide-react";
-import { formatDate, stripMarkdown, postHref } from "@/lib/format";
+import { formatDate, stripMarkdown, postHref, readingMinutes } from "@/lib/format";
 import type { PostWithTags } from "@/lib/posts";
 
 /**
@@ -14,6 +14,7 @@ import type { PostWithTags } from "@/lib/posts";
 export default function PostCard({ post }: { post: PostWithTags }) {
   const postUrl = postHref(post);
   const excerpt = post.excerpt || (post.content ? stripMarkdown(post.content).slice(0, 120) : "");
+  const minutes = post.content ? readingMinutes(post.content) : null;
 
   return (
     <article className="gradient-card group relative aspect-[3/2] overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-glow-lg">
@@ -41,6 +42,11 @@ export default function PostCard({ post }: { post: PostWithTags }) {
       <div className="relative z-10 flex h-full flex-col justify-end p-6 transition-transform duration-300 group-hover:-translate-y-1.5">
         <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/60">
           <span>{formatDate(post.created_at)}</span>
+          {minutes != null && (
+            <span className="inline-flex items-center gap-1" aria-label="阅读时长">
+              ⏱ {minutes} 分钟
+            </span>
+          )}
           {post.view_count != null && post.view_count > 0 && (
             <span className="inline-flex items-center gap-1" aria-label="阅读数">
               <Eye size={12} /> {post.view_count}

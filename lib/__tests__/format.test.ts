@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { formatDate, formatDateTime, slugify, stripMarkdown } from "@/lib/format";
+import {
+  formatDate,
+  formatDateTime,
+  slugify,
+  stripMarkdown,
+  countWords,
+  readingMinutes,
+} from "@/lib/format";
 
 describe("formatDate / formatDateTime", () => {
   it("格式化中文日期", () => {
@@ -52,5 +59,37 @@ describe("stripMarkdown", () => {
 
   it("压缩空白", () => {
     expect(stripMarkdown("a\n\n  b  c")).toBe("a b c");
+  });
+});
+
+describe("countWords 字数统计", () => {
+  it("纯中文按字计", () => {
+    expect(countWords("你好世界")).toBe(4);
+  });
+
+  it("英文按词计", () => {
+    expect(countWords("hello world next js")).toBe(4);
+  });
+
+  it("中英混合相加", () => {
+    expect(countWords("你好 world next 世界")).toBe(6); // 中文4字 + 英文2词
+  });
+
+  it("忽略 Markdown 语法符号", () => {
+    expect(countWords("# 标题\n\n**加粗**文字")).toBe(6); // 标题(2) + 加粗文字(4)
+  });
+});
+
+describe("readingMinutes 阅读时长", () => {
+  it("空内容返回 1 分钟（兜底）", () => {
+    expect(readingMinutes("")).toBe(1);
+  });
+
+  it("约 300 字 = 1 分钟", () => {
+    expect(readingMinutes("字".repeat(300))).toBe(1);
+  });
+
+  it("约 600 字 = 2 分钟", () => {
+    expect(readingMinutes("字".repeat(600))).toBe(2);
   });
 });
