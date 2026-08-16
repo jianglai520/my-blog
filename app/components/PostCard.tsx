@@ -16,7 +16,7 @@ export default function PostCard({ post }: { post: PostWithTags }) {
   const excerpt = post.excerpt || (post.content ? stripMarkdown(post.content).slice(0, 120) : "");
 
   return (
-    <article className="gradient-card group relative aspect-[3/2] overflow-hidden rounded-2xl">
+    <article className="gradient-card group relative aspect-[3/2] overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-glow-lg">
       {/* 整卡点击覆盖层（stretched link，z-0；内容链接需 relative z-10 才能在上层） */}
       <Link href={postUrl} className="absolute inset-0 z-0" aria-label={post.title} />
 
@@ -37,8 +37,8 @@ export default function PostCard({ post }: { post: PostWithTags }) {
       {/* ===== 底部渐变遮罩（固定深色，保证白字在任何主题下可读） ===== */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent" />
 
-      {/* ===== 内容层：直接叠在图上 ===== */}
-      <div className="relative z-10 flex h-full flex-col justify-end p-6">
+      {/* ===== 内容层：直接叠在图上，hover 时轻微上浮 ===== */}
+      <div className="relative z-10 flex h-full flex-col justify-end p-6 transition-transform duration-300 group-hover:-translate-y-1.5">
         <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/60">
           <span>{formatDate(post.created_at)}</span>
           {post.view_count != null && post.view_count > 0 && (

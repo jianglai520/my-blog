@@ -113,6 +113,53 @@ body::before {
   height: 1px;
 }
 
+/* ================= Hero 背景光斑动效 ================= */
+
+/* 光斑缓慢漂移（用 transform 动画，性能友好；prefers-reduced-motion 时关闭） */
+@keyframes hero-blob-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(2rem, -1.5rem) scale(1.08); }
+  66%      { transform: translate(-1.5rem, 1rem) scale(0.94); }
+}
+
+.hero-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(70px);
+  opacity: 0.5;
+  pointer-events: none;
+  animation: hero-blob-drift 16s ease-in-out infinite;
+}
+.hero-blob--1 {
+  top: -6rem;
+  left: 8%;
+  width: 22rem;
+  height: 22rem;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.55), transparent 70%);
+}
+.hero-blob--2 {
+  bottom: -8rem;
+  right: 4%;
+  width: 26rem;
+  height: 26rem;
+  background: radial-gradient(circle, rgba(192, 132, 252, 0.5), transparent 70%);
+  animation-delay: -8s; /* 错开相位，两团光斑不同步 */
+}
+.hero-blob--3 {
+  top: 30%;
+  left: 55%;
+  width: 16rem;
+  height: 16rem;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.45), transparent 70%);
+  animation-delay: -12s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-blob {
+    animation: none;
+  }
+}
+
 /* 焦点可见性（可访问性） */
 :focus-visible {
   outline: 2px solid var(--color-glow-400);

@@ -33,7 +33,12 @@ export default async function Home({
     <>
       {/* ===== Hero：头像光环 + 渐变标题 + 社交 CTA ===== */}
       <section className="relative overflow-hidden">
-        <div className="mx-auto max-w-4xl px-4 py-20 text-center">
+        {/* 背景光斑动效（纯装饰，pointer-events-none；浅色模式用品牌色半透明仍协调） */}
+        <div aria-hidden="true" className="hero-blob hero-blob--1" />
+        <div aria-hidden="true" className="hero-blob hero-blob--2" />
+        <div aria-hidden="true" className="hero-blob hero-blob--3" />
+
+        <div className="relative mx-auto max-w-4xl px-4 py-20 text-center">
           <div className="avatar-ring mx-auto mb-8 h-28 w-28">
             {hasAvatar ? (
               <Image
@@ -85,9 +90,12 @@ export default async function Home({
 
       {/* ===== 文章列表（双列网格） ===== */}
       <section className="mx-auto max-w-5xl px-4 pb-16">
-        <h2 className="page-heading mb-6 font-display text-xl font-semibold text-fg">
+        <h2 className="page-heading mb-6 flex items-center gap-3 font-display text-xl font-semibold text-fg">
+          <span className="h-5 w-1 rounded bg-gradient-to-b from-glow-400 to-brand-500" />
           最新文章
-          <span className="text-sm font-normal text-fg-faint">共 {total} 篇</span>
+          <span className="rounded-full border border-ink-600 bg-ink-800/60 px-2.5 py-0.5 text-xs font-normal text-fg-faint">
+            {total} 篇
+          </span>
         </h2>
 
         {posts.length === 0 ? (
