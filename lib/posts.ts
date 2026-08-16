@@ -108,6 +108,29 @@ export async function getTags(): Promise<{ name: string; slug: string; count: nu
   return rows.map((r) => ({ name: r.name, slug: r.slug, count: Number(r.count ?? 0) }));
 }
 
+/** 站点统计：已发布文章数 / 已通过评论数 / 总浏览量（首页 Hero 统计行用） */
+export async function getSiteStats(): Promise<{ postCount: number; commentCount: number; totalViews: number }> {
+  const [postRow, commentRow, viewRow] = await Promise.all([
+    db
+      .select({ n: sql<number>`count(*)` })
+      .from(posts)
+      .where(eq(posts.status, "published")),
+    db
+      .select({ n: sql<number>`count(*)` })
+      .from(comments)
+      .where(eq(comments.status, "approved")),
+    db
+      .select({ n: sql<number>`coalesce(sum(${posts.view_count}), 0)` })
+      .from(posts)
+      .where(eq(posts.status, "published")),
+  ]);
+  return {
+    postCount: Number(postRow[0]?.n ?? 0),
+    commentCount: Number(commentRow[0]?.n ?? 0),
+    totalViews: Number(viewRow[0]?.n ?? 0),
+  };
+}
+
 /** 某标签下的已发布文章（分页），标签不存在返回空 */
 export async function getPostsByTag(
   slug: string,

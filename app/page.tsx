@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { GitFork, Mail } from "lucide-react";
+import { GitFork, Mail, ArrowRight } from "lucide-react";
 import PostCard from "@/app/components/PostCard";
-import { getPublishedPosts } from "@/lib/posts";
+import { getPublishedPosts, getTags, getSiteStats } from "@/lib/posts";
 import { getSiteSettings } from "@/lib/site";
 
 const PAGE_SIZE = 10;
@@ -17,11 +17,14 @@ export default async function Home({
   const { page: pageStr } = await searchParams;
   const page = Math.max(1, Number(pageStr) || 1);
 
-  const [{ posts, total }, settings] = await Promise.all([
+  const [{ posts, total }, settings, stats, tags] = await Promise.all([
     getPublishedPosts(page, PAGE_SIZE),
     getSiteSettings(),
+    getSiteStats(),
+    getTags(),
   ]);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const hotTags = tags.slice(0, 8);
 
   const hasAvatar = settings.avatar_url !== "";
   const cta = [
@@ -69,8 +72,28 @@ export default async function Home({
             <span>🌱 生活随想</span>
           </div>
 
+          {/* 站点统计行（信息密度） */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm text-fg-muted">
+            <span>
+              <span className="font-semibold text-fg">{stats.postCount}</span> 篇文章
+            </span>
+            <span className="text-ink-600">·</span>
+            <span>
+              <span className="font-semibold text-fg">{stats.commentCount}</span> 条评论
+            </span>
+            <span className="text-ink-600">·</span>
+            <span>
+              <span className="font-semibold text-fg">
+                {stats.totalViews >= 1000
+                  ? `${(stats.totalViews / 1000).toFixed(1)}k`
+                  : stats.totalViews}
+              </span>{" "}
+              次浏览
+            </span>
+          </div>
+
           {cta.length > 0 && (
-            <div className="mt-8 flex items-center justify-center gap-3">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               {cta.map((item) => (
                 <a
                   key={item.label}
@@ -83,6 +106,13 @@ export default async function Home({
                   {item.label}
                 </a>
               ))}
+              <Link
+                href="/about"
+                className="inline-flex items-center gap-2 rounded-full border border-ink-600 px-6 py-2.5 text-sm font-medium text-fg-muted transition-colors hover:border-brand-500/50 hover:text-fg"
+              >
+                了解更多
+                <ArrowRight size={15} />
+              </Link>
             </div>
           )}
         </div>
@@ -97,6 +127,22 @@ export default async function Home({
             {total} 篇
           </span>
         </h2>
+
+        {/* 热门标签快捷入口 */}
+        {hotTags.length > 0 && (
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+            {hotTags.map((tag) => (
+              <Link
+                key={tag.slug}
+                href={`/tags/${tag.slug}`}
+                className="rounded-full border border-ink-600 bg-ink-800/40 px-3 py-1 text-xs text-fg-muted transition-colors hover:border-brand-500/50 hover:bg-brand-500/10 hover:text-brand-300"
+              >
+                #{tag.name}
+                <span className="ml-1 text-fg-faint">{tag.count}</span>
+              </Link>
+            ))}
+          </div>
+        )}
 
         {posts.length === 0 ? (
           <div className="rounded-2xl border border-ink-700/60 bg-ink-900/50 py-20 text-center">
