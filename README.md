@@ -74,6 +74,7 @@ npm run lint      # ESLint
 | 📁 **项目展示** | `/projects` 项目卡片页（后台配置名称/描述/技术栈/链接，面试展示） |
 | 📄 **在线简历** | `/resume` 一页纸简历（复用资料/技能/项目 + 经历配置，**一键打印导出 PDF**，页脚入口） |
 | 🤖 **AI 问答（RAG）** | 文章页悬浮「问 AI」，**全站文章向量检索**回答（pgvector + BGE-M3 + DeepSeek，IP 限流防刷） |
+| 📄 **llms.txt（GEO）** | 站点根路径 `llms.txt` 输出 AI 可读的文章索引（llmstxt.org 标准）；`robots.txt` 显式允许 GPTBot/ClaudeBot/Google-Extended |
 | 🔝 **返回顶部** | 长文滚动后右下角一键回顶（平滑滚动，AI 按钮上方） |
 | 🎭 **404 趣味页** | 个性化 404（大号渐变 + 快捷入口），文章/标签不存在也走这里 |
 | 📤 **分享按钮** | 文章页一键分享：复制链接 / 微博 / QQ / X |
@@ -131,7 +132,8 @@ my-blog/
 │   ├── search/                     # 搜索页
 │   ├── feed.xml/                   # RSS 订阅（Atom）
 │   ├── og/                         # 动态 OpenGraph 分享图（edge，@vercel/og）
-│   ├── robots.ts                   # 搜索引擎爬虫规则
+│   ├── robots.ts                   # 搜索引擎 + AI 爬虫规则（GPTBot/ClaudeBot 允许）
+│   ├── llms.txt/                   # AI 可读站点索引（llmstxt.org 标准，route.ts 动态生成）
 │   ├── sitemap.ts                  # 站点地图（动态生成）
 │   └── favicon.ico
 ├── db/
