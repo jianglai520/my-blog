@@ -21,9 +21,8 @@ export default function CodeBlockCopy() {
       const btn = document.createElement("button");
       btn.textContent = "复制";
       btn.type = "button";
-      // CSDN 风格：复制按钮位于代码块顶部工具条右侧（工具条约 32px 高）
       btn.className =
-        "absolute right-2 top-[0.4rem] z-10 rounded border border-ink-600 bg-ink-800/80 px-2 py-0.5 text-xs text-fg-muted opacity-0 transition-opacity hover:border-brand-500/50 hover:text-fg";
+        "absolute right-2 top-2 z-10 rounded-md border border-ink-600 bg-ink-800/80 px-2 py-0.5 text-xs text-fg-muted opacity-0 transition-opacity hover:border-brand-500/50 hover:text-fg group-hover:opacity-100";
       // 代码块 hover 时显示按钮（pre 上没有 group，用 pre:hover 显示）
       btn.style.opacity = "0";
 
