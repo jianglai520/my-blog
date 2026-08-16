@@ -8,13 +8,14 @@ import PostForm from "./PostForm";
 import PostList from "./PostList";
 import CommentManager from "./CommentManager";
 import GuestbookManager from "./GuestbookManager";
+import MessageManager from "./MessageManager";
 import ProjectManager from "./ProjectManager";
 import SkillManager from "./SkillManager";
 import SettingsForm from "./SettingsForm";
 import type { AdminPost } from "./shared";
 import type { SiteSettings } from "@/lib/site";
 import type { Comment } from "@/lib/posts";
-import type { GuestbookMessage } from "@/db/schema";
+import type { GuestbookMessage, Message } from "@/db/schema";
 
 /**
  * 后台主界面：顶部导航 + Tab 切换 + 组合各管理模块。
@@ -25,12 +26,14 @@ export default function AdminClient({
   posts,
   comments,
   guestbookMessages,
+  messages,
   siteSettings,
 }: {
   userEmail: string;
   posts: AdminPost[];
   comments: Comment[];
   guestbookMessages: GuestbookMessage[];
+  messages: Message[];
   siteSettings: SiteSettings;
 }) {
   const router = useRouter();
@@ -171,6 +174,13 @@ export default function AdminClient({
             <span className="text-sm font-normal text-fg-faint">（最新 {guestbookMessages.length} 条）</span>
           </h2>
           <GuestbookManager messages={guestbookMessages} />
+
+          {/* 站内私信（含联系方式，仅博主可见） */}
+          <h2 className="mb-6 mt-10 text-xl font-bold text-fg">
+            ✉️ 站内私信{" "}
+            <span className="text-sm font-normal text-fg-faint">（最新 {messages.length} 条，含联系方式）</span>
+          </h2>
+          <MessageManager messages={messages} />
         </div>
       ) : tab === "projects" ? (
         /* 项目管理 */

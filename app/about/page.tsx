@@ -4,6 +4,7 @@ import Link from "next/link";
 import { GitFork, Mail, GraduationCap, FileText, ExternalLink } from "lucide-react";
 import { getPublishedPosts } from "@/lib/posts";
 import { getSiteSettings } from "@/lib/site";
+import MessageForm from "@/app/components/MessageForm";
 
 export const metadata: Metadata = { title: "关于" };
 export const dynamic = "force-dynamic";
@@ -103,6 +104,20 @@ export default async function AboutPage() {
           ))}
         </ul>
       </div>
+
+      {/* ===== 站内私信（仅站长可见，不公开） ===== */}
+      <section className="mt-10">
+        <h2 className="mb-4 flex items-center gap-3 font-display text-xl font-semibold text-fg">
+          <span className="h-5 w-1 rounded bg-gradient-to-b from-glow-400 to-brand-500" />
+          ✉️ 给我发私信
+        </h2>
+        <p className="mb-6 text-sm text-fg-faint">
+          想合作、交流或说点悄悄话？填下面的表单，内容仅站长可见，不会公开。
+        </p>
+        <div className="gradient-card rounded-2xl p-6">
+          <MessageForm />
+        </div>
+      </section>
     </div>
   );
 }

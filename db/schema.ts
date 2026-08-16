@@ -54,6 +54,16 @@ export const guestbookMessages = pgTable("guestbook_messages", {
   created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
 
+/** 站内私信（关于页表单，匿名可发；仅博主可读/删） */
+export const messages = pgTable("messages", {
+  id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
+  name: text("name").notNull(),
+  contact: text("contact"), // 可选联系方式（邮箱/微信等）
+  content: text("content").notNull(),
+  ip: text("ip"),
+  created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+});
+
 /** 用户资料（关联 auth.users，仅本 schema 内管理博主标记） */
 export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey(),

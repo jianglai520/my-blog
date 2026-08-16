@@ -3,7 +3,7 @@ import AdminClient from "./AdminClient";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { getSiteSettings } from "@/lib/site";
 import type { Post, Comment } from "@/lib/posts";
-import type { GuestbookMessage } from "@/db/schema";
+import type { GuestbookMessage, Message } from "@/db/schema";
 
 // 后台始终读最新数据，不做静态缓存
 export const dynamic = "force-dynamic";
@@ -18,7 +18,12 @@ export default async function AdminPage() {
   }
 
   const supabase = await getServerSupabase();
-  const [{ data: posts }, { data: comments }, { data: guestbook }] = await Promise.all([
+  const [
+    { data: posts },
+    { data: comments },
+    { data: guestbook },
+    { data: messages },
+  ] = await Promise.all([
     supabase
       .from("posts")
       .select("id,slug,title,content,excerpt,cover_image,created_at,published,status,post_tags(tag:tags(name))")
@@ -33,6 +38,11 @@ export default async function AdminPage() {
       .select("id,name,content,created_at")
       .order("created_at", { ascending: false })
       .limit(200),
+    supabase
+      .from("messages")
+      .select("id,name,contact,content,created_at")
+      .order("created_at", { ascending: false })
+      .limit(100),
   ]);
 
   const siteSettings = await getSiteSettings();
@@ -43,6 +53,7 @@ export default async function AdminPage() {
       posts={((posts ?? []) as unknown as AdminPost[]) }
       comments={((comments ?? []) as Comment[]) || []}
       guestbookMessages={(guestbook ?? []) as GuestbookMessage[]}
+      messages={(messages ?? []) as Message[]}
       siteSettings={siteSettings}
     />
   );
