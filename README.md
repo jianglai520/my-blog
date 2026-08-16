@@ -69,6 +69,7 @@ npm run lint      # ESLint
 | 🌗 **深浅色主题** | header 切换按钮；跟随系统偏好 + 手动选择记忆（localStorage） |
 | 💬 评论区 | 昵称 + 内容，即时显示；后台可单删 / **多选批量删除**（IP 60 秒限流） |
 | 💬 **留言板** | 独立留言页 `/guestbook`（导航入口），匿名可发 + IP 限流，后台可删 |
+| ✉️ **站内私信** | 关于页底部私信表单（昵称/联系方式可选，**内容仅站长可见**），匿名可发 + IP 限流，后台管理查看/删除 |
 | 🏷️ **技能页** | `/skills` 技能清单页（后台配置「名称｜熟练度」，进度条 + 星级展示） |
 | 📁 **项目展示** | `/projects` 项目卡片页（后台配置名称/描述/技术栈/链接，面试展示） |
 | 📄 **在线简历** | `/resume` 一页纸简历（复用资料/技能/项目 + 经历配置，**一键打印导出 PDF**，页脚入口） |
@@ -91,7 +92,9 @@ my-blog/
 │   ├── actions/                    # Server Actions：服务端业务逻辑（唯一写入口）
 │   │   ├── auth.ts                 # 登录 / 注册 / 退出
 │   │   ├── posts.ts                # 发布 / 编辑 / 删除文章（zod 校验 + 博主鉴权）
-│   │   └── comments.ts             # 发表评论
+│   │   ├── comments.ts             # 发表评论
+│   │   ├── guestbook.ts            # 留言板留言（限流）
+│   │   └── messages.ts             # 站内私信（限流 + zod 校验）
 │   ├── layout.tsx                  # 全局布局（字体 / metadata / 主题）
 │   ├── globals.css                 # 全局样式 + Tailwind v4 @theme 设计系统
 │   ├── page.tsx                    # 首页（英雄区 + 文章列表）
@@ -104,6 +107,7 @@ my-blog/
 │   │   ├── ReadingProgress.tsx     # 文章阅读进度条
 │   │   ├── Toc.tsx                 # 文章目录（TOC）
 │   │   ├── ThemeToggle.tsx         # 深浅色主题切换
+│   │   ├── MessageForm.tsx         # 站内私信表单（关于页，client）
 │   │   └── Editor.tsx              # TipTap 富文本编辑器（client，工具栏含表情插入）
 │   ├── posts/
 │   │   └── [identifier]/
@@ -115,6 +119,8 @@ my-blog/
 │   │   ├── PostForm.tsx            # 写作 / 编辑表单（TipTap 编辑器 + 封面上传）
 │   │   ├── PostList.tsx            # 文章管理列表（编辑/删除）
 │   │   ├── CommentManager.tsx      # 评论管理列表
+│   │   ├── GuestbookManager.tsx    # 留言板留言管理
+│   │   ├── MessageManager.tsx      # 站内私信管理（含联系方式）
 │   │   ├── SettingsForm.tsx        # 站点设置（含头像上传）
 │   │   └── shared.ts               # 共享输入样式 + AdminPost 类型
 │   ├── login/
@@ -143,7 +149,7 @@ my-blog/
 ├── proxy.ts                        # 路由守卫（Next 16 中 middleware 更名为此）
 ├── drizzle.config.ts               # drizzle-kit 配置（schema → 迁移 SQL）
 ├── supabase/
-│   └── migrations/                 # 数据库迁移 SQL（0001~0012，手动在 SQL Editor 执行）
+│   └── migrations/                 # 数据库迁移 SQL（0001~0013，手动在 SQL Editor 执行）
 ├── scripts/
 │   ├── generate-og.mjs             # 一次性脚本：生成 public/og.png
 │   ├── backup.mjs                  # 数据库备份脚本（导出全表 JSON 到 backups/）
@@ -243,6 +249,17 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `ip` | text（可空） | 留言者 IP（60 秒限流用） |
 | `created_at` | timestamptz | 创建时间 |
 
+### 表 `messages`（站内私信）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | int8 / PK | 主键 |
+| `name` | text | 发送者昵称（留空为「匿名」） |
+| `contact` | text（可空） | 联系方式（邮箱/微信等，仅博主可见） |
+| `content` | text | 私信内容 |
+| `ip` | text（可空） | 发送者 IP（60 秒限流用） |
+| `created_at` | timestamptz | 创建时间 |
+
 ### 表 `article_chunks`（AI 问答 RAG 分块）
 
 | 字段 | 类型 | 说明 |
@@ -285,7 +302,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 公开读的文章图片存储桶（仅博主可上传/删除，RLS 策略见 `0002_rls.sql` / `0003_markdown_draft.sql`）。
 
-> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0012），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0013），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
 
 ---
 
