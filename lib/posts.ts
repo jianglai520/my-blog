@@ -91,7 +91,7 @@ export async function getComments(postId: number): Promise<Comment[]> {
     .orderBy(asc(comments.created_at));
 }
 
-/** 全部标签 + 已发布文章数（按文章数倒序）。缓存 60s + tag "posts"（发布/删文即时失效） */
+/** 全部标签 + 已发布文章数（按文章数倒序，只含至少一篇文章的标签）。缓存 60s + tag "posts" */
 export const getTags = unstable_cache(
   async (): Promise<{ name: string; slug: string; count: number }[]> => {
     const rows = await db
@@ -104,6 +104,7 @@ export const getTags = unstable_cache(
       .leftJoin(postTags, eq(postTags.tag_id, tagsTable.id))
       .leftJoin(posts, and(eq(posts.id, postTags.post_id), eq(posts.status, "published")))
       .groupBy(tagsTable.id)
+      .having(sql`count(${postTags.post_id}) > 0`) // 过滤无文章的空标签
       .orderBy(desc(sql`count`), asc(tagsTable.name));
 
     return rows.map((r) => ({ name: r.name, slug: r.slug, count: Number(r.count ?? 0) }));
