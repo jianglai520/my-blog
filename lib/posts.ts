@@ -91,45 +91,53 @@ export async function getComments(postId: number): Promise<Comment[]> {
     .orderBy(asc(comments.created_at));
 }
 
-/** 全部标签 + 已发布文章数（按文章数倒序） */
-export async function getTags(): Promise<{ name: string; slug: string; count: number }[]> {
-  const rows = await db
-    .select({
-      name: tagsTable.name,
-      slug: tagsTable.slug,
-      count: sql<number>`count(${postTags.post_id})`,
-    })
-    .from(tagsTable)
-    .leftJoin(postTags, eq(postTags.tag_id, tagsTable.id))
-    .leftJoin(posts, and(eq(posts.id, postTags.post_id), eq(posts.status, "published")))
-    .groupBy(tagsTable.id)
-    .orderBy(desc(sql`count`), asc(tagsTable.name));
+/** 全部标签 + 已发布文章数（按文章数倒序）。缓存 60s + tag "posts"（发布/删文即时失效） */
+export const getTags = unstable_cache(
+  async (): Promise<{ name: string; slug: string; count: number }[]> => {
+    const rows = await db
+      .select({
+        name: tagsTable.name,
+        slug: tagsTable.slug,
+        count: sql<number>`count(${postTags.post_id})`,
+      })
+      .from(tagsTable)
+      .leftJoin(postTags, eq(postTags.tag_id, tagsTable.id))
+      .leftJoin(posts, and(eq(posts.id, postTags.post_id), eq(posts.status, "published")))
+      .groupBy(tagsTable.id)
+      .orderBy(desc(sql`count`), asc(tagsTable.name));
 
-  return rows.map((r) => ({ name: r.name, slug: r.slug, count: Number(r.count ?? 0) }));
-}
+    return rows.map((r) => ({ name: r.name, slug: r.slug, count: Number(r.count ?? 0) }));
+  },
+  ["all-tags"],
+  { revalidate: 60, tags: ["posts"] },
+);
 
-/** 站点统计：已发布文章数 / 已通过评论数 / 总浏览量（首页 Hero 统计行用） */
-export async function getSiteStats(): Promise<{ postCount: number; commentCount: number; totalViews: number }> {
-  const [postRow, commentRow, viewRow] = await Promise.all([
-    db
-      .select({ n: sql<number>`count(*)` })
-      .from(posts)
-      .where(eq(posts.status, "published")),
-    db
-      .select({ n: sql<number>`count(*)` })
-      .from(comments)
-      .where(eq(comments.status, "approved")),
-    db
-      .select({ n: sql<number>`coalesce(sum(${posts.view_count}), 0)` })
-      .from(posts)
-      .where(eq(posts.status, "published")),
-  ]);
-  return {
-    postCount: Number(postRow[0]?.n ?? 0),
-    commentCount: Number(commentRow[0]?.n ?? 0),
-    totalViews: Number(viewRow[0]?.n ?? 0),
-  };
-}
+/** 站点统计：已发布文章数 / 已通过评论数 / 总浏览量。缓存 60s + tag "posts"/"comments" */
+export const getSiteStats = unstable_cache(
+  async (): Promise<{ postCount: number; commentCount: number; totalViews: number }> => {
+    const [postRow, commentRow, viewRow] = await Promise.all([
+      db
+        .select({ n: sql<number>`count(*)` })
+        .from(posts)
+        .where(eq(posts.status, "published")),
+      db
+        .select({ n: sql<number>`count(*)` })
+        .from(comments)
+        .where(eq(comments.status, "approved")),
+      db
+        .select({ n: sql<number>`coalesce(sum(${posts.view_count}), 0)` })
+        .from(posts)
+        .where(eq(posts.status, "published")),
+    ]);
+    return {
+      postCount: Number(postRow[0]?.n ?? 0),
+      commentCount: Number(commentRow[0]?.n ?? 0),
+      totalViews: Number(viewRow[0]?.n ?? 0),
+    };
+  },
+  ["site-stats"],
+  { revalidate: 60, tags: ["posts", "comments"] },
+);
 
 /** 某标签下的已发布文章（分页），标签不存在返回空 */
 export async function getPostsByTag(

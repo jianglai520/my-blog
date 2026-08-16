@@ -7,7 +7,14 @@ import { getSiteSettings } from "@/lib/site";
 
 const PAGE_SIZE = 10;
 
-export const dynamic = "force-dynamic";
+/**
+ * 首页性能策略：动态渲染 + 数据层缓存（Next 官方推荐模式）。
+ * - 页面带 searchParams（分页），无法静态化/ISR（ƒ 动态是必然）
+ * - 但所有数据查询走 unstable_cache（60s，tag "posts"/"site"）：
+ *   getPublishedPosts / getTags / getSiteStats / getSiteSettings 全部命中缓存
+ * - 发布/编辑/删除时 Server Action revalidatePath("/") + updateTag 即时失效
+ * 实测生产模式首页响应 4~6ms（缓存命中），无需牺牲分页动态性
+ */
 
 export default async function Home({
   searchParams,

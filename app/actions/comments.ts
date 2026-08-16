@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { commentSchema } from "@/lib/validations/comments";
 
@@ -63,6 +63,8 @@ export async function createComment(
   // 文章页是动态渲染，revalidate 保证下次请求拿到新评论
   revalidatePath(`/posts/${identifier}`);
   revalidatePath("/");
+  // 失效首页统计行缓存（getSiteStats 挂了 "comments" tag）
+  updateTag("comments");
   return { message: "✅ 评论成功！", success: true };
 }
 
@@ -86,6 +88,7 @@ export async function deleteComment(formData: FormData): Promise<void> {
 
   revalidatePath("/");
   revalidatePath("/admin");
+  updateTag("comments");
 }
 
 /** 批量删除评论（仅博主） */
@@ -107,4 +110,5 @@ export async function batchDeleteComments(ids: number[]): Promise<void> {
 
   revalidatePath("/");
   revalidatePath("/admin");
+  updateTag("comments");
 }
