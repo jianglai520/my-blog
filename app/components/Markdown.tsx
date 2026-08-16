@@ -36,8 +36,41 @@ function defaultCodeLang() {
 }
 
 /**
+ * 给代码块补充语言标签：
+ * rehype-pretty-code 输出 <figure data-rehype-pretty-code-figure><pre><code class="language-js">
+ * 我们把语言名写到 code 的 data-language，供 CSS 工具条（::before）显示。
+ */
+function codeLangLabel() {
+  return (tree: Root) => {
+    const visit = (node: Element) => {
+      if (node.tagName === "code") {
+        const className = Array.isArray(node.properties.className)
+          ? node.properties.className.map(String)
+          : [];
+        const lang = className.find((c) => c.startsWith("language-"));
+        if (lang) {
+          const name = lang.replace("language-", "");
+          // 已知别名显示规范名（shiki 可能给 "js"/"ts" 等短名）
+          const label =
+            { js: "JavaScript", ts: "TypeScript", py: "Python", sh: "Shell", bash: "Bash" }[
+              name
+            ] ?? name;
+          node.properties.dataLanguage = label;
+        }
+      }
+      for (const child of node.children ?? []) {
+        if (child.type === "element") visit(child as Element);
+      }
+    };
+    for (const child of tree.children) {
+      if (child.type === "element") visit(child as Element);
+    }
+  };
+}
+
+/**
  * Markdown → HTML（纯服务端渲染，客户端零 JS）。
- * 管线：remark-parse → remark-gfm → remark-rehype → rehype-slug → defaultCodeLang → rehype-pretty-code → rehype-stringify
+ * 管线：remark-parse → remark-gfm → remark-rehype → rehype-slug → defaultCodeLang → codeLangLabel → rehype-pretty-code → rehype-stringify
  * 不启用 rehypeRaw，文章内原始 HTML 会被忽略（防注入，内容来源只有博主编辑器）。
  */
 const toHtml = cache(async (source: string) => {
@@ -47,12 +80,20 @@ const toHtml = cache(async (source: string) => {
     .use(remarkRehype)
     .use(rehypeSlug)
     .use(defaultCodeLang)
+    .use(codeLangLabel)
     .use(rehypePrettyCode, {
       theme: {
         dark: "github-dark",
         light: "github-light",
       },
       keepBackground: true,
+      // CSDN 风格行号：给每行加 data-line 标记，CSS 用计数器渲染行号
+      onVisitLine(node) {
+        if (node.children.length === 0) {
+          node.children = [{ type: "text", value: " " }];
+        }
+        node.properties = { ...node.properties, "data-line": "" };
+      },
     })
     .use(rehypeStringify)
     .process(source);
