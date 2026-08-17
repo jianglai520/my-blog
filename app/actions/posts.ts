@@ -4,7 +4,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { postSchema, type PostFormInput } from "@/lib/validations/posts";
 import { slugify } from "@/lib/format";
-import { syncPostChunks, deletePostChunks } from "@/lib/rag";
+import { deletePostChunks } from "@/lib/rag";
 
 export type PostFormState = {
   message: string;
@@ -133,6 +133,8 @@ export async function createPost(
         status,
         published: status === "published",
         author_id: admin.id,
+        // 发布/编辑只标记待索引，embedding 由后台定时任务批量处理（发布不再等待外部 API）
+        index_status: status === "published" ? "pending" : "done",
       })
       .select("id")
       .single();
@@ -142,15 +144,6 @@ export async function createPost(
     }
 
     await syncPostTags(supabase, created.id, tags ?? "");
-
-    // 发布文章 → 同步 AI 检索索引（草稿不索引；失败不影响发布，可后续全量重建）
-    if (status === "published") {
-      try {
-        await syncPostChunks(supabase, created.id, content);
-      } catch (e) {
-        console.error("同步文章检索索引失败:", e);
-      }
-    }
 
     revalidatePath("/");
     revalidatePath("/archives");
@@ -207,6 +200,8 @@ export async function updatePost(
         content,
         status,
         published: status === "published",
+        // 编辑后标记待索引，embedding 由后台定时任务批量处理
+        index_status: status === "published" ? "pending" : "done",
       })
       .eq("id", postId)
       .select("slug,status")
@@ -217,15 +212,6 @@ export async function updatePost(
     }
 
     await syncPostTags(supabase, postId, tags ?? "");
-
-    // 发布/更新文章 → 同步 AI 检索索引（草稿不索引；失败不影响保存）
-    if (status === "published") {
-      try {
-        await syncPostChunks(supabase, postId, content);
-      } catch (e) {
-        console.error("同步文章检索索引失败:", e);
-      }
-    }
 
     revalidatePath("/");
     revalidatePath("/admin");

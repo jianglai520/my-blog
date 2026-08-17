@@ -30,6 +30,8 @@ export const posts = pgTable("posts", {
   status: text("status").notNull().default("published"),
   published: boolean("published").notNull().default(false),
   view_count: bigint("view_count", { mode: "number" }).notNull().default(0),
+  // AI 索引状态：pending（待同步）/ done（已索引）/ failed（失败可重试）
+  index_status: text("index_status").notNull().default("pending"),
   created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
 

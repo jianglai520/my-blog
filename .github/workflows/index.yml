@@ -1,0 +1,29 @@
+name: AI 索引增量同步
+
+on:
+  # 每 30 分钟处理待索引文章（发布后最快半小时内可用 AI 问答检索）
+  schedule:
+    - cron: "*/30 * * * *"
+  # 支持手动触发：Actions → AI 索引增量同步 → Run workflow
+  workflow_dispatch:
+
+jobs:
+  sync-index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 增量索引（处理 index_status=pending 的文章）
+        env:
+          # CI 无 .env.local，脚本会回退读取环境变量
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          EMBEDDING_API_KEY: ${{ secrets.EMBEDDING_API_KEY }}
+        run: node scripts/index-posts.mjs --incremental
