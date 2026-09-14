@@ -5,11 +5,11 @@ import { formatDate, stripMarkdown, postHref, readingMinutes } from "@/lib/forma
 import type { PostWithTags } from "@/lib/posts";
 
 /**
- * 文章卡片（首页 / 标签页 / 搜索页复用）：杂志风「图片通铺 + 信息叠加」。
- * - 固定高度（aspect-[3/2]），封面图整卡铺满背景，底部深色渐变保证文字可读
- * - 无封面时用品牌渐变背景 + 文章首字装饰，风格统一
- * - 标题/日期/阅读数/标签直接叠在图上
- * - stretched-link：整卡点击用绝对定位覆盖层 <a>，避免 <a> 嵌套 <a>（HTML 规范禁止）
+ * 文章卡片（首页 / 标签页 / 搜索页复用）：青绿毛玻璃卡片。
+ * - 毛玻璃面板 + 封面图置顶（16:9 统一比例），文字区在玻璃上，结构固定不拉伸
+ * - 无封面时用青绿渐变占位 + 文章首字装饰，风格统一
+ * - 整卡高度一致（flex h-full），杜绝同排卡片高低错落
+ * - stretched-link：整卡点击用绝对定位覆盖层 <a>，避免 <a> 嵌套 <a>
  */
 export default function PostCard({ post }: { post: PostWithTags }) {
   const postUrl = postHref(post);
@@ -17,30 +17,35 @@ export default function PostCard({ post }: { post: PostWithTags }) {
   const minutes = post.content ? readingMinutes(post.content) : null;
 
   return (
-    <article className="gradient-card group relative aspect-[3/2] overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-glow-lg">
+    <article className="glass group relative flex h-full flex-col overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-glow-lg">
       {/* 整卡点击覆盖层（stretched link，z-0；内容链接需 relative z-10 才能在上层） */}
       <Link href={postUrl} className="absolute inset-0 z-0" aria-label={post.title} />
 
-      {/* ===== 背景：封面图或品牌渐变占位 ===== */}
-      {post.cover_image ? (
-        <Image
-          src={post.cover_image}
-          alt={post.title}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-          sizes="(max-width: 768px) 100vw, 40rem"
-        />
-      ) : (
-        /* 无封面：固定品牌渐变（不用语义色，浅色模式下卡片仍保持深色底、白字可读） */
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-600 via-[#1a1630] to-glow-500" />
-      )}
+      {/* ===== 封面图（置顶，统一 16:9，不再整卡通铺） ===== */}
+      <div className="relative aspect-[16/9] shrink-0 overflow-hidden">
+        {post.cover_image ? (
+          <Image
+            src={post.cover_image}
+            alt={post.title}
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            sizes="(max-width: 768px) 100vw, 40rem"
+          />
+        ) : (
+          /* 无封面：青绿渐变占位 + 首字装饰 */
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand-500 via-brand-600 to-glow-500">
+            <span className="font-display text-5xl font-bold text-white/90">
+              {post.title.charAt(0)}
+            </span>
+          </div>
+        )}
+        {/* 图片底部轻微渐隐，衔接玻璃文字区 */}
+        <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/20 to-transparent" />
+      </div>
 
-      {/* ===== 底部渐变遮罩（固定深色，保证白字在任何主题下可读） ===== */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent" />
-
-      {/* ===== 内容层：直接叠在图上，hover 时轻微上浮 ===== */}
-      <div className="relative z-10 flex h-full flex-col justify-end p-6 transition-transform duration-300 group-hover:-translate-y-1.5">
-        <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/60">
+      {/* ===== 内容层（玻璃面板上，语义色自适应深浅色） ===== */}
+      <div className="relative z-10 flex flex-1 flex-col gap-3 p-5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-fg-faint">
           <span>{formatDate(post.created_at)}</span>
           {minutes != null && (
             <span className="inline-flex items-center gap-1" aria-label="阅读时长">
@@ -54,25 +59,25 @@ export default function PostCard({ post }: { post: PostWithTags }) {
           )}
         </div>
 
-        <h3 className="mb-2 text-xl font-bold leading-snug text-white transition-colors group-hover:text-brand-200">
+        <h3 className="text-lg font-bold leading-snug text-fg transition-colors group-hover:text-brand-300">
           <Link href={postUrl} className="relative z-10">
             {post.title}
           </Link>
         </h3>
 
         {excerpt && (
-          <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-white/70">
+          <p className="line-clamp-2 text-sm leading-relaxed text-fg-muted">
             {excerpt}
           </p>
         )}
 
         {post.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="mt-auto flex flex-wrap gap-2 pt-1">
             {post.tags.map((tag) => (
               <Link
                 key={tag.slug}
                 href={`/tags/${tag.slug}`}
-                className="relative z-10 rounded-full border border-white/20 bg-black/30 px-2.5 py-0.5 text-xs text-brand-200 backdrop-blur-sm transition-colors hover:border-brand-400/60 hover:bg-brand-500/20"
+                className="relative z-10 rounded-full border border-ink-600/60 bg-ink-800/40 px-2.5 py-0.5 text-xs text-fg-muted backdrop-blur-sm transition-colors hover:border-brand-400/60 hover:bg-brand-500/10 hover:text-brand-300"
               >
                 #{tag.name}
               </Link>

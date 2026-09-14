@@ -23,7 +23,7 @@ export async function GET(req: Request) {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #0b0b18 0%, #1b0b33 60%, #2a1550 100%)",
+          background: "linear-gradient(135deg, #07110f 0%, #0f2b26 60%, #11443d 100%)",
           padding: "72px 96px",
           position: "relative",
         }}
@@ -36,7 +36,7 @@ export async function GET(req: Request) {
             left: 0,
             right: 0,
             height: 6,
-            background: "linear-gradient(90deg, transparent, #a855f7, #c084fc, #a855f7, transparent)",
+            background: "linear-gradient(90deg, transparent, #35bfab, #1fc9e7, #35bfab, transparent)",
           }}
         />
         {/* 品牌标记 */}
@@ -46,7 +46,7 @@ export async function GET(req: Request) {
             width: 88,
             height: 88,
             borderRadius: 22,
-            background: "linear-gradient(135deg, #8b5cf6, #a855f7)",
+            background: "linear-gradient(135deg, #1f8f7e, #35bfab)",
             alignItems: "center",
             justifyContent: "center",
             fontSize: 48,
@@ -60,7 +60,7 @@ export async function GET(req: Request) {
         {/* 标题 */}
         <div
           style={{
-            color: "#e7e7f2",
+            color: "#e8f1ef",
             fontSize: title.length > 16 ? 52 : 64,
             fontWeight: 700,
             textAlign: "center",
@@ -73,7 +73,7 @@ export async function GET(req: Request) {
         {/* 站点名 */}
         <div
           style={{
-            color: "#9b9bb3",
+            color: "#94a8a3",
             fontSize: 26,
             marginTop: 32,
             letterSpacing: 2,
