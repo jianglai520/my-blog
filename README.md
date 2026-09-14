@@ -4,7 +4,7 @@
 
 - 🌐 线上地址：**https://jianglai520.com**
 - 📦 代码仓库：`git@github.com:jianglai520/my-blog.git`
-- 🎨 视觉风格：霓虹紫 → 深色渐变 + 浅色模式（Tailwind CSS 4 设计系统）
+- 🎨 视觉风格：青绿毛玻璃（teal glassmorphism，品牌色 `#35bfab` + 青色 `#1fc9e7`，深浅色自适应，Tailwind CSS 4 设计系统）
 
 ---
 
@@ -28,7 +28,7 @@
 
 | 能力 | 说明 |
 |------|------|
-| 单元测试 | **Vitest**（70 个用例）：`lib/format`、zod 校验层、Server Actions 权限分支、数据层纯函数与 mock 查询、组件渲染（RTL） |
+| 单元测试 | **Vitest**（77 个用例）：`lib/format`、zod 校验层、Server Actions 权限分支、数据层纯函数与 mock 查询、组件渲染（RTL） |
 | E2E 测试 | **Playwright**（chromium 9 用例）：首页/文章/搜索/RSS/登录（`npm run test:e2e`，登录用例需 `TEST_EMAIL`/`TEST_PASSWORD`） |
 | CI 流水线 | **GitHub Actions**（`.github/workflows/ci.yml`）：push/PR 自动跑 lint + 单测 + 构建（+ E2E） |
 | 错误监控 | **Sentry**（`SENTRY_DSN` 配置后生效）+ 自定义 `error.tsx` / `global-error.tsx` |
@@ -50,7 +50,7 @@ npm run lint      # ESLint
 
 | 功能 | 说明 |
 |------|------|
-| 📄 首页 | 英雄区（头像/渐变标题/**光斑动效**/**站点统计行**/**了解更多 CTA**）+ 文章卡片列表（图片通铺+信息叠加、hover 发光上浮、**阅读时长**、标签、阅读数）+ **热门标签入口** + **分页** |
+| 📄 首页 | 英雄区（头像/渐变标题/**光斑动效**/**站点统计行**/**了解更多 CTA**）+ 文章卡片列表（**青绿毛玻璃卡片**：封面图置顶 16:9 + 文字区玻璃面板、hover 上浮发光、**阅读时长**、标签、阅读数）+ **热门标签入口** + **分页** |
 | 📖 文章详情页 | 语义化 slug 链接（兼容旧数字 id，301 跳转）；显示标签、**浏览量**、**阅读时长（分钟）**；阅读进度条 + 文章目录（TOC） |
 | 📝 **Markdown 正文** | 标题 / 列表 / **代码高亮（shiki 深浅双主题，无语言代码块自动补默认）** / 表格 / 引用 / 图片完整渲染；专业排版（标题层级/嵌套列表/引用卡片/表格渐变/代码块投影） |
 | 🔍 **图片点击放大** | 文章正文图片点击查看大图（lightbox，点遮罩 / ✕ / Esc 关闭） |
@@ -374,5 +374,5 @@ git push origin main
 1. ~~**安全**：数据增删改由浏览器端直接调用 Supabase anon key 完成~~ ✅ **已解决（Phase 0）**
 2. ~~**内容**：正文为纯文本，无 Markdown / 富文本 / 代码高亮~~ ✅ **已解决（Phase 1）**：Markdown 渲染 + TipTap 编辑器 + 草稿/编辑 + 图片上传，迁移已执行、测试通过
 3. ~~**功能**：无标签分类、搜索、分页、浏览量统计、RSS~~ ✅ **已解决（Phase 3）**：标签系统 + 搜索 + 分页 + 浏览量 + RSS + 归档 + 关于页 + 评论管理，迁移已执行、测试通过
-4. ~~**工程化**：无自动化测试、CI 流水线、错误监控、数据备份策略~~ ✅ **已解决（Phase 4）**：Vitest 单元测试（70 用例）+ Playwright E2E（9 用例）+ GitHub Actions CI + Sentry 错误监控 + Vercel Analytics + 备份与恢复演练（见 `BACKUP.md`；Sentry DSN 配置后生效）
-5. **视觉风格**：博主对当前前端观感仍不满意（认为"太小儿科"）；已落地代码块双主题、图片 lightbox、阅读进度条、TOC 等体验深化；整体视觉方向（现代极简 / 杂志编辑 / 终端极客等）**待定案**（P1 优先级，见桌面优化方案文档）
+4. ~~**工程化**：无自动化测试、CI 流水线、错误监控、数据备份策略~~ ✅ **已解决（Phase 4）**：Vitest 单元测试（77 用例）+ Playwright E2E（9 用例）+ GitHub Actions CI + Sentry 错误监控 + Vercel Analytics + 备份与恢复演练（见 `BACKUP.md`；Sentry DSN 配置后生效）
+5. **视觉风格**：博主对当前前端观感不满意（认为"太小儿科"）；已落地代码块双主题、图片 lightbox、阅读进度条、TOC 等体验深化；**视觉方向已定案为「青绿毛玻璃风」**（参考 lvyovo-wiki.tech），P0 已实施：品牌色 `#35bfab` + 青色 `#1fc9e7` 设计系统、`.glass` 毛玻璃卡片、首页卡片重构、深浅色玻璃适配（详见桌面优化方案文档）
