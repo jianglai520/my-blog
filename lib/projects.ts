@@ -10,6 +10,7 @@ export type ProjectItem = {
   github: string; // GitHub 仓库
   cover: string; // 封面图 URL（可选）
   slug?: string; // 详情页自定义 slug（可选，缺省用名称自动生成）
+  coverPosition?: string; // 封面裁剪位置（object-position，如 "50% 30%"，缺省居中）
 };
 
 /** 解析项目 JSON（后台序列化存储）；非法/空返回 [] */
@@ -31,6 +32,8 @@ export function parseProjects(raw: string): ProjectItem[] {
           github: typeof p.github === "string" ? p.github.trim() : "",
           cover: typeof p.cover === "string" ? p.cover.trim() : "",
           slug: typeof p.slug === "string" ? p.slug.trim() : "",
+          coverPosition:
+            typeof p.coverPosition === "string" ? p.coverPosition.trim() : "",
         }));
     }
   } catch {

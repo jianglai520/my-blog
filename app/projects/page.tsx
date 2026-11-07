@@ -58,6 +58,7 @@ export default async function ProjectsPage() {
                       src={project.cover}
                       alt={project.name}
                       fill
+                      style={{ objectPosition: project.coverPosition || "50% 50%" }}
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
                       sizes="(max-width: 768px) 100vw, 40rem"
                     />

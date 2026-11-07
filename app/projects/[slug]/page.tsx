@@ -52,6 +52,7 @@ export default async function ProjectDetailPage({
               src={project.cover}
               alt={project.name}
               fill
+              style={{ objectPosition: project.coverPosition || "50% 50%" }}
               className="object-cover"
               priority
               sizes="(max-width: 768px) 100vw, 48rem"

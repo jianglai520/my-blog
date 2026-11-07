@@ -10,6 +10,12 @@ import { inputCls } from "./shared";
 
 const initial: ProjectsState = { message: "", success: false };
 
+/** 解析 object-position 字符串（如 "50% 30%"）为数字；非法/缺省返回 50% 50% */
+function parsePos(s?: string): { x: number; y: number } {
+  const m = (s ?? "").match(/(-?\d+(?:\.\d+)?)%\s+(-?\d+(?:\.\d+)?)%/);
+  return m ? { x: Number(m[1]), y: Number(m[2]) } : { x: 50, y: 50 };
+}
+
 /**
  * 项目管理：项目卡片动态编辑（名称/年份/描述/技术栈/链接/GitHub/封面），独立保存。
  * 封面支持「粘贴 URL」或「本地上传」（浏览器直传 Supabase Storage）。
@@ -167,22 +173,59 @@ export default function ProjectManager({ initialData }: { initialData: string })
                     {coverMsg.text}
                   </p>
                 )}
-                {/* 发布后卡片封面效果预览（16:9 居中裁剪，与前台卡片一致） */}
+                {/* 发布后卡片封面效果预览（16:9 裁剪，滑块调整显示区域） */}
                 {project.cover && (
                   <div className="mt-2">
                     <p className="mb-1 text-xs text-fg-faint">
-                      发布后卡片封面效果（16:9 居中裁剪）
+                      发布后卡片封面效果（16:9 裁剪，滑块调整显示区域）
                     </p>
                     <div className="aspect-[16/9] w-full max-w-sm overflow-hidden rounded-lg border border-ink-600">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={project.cover}
                         alt={`${project.name || "项目"} 封面预览`}
+                        style={{ objectPosition: project.coverPosition || "50% 50%" }}
                         className="h-full w-full object-cover"
                         onError={(e) => {
                           e.currentTarget.style.display = "none";
                         }}
                       />
+                    </div>
+                    <div className="mt-2 grid max-w-sm gap-3 sm:grid-cols-2">
+                      <label className="block text-xs text-fg-muted">
+                        水平位置 {parsePos(project.coverPosition).x}%
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={parsePos(project.coverPosition).x}
+                          onChange={(e) =>
+                            update(
+                              idx,
+                              "coverPosition",
+                              `${e.target.value}% ${parsePos(project.coverPosition).y}%`
+                            )
+                          }
+                          className="mt-1 w-full accent-brand-500"
+                        />
+                      </label>
+                      <label className="block text-xs text-fg-muted">
+                        垂直位置 {parsePos(project.coverPosition).y}%
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={parsePos(project.coverPosition).y}
+                          onChange={(e) =>
+                            update(
+                              idx,
+                              "coverPosition",
+                              `${parsePos(project.coverPosition).x}% ${e.target.value}%`
+                            )
+                          }
+                          className="mt-1 w-full accent-brand-500"
+                        />
+                      </label>
                     </div>
                   </div>
                 )}
