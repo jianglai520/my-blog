@@ -15,30 +15,31 @@ export async function updateProjects(
 ): Promise<ProjectsState> {
   try {
     await requireAdmin();
+
+    const projects = String(formData.get("projects") || "[]").slice(0, 8000);
+
+    const supabase = await getServerSupabase();
+    const { error } = await supabase
+      .from("site_settings")
+      .upsert({ key: "projects", value: projects }, {
+        onConflict: "key",
+        ignoreDuplicates: false,
+      });
+
+    if (error) {
+      console.error("保存项目失败:", error);
+      return { message: `❌ 保存失败：${error.message}`, success: false };
+    }
+
+    revalidatePath("/projects");
+    revalidatePath("/admin");
+    updateTag("site");
+    return { message: "✅ 项目已保存！", success: true };
   } catch (e) {
+    console.error("updateProjects 异常:", e);
     return {
-      message: `❌ ${e instanceof Error ? e.message : "无权限执行此操作"}`,
+      message: `❌ 保存失败：${e instanceof Error ? e.message : "未知错误"}`,
       success: false,
     };
   }
-
-  const projects = String(formData.get("projects") || "[]").slice(0, 8000);
-
-  const supabase = await getServerSupabase();
-  const { error } = await supabase
-    .from("site_settings")
-    .upsert({ key: "projects", value: projects }, {
-      onConflict: "key",
-      ignoreDuplicates: false,
-    });
-
-  if (error) {
-    console.error("保存项目失败:", error);
-    return { message: "❌ 保存失败，请稍后重试", success: false };
-  }
-
-  revalidatePath("/projects");
-  revalidatePath("/admin");
-  updateTag("site");
-  return { message: "✅ 项目已保存！", success: true };
 }
