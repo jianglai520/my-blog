@@ -21,6 +21,7 @@
 | **Supabase** | ^2.108 | 认证（Auth）+ 写操作（RLS 防线） |
 | **Drizzle ORM** | ^0.45 | 公开读数据层（schema 即类型真相，直连 Postgres） |
 | **Vercel** | — | 托管部署（Git 推送自动部署） |
+| **字体** | Noto Sans SC + Outfit + JetBrains Mono | 运行时从 `fonts.googleapis.cn` 加载（不走构建期拉取，失败自动回退系统字体） |
 
 > 运行环境要求：Node.js ≥ 20.9（开发环境使用 Node 24.14.0）。
 

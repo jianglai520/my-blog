@@ -21,6 +21,7 @@ A full-stack personal blog built with **Next.js 16 + React 19 + Supabase + Verce
 | **Supabase** | ^2.108 | Auth + writes (RLS defense) |
 | **Drizzle ORM** | ^0.45 | Public-read data layer (schema as type truth, direct Postgres) |
 | **Vercel** | — | Hosting / deployment (auto-deploy on git push) |
+| **Fonts** | Noto Sans SC + Outfit + JetBrains Mono | Runtime-loaded from `fonts.googleapis.cn` (no build-time fetch; graceful system fallback) |
 
 > Runtime requirement: Node.js ≥ 20.9 (dev environment uses Node 24.14.0).
 
