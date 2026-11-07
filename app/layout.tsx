@@ -68,6 +68,17 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <head>
+        {/* 运行时字体（fonts.googleapis.cn 镜像）：不走 next/font，避免构建期拉取失败 */}
+        <link rel="preconnect" href="https://fonts.googleapis.cn" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.cn"
+          crossOrigin="anonymous"
+        />
+        <link
+          href="https://fonts.googleapis.cn/css2?family=Noto+Sans+SC:wght@400;500;700&family=Outfit:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+          rel="stylesheet"
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
