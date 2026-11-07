@@ -78,17 +78,62 @@ async function uploadToStorage(
       : file.type;
 
   const supabase = getBrowserSupabase();
+
+  // 上传前确认登录态：会话失效时直接给出明确提示，
+  // 避免底层只抛出难懂的 “StorageUnknownError: Failed to fetch”。
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) {
+    return {
+      url: null,
+      message: "❌ 登录状态已失效，请退出后重新登录，再上传",
+      success: false,
+    };
+  }
+
   const { error } = await supabase.storage
     .from("post-images")
     .upload(path, file, { contentType, upsert: false });
 
   if (error) {
     console.error("文件上传失败:", error);
-    // RLS 拒绝时给出明确提示（未登录/非博主）
-    if (error.message?.includes("row-level security") || error.status === 403) {
+    const msg = (error.message || "").toLowerCase();
+    // RLS 拒绝（未登录/非博主）
+    if (msg.includes("row-level security") || error.status === 403) {
       return { url: null, message: "❌ 无上传权限（仅博主可上传）", success: false };
     }
-    return { url: null, message: "❌ 上传失败，请稍后重试", success: false };
+    // 会话/JWT 失效
+    if (
+      msg.includes("jwt") ||
+      msg.includes("refresh") ||
+      msg.includes("session") ||
+      error.status === 401
+    ) {
+      return {
+        url: null,
+        message: "❌ 登录状态已失效，请退出后重新登录，再上传",
+        success: false,
+      };
+    }
+    // 网络/代理层失败
+    if (
+      error.name === "StorageUnknownError" ||
+      msg.includes("failed to fetch") ||
+      msg.includes("network") ||
+      msg.includes("load failed")
+    ) {
+      return {
+        url: null,
+        message: "❌ 网络连接失败（可能是网络/代理问题），请检查网络后重试",
+        success: false,
+      };
+    }
+    return {
+      url: null,
+      message: `❌ 上传失败：${error.message || "请稍后重试"}`,
+      success: false,
+    };
   }
 
   const { data } = supabase.storage.from("post-images").getPublicUrl(path);
