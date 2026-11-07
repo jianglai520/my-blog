@@ -32,7 +32,13 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user && request.nextUrl.pathname.startsWith("/admin")) {
+  // Server Action 的 POST 也命中 /admin，若被重定向会导致客户端报
+  // "An unexpected response was received from the server"。
+  // 这类请求放行，由 action 内的 requireAdmin() 鉴权并返回友好错误。
+  const isServerAction =
+    request.method === "POST" && request.headers.has("next-action");
+
+  if (!user && !isServerAction && request.nextUrl.pathname.startsWith("/admin")) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", request.nextUrl.pathname);
