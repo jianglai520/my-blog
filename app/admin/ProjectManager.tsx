@@ -167,6 +167,25 @@ export default function ProjectManager({ initialData }: { initialData: string })
                     {coverMsg.text}
                   </p>
                 )}
+                {/* 发布后卡片封面效果预览（16:9 居中裁剪，与前台卡片一致） */}
+                {project.cover && (
+                  <div className="mt-2">
+                    <p className="mb-1 text-xs text-fg-faint">
+                      发布后卡片封面效果（16:9 居中裁剪）
+                    </p>
+                    <div className="aspect-[16/9] w-full max-w-sm overflow-hidden rounded-lg border border-ink-600">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={project.cover}
+                        alt={`${project.name || "项目"} 封面预览`}
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               <textarea
                 value={project.description}
