@@ -1,3 +1,5 @@
+import { slugify } from "./format";
+
 /** 项目项（项目展示页用，后台动态编辑） */
 export type ProjectItem = {
   name: string;
@@ -7,6 +9,7 @@ export type ProjectItem = {
   link: string; // 项目链接
   github: string; // GitHub 仓库
   cover: string; // 封面图 URL（可选）
+  slug?: string; // 详情页自定义 slug（可选，缺省用名称自动生成）
 };
 
 /** 解析项目 JSON（后台序列化存储）；非法/空返回 [] */
@@ -27,6 +30,7 @@ export function parseProjects(raw: string): ProjectItem[] {
           link: typeof p.link === "string" ? p.link.trim() : "",
           github: typeof p.github === "string" ? p.github.trim() : "",
           cover: typeof p.cover === "string" ? p.cover.trim() : "",
+          slug: typeof p.slug === "string" ? p.slug.trim() : "",
         }));
     }
   } catch {
@@ -43,4 +47,9 @@ export function serializeProjects(items: ProjectItem[]): string {
 /** 技术栈字符串 → 标签数组（支持中英文逗号） */
 export function splitTech(tech: string): string[] {
   return tech.split(/[,，]/).map((t) => t.trim()).filter(Boolean);
+}
+
+/** 项目详情页 slug：优先自定义 slug，否则由名称生成，兜底用下标 */
+export function projectSlug(project: ProjectItem, index: number): string {
+  return project.slug || slugify(project.name) || `project-${index}`;
 }

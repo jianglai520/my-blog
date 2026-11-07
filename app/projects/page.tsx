@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { ExternalLink, FolderGit2, GitFork } from "lucide-react";
+import { ArrowRight, FolderGit2 } from "lucide-react";
 import { getSiteSettings } from "@/lib/site";
-import { parseProjects, splitTech } from "@/lib/projects";
+import { parseProjects, splitTech, projectSlug } from "@/lib/projects";
 
 export const metadata: Metadata = { title: "项目" };
 
@@ -42,90 +42,70 @@ export default async function ProjectsPage() {
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
-          {projects.map((project) => (
-            <article
-              key={project.name}
-              className="glass group flex h-full flex-col overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-glow-lg"
-            >
-              {/* 封面（统一 16:9；无封面用青绿渐变占位 + 首字） */}
-              <div className="relative aspect-[16/9] shrink-0 overflow-hidden">
-                {project.cover ? (
-                  <Image
-                    src={project.cover}
-                    alt={project.name}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    sizes="(max-width: 768px) 100vw, 40rem"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center gap-3 bg-gradient-to-br from-brand-500 via-brand-600 to-glow-500">
-                    <span className="font-display text-5xl font-bold text-white/90">
-                      {project.name.charAt(0)}
-                    </span>
-                    <FolderGit2 size={28} className="text-white/50" />
-                  </div>
-                )}
-                {/* 图片底部渐隐，衔接玻璃文字区 */}
-                <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/20 to-transparent" />
-              </div>
+          {projects.map((project, idx) => {
+            const slug = projectSlug(project, idx);
+            return (
+              <article
+                key={`${slug}-${idx}`}
+                className="glass group relative flex h-full flex-col overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-glow-lg"
+              >
+                {/* 整卡可点（stretched link） */}
+                <Link href={`/projects/${slug}`} className="absolute inset-0 z-0" aria-label={project.name} />
 
-              {/* 内容区 */}
-              <div className="flex flex-1 flex-col gap-3 p-5">
-                <div className="flex items-baseline justify-between gap-2">
-                  <h2 className="text-lg font-bold leading-snug text-fg">{project.name}</h2>
-                  {project.year && (
-                    <span className="flex-shrink-0 rounded-full border border-ink-600 bg-ink-800/40 px-2 py-0.5 text-xs text-fg-faint">
-                      {project.year}
-                    </span>
+                {/* 封面（统一 16:9；无封面用青绿渐变占位 + 首字） */}
+                <div className="relative aspect-[16/9] shrink-0 overflow-hidden">
+                  {project.cover ? (
+                    <Image
+                      src={project.cover}
+                      alt={project.name}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      sizes="(max-width: 768px) 100vw, 40rem"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center gap-3 bg-gradient-to-br from-brand-500 via-brand-600 to-glow-500">
+                      <span className="font-display text-5xl font-bold text-white/90">
+                        {project.name.charAt(0)}
+                      </span>
+                      <FolderGit2 size={28} className="text-white/50" />
+                    </div>
                   )}
+                  <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/20 to-transparent" />
                 </div>
 
-                {project.description && (
-                  <p className="text-sm leading-relaxed text-fg-muted">
-                    {project.description}
-                  </p>
-                )}
-
-                {project.tech && (
-                  <div className="flex flex-wrap gap-2">
-                    {splitTech(project.tech).map((t) => (
-                      <span
-                        key={t}
-                        className="rounded-full border border-brand-400/30 bg-brand-500/10 px-2.5 py-0.5 text-xs text-brand-400"
-                      >
-                        {t}
+                {/* 内容区：紧凑，只放名称/年份/技术栈 + 查看详情，不放简介 */}
+                <div className="relative z-10 flex flex-1 flex-col gap-3 p-5">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <h2 className="text-lg font-bold leading-snug text-fg transition-colors group-hover:text-brand-400">
+                      {project.name}
+                    </h2>
+                    {project.year && (
+                      <span className="flex-shrink-0 rounded-full border border-ink-600 bg-ink-800/40 px-2 py-0.5 text-xs text-fg-faint">
+                        {project.year}
                       </span>
-                    ))}
+                    )}
                   </div>
-                )}
 
-                {(project.link || project.github) && (
-                  <div className="mt-auto flex flex-wrap gap-3 pt-2">
-                    {project.link && (
-                      <a
-                        href={project.link}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="btn-gradient inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium text-white"
-                      >
-                        访问项目 <ExternalLink size={14} />
-                      </a>
-                    )}
-                    {project.github && (
-                      <a
-                        href={project.github}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="inline-flex items-center gap-1.5 rounded-full border border-ink-600 px-4 py-2 text-sm text-fg-muted transition-colors hover:border-brand-400/60 hover:text-fg"
-                      >
-                        <GitFork size={14} /> GitHub
-                      </a>
-                    )}
+                  {project.tech && (
+                    <div className="flex flex-wrap gap-2">
+                      {splitTech(project.tech).map((t) => (
+                        <span
+                          key={t}
+                          className="rounded-full border border-brand-400/30 bg-brand-500/10 px-2.5 py-0.5 text-xs text-brand-400"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-auto inline-flex items-center gap-1 pt-1 text-sm text-fg-faint transition-colors group-hover:text-brand-400">
+                    查看详情 <ArrowRight size={14} />
                   </div>
-                )}
-              </div>
-            </article>
-          ))}
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </div>
