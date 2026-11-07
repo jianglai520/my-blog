@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans_SC, Space_Grotesk } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
@@ -8,19 +7,6 @@ import SiteFooter from "./components/SiteFooter";
 import BackToTop from "./components/BackToTop";
 
 const SITE_URL = "https://jianglai520.com";
-
-const notoSansSc = Noto_Sans_SC({
-  variable: "--font-noto-sans-sc",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -80,11 +66,7 @@ export default function RootLayout({
   };
 
   return (
-    <html
-      lang="zh-CN"
-      suppressHydrationWarning
-      className={`${notoSansSc.variable} ${spaceGrotesk.variable}`}
-    >
+    <html lang="zh-CN" suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"
