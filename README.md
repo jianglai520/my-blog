@@ -73,7 +73,7 @@ npm run lint      # ESLint
 | 💬 **Guestbook** | Standalone `/guestbook` page (nav entry), anonymous + IP rate limit, admin delete |
 | ✉️ **Private messages** | About-page message form (name/contact optional, **content only visible to owner**), anonymous + IP rate limit, admin view/delete |
 | 🏷️ **Skills page** | `/skills` list (admin-configured name + proficiency, progress bar + stars) |
-| 📁 **Projects** | `/projects` list (**compact glass cards**, click into `/projects/[slug]` detail page with full description); admin-configured name/year/description/tech/links, **local cover upload or URL** |
+| 📁 **Projects** | `/projects` list (**compact glass cards**, click into `/projects/[slug]` detail page with full description); each project is **saved/deleted independently** in admin (no batch overwrite); name/year/description/tech/links, **local cover upload or URL**, **16:9 crop preview with position sliders** |
 | 📄 **Online resume** | `/resume` one-page resume (reuses profile/skills/projects + experience config, **print to PDF**, footer entry) |
 | 🤖 **AI Q&A (RAG)** | Floating "Ask AI" on post pages, **site-wide vector search** answers (pgvector + BGE-M3 + DeepSeek, IP rate limit) |
 | 📄 **llms.txt (GEO)** | Root `llms.txt` outputs AI-readable article index (llmstxt.org); `robots.txt` allows GPTBot/ClaudeBot/Google-Extended |
@@ -127,7 +127,7 @@ my-blog/
 │   │   ├── CommentManager.tsx      # comment management
 │   │   ├── GuestbookManager.tsx    # guestbook management
 │   │   ├── MessageManager.tsx      # private message management (with contact)
-│   │   ├── ProjectManager.tsx      # project management (with cover upload)
+│   │   ├── ProjectManager.tsx      # project management (per-project save/delete + cover upload)
 │   │   ├── SkillManager.tsx        # skills management
 │   │   ├── SettingsForm.tsx        # site settings (with avatar upload)
 │   │   └── shared.ts               # shared input styles + AdminPost type

@@ -73,7 +73,7 @@ npm run lint      # ESLint
 | 💬 **留言板** | 独立留言页 `/guestbook`（导航入口），匿名可发 + IP 限流，后台可删 |
 | ✉️ **站内私信** | 关于页底部私信表单（昵称/联系方式可选，**内容仅站长可见**），匿名可发 + IP 限流，后台管理查看/删除 |
 | 🏷️ **技能页** | `/skills` 技能清单页（后台配置「名称｜熟练度」，进度条 + 星级展示） |
-| 📁 **项目展示** | `/projects` 项目列表页（**紧凑毛玻璃卡片**，点进 `/projects/[slug]` 详情页查看完整简介）；后台配置名称/年份/描述/技术栈/链接，**封面支持本地上传或 URL**，面试展示 |
+| 📁 **项目展示** | `/projects` 项目列表页（**紧凑毛玻璃卡片**，点进 `/projects/[slug]` 详情页查看完整简介）；后台**每个项目独立保存/删除**（互不影响），名称/年份/描述/技术栈/链接，**封面支持本地上传或 URL** + **16:9 裁剪预览与位置滑块**，面试展示 |
 | 📄 **在线简历** | `/resume` 一页纸简历（复用资料/技能/项目 + 经历配置，**一键打印导出 PDF**，页脚入口） |
 | 🤖 **AI 问答（RAG）** | 文章页悬浮「问 AI」，**全站文章向量检索**回答（pgvector + BGE-M3 + DeepSeek，IP 限流防刷） |
 | 📄 **llms.txt（GEO）** | 站点根路径 `llms.txt` 输出 AI 可读的文章索引（llmstxt.org 标准）；`robots.txt` 显式允许 GPTBot/ClaudeBot/Google-Extended |
@@ -127,7 +127,7 @@ my-blog/
 │   │   ├── CommentManager.tsx      # 评论管理列表
 │   │   ├── GuestbookManager.tsx    # 留言板留言管理
 │   │   ├── MessageManager.tsx      # 站内私信管理（含联系方式）
-│   │   ├── ProjectManager.tsx      # 项目管理（含封面本地上传）
+│   │   ├── ProjectManager.tsx      # 项目管理（每个项目独立保存/删除 + 封面上传）
 │   │   ├── SkillManager.tsx        # 技能清单管理
 │   │   ├── SettingsForm.tsx        # 站点设置（含头像上传）
 │   │   └── shared.ts               # 共享输入样式 + AdminPost 类型
