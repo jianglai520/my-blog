@@ -57,11 +57,11 @@ export default async function ProjectDetailPage({
               sizes="(max-width: 768px) 100vw, 48rem"
             />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center gap-3 bg-gradient-to-br from-brand-500 via-brand-600 to-glow-500">
-              <span className="font-display text-6xl font-bold text-white/90">
-                {project.name.charAt(0)}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-brand-500 via-brand-600 to-glow-500 px-6">
+              <FolderGit2 size={32} className="text-white/50" />
+              <span className="text-center font-display text-3xl font-bold leading-snug text-white/95">
+                {project.name}
               </span>
-              <FolderGit2 size={36} className="text-white/50" />
             </div>
           )}
         </div>

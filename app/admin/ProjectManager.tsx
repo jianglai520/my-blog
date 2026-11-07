@@ -1,21 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useActionState } from "react";
+import { Loader2, ImagePlus } from "lucide-react";
 import { updateProjects, type ProjectsState } from "@/app/actions/projects";
 import { parseProjects, serializeProjects, type ProjectItem } from "@/lib/projects";
+import { uploadImageToStorage } from "@/lib/browser/upload";
 import { inputCls } from "./shared";
 
 const initial: ProjectsState = { message: "", success: false };
 
 /**
  * 项目管理：项目卡片动态编辑（名称/年份/描述/技术栈/链接/GitHub/封面），独立保存。
+ * 封面支持「粘贴 URL」或「本地上传」（浏览器直传 Supabase Storage）。
  */
 export default function ProjectManager({ initialData }: { initialData: string }) {
   const [rows, setRows] = useState<ProjectItem[]>(() => parseProjects(initialData));
   const [state, formAction, pending] = useActionState<ProjectsState, FormData>(
     updateProjects,
     initial
+  );
+
+  // 封面本地上传：隐藏 file input + 浏览器直传 Supabase Storage
+  const coverRef = useRef<HTMLInputElement>(null);
+  const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
+  const [coverMsg, setCoverMsg] = useState<{ idx: number; text: string; ok: boolean } | null>(
+    null
   );
 
   function update(idx: number, field: keyof ProjectItem, value: string) {
@@ -31,9 +41,48 @@ export default function ProjectManager({ initialData }: { initialData: string })
     ]);
   }
 
+  function openCoverPicker(idx: number) {
+    setUploadingIdx(idx);
+    coverRef.current?.click();
+  }
+
+  // 选择本地封面图后直传，成功后把公开 URL 写入对应项目的 cover 字段
+  async function handleCoverFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || uploadingIdx === null) return;
+    const idx = uploadingIdx;
+    setCoverMsg({ idx, text: "", ok: false });
+    try {
+      const date = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+      const res = await uploadImageToStorage(file, `projects/${date}`);
+      if (res.success && res.url) {
+        update(idx, "cover", res.url);
+      }
+      setCoverMsg({ idx, text: res.message, ok: res.success });
+    } catch (err) {
+      console.error("项目封面上传异常:", err);
+      setCoverMsg({
+        idx,
+        text: `❌ 上传失败：${err instanceof Error ? err.message : "未知错误"}`,
+        ok: false,
+      });
+    } finally {
+      setUploadingIdx(null);
+      e.target.value = "";
+    }
+  }
+
   return (
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="projects" value={serializeProjects(rows)} />
+      {/* 隐藏的封面文件输入（多个项目共用一个） */}
+      <input
+        ref={coverRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        className="hidden"
+        onChange={handleCoverFile}
+      />
 
       {rows.length === 0 && (
         <p className="py-4 text-center text-sm text-fg-muted">
@@ -89,12 +138,36 @@ export default function ProjectManager({ initialData }: { initialData: string })
                 placeholder="GitHub 仓库（可选）"
                 className={`${inputCls} px-3 py-2`}
               />
-              <input
-                value={project.cover}
-                onChange={(e) => update(idx, "cover", e.target.value)}
-                placeholder="封面图 URL（可选）"
-                className={`${inputCls} px-3 py-2 sm:col-span-2`}
-              />
+              {/* 封面：URL 输入 + 本地上传按钮 */}
+              <div className="sm:col-span-2">
+                <label className="mb-1 block text-xs text-fg-muted">封面图（可选，URL 或本地上传）</label>
+                <div className="flex gap-2">
+                  <input
+                    value={project.cover}
+                    onChange={(e) => update(idx, "cover", e.target.value)}
+                    placeholder="粘贴图片 URL，或点右侧「本地上传」"
+                    className={`${inputCls} px-3 py-2`}
+                  />
+                  <button
+                    type="button"
+                    disabled={uploadingIdx === idx}
+                    onClick={() => openCoverPicker(idx)}
+                    className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-ink-600 px-4 py-2 text-sm font-medium text-fg-muted transition-colors hover:border-brand-500/50 hover:text-fg disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {uploadingIdx === idx ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <ImagePlus size={15} />
+                    )}
+                    {uploadingIdx === idx ? "上传中…" : "本地上传"}
+                  </button>
+                </div>
+                {coverMsg?.idx === idx && (
+                  <p className={`mt-1 text-xs ${coverMsg.ok ? "text-emerald-400" : "text-red-400"}`}>
+                    {coverMsg.text}
+                  </p>
+                )}
+              </div>
               <textarea
                 value={project.description}
                 onChange={(e) => update(idx, "description", e.target.value)}
@@ -115,7 +188,7 @@ export default function ProjectManager({ initialData }: { initialData: string })
         ➕ 添加项目
       </button>
       <p className="text-xs text-fg-faint">
-        封面图需在允许图源（supabase.co / unsplash / jsdelivr）；链接以 https:// 开头。
+        封面图可本地上传（≤5MB）或粘贴 URL（supabase.co / unsplash / jsdelivr）；链接以 https:// 开头。
       </p>
 
       <div className="flex items-center gap-3">

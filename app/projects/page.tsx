@@ -45,14 +45,13 @@ export default async function ProjectsPage() {
           {projects.map((project, idx) => {
             const slug = projectSlug(project, idx);
             return (
-              <article
+              /* 整卡即 Link，无嵌套链接，点击任意位置进详情 */
+              <Link
                 key={`${slug}-${idx}`}
-                className="glass group relative flex h-full flex-col overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-glow-lg"
+                href={`/projects/${slug}`}
+                className="glass group flex h-full flex-col overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-glow-lg"
               >
-                {/* 整卡可点（stretched link） */}
-                <Link href={`/projects/${slug}`} className="absolute inset-0 z-0" aria-label={project.name} />
-
-                {/* 封面（统一 16:9；无封面用青绿渐变占位 + 首字） */}
+                {/* 封面（统一 16:9；无封面用青绿渐变 + 完整项目名） */}
                 <div className="relative aspect-[16/9] shrink-0 overflow-hidden">
                   {project.cover ? (
                     <Image
@@ -63,18 +62,18 @@ export default async function ProjectsPage() {
                       sizes="(max-width: 768px) 100vw, 40rem"
                     />
                   ) : (
-                    <div className="absolute inset-0 flex items-center justify-center gap-3 bg-gradient-to-br from-brand-500 via-brand-600 to-glow-500">
-                      <span className="font-display text-5xl font-bold text-white/90">
-                        {project.name.charAt(0)}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-brand-500 via-brand-600 to-glow-500 px-4">
+                      <FolderGit2 size={22} className="text-white/50" />
+                      <span className="text-center font-display text-2xl font-bold leading-snug text-white/95">
+                        {project.name}
                       </span>
-                      <FolderGit2 size={28} className="text-white/50" />
                     </div>
                   )}
                   <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/20 to-transparent" />
                 </div>
 
                 {/* 内容区：紧凑，只放名称/年份/技术栈 + 查看详情，不放简介 */}
-                <div className="relative z-10 flex flex-1 flex-col gap-3 p-5">
+                <div className="flex flex-1 flex-col gap-3 p-5">
                   <div className="flex items-baseline justify-between gap-2">
                     <h2 className="text-lg font-bold leading-snug text-fg transition-colors group-hover:text-brand-400">
                       {project.name}
@@ -103,7 +102,7 @@ export default async function ProjectsPage() {
                     查看详情 <ArrowRight size={14} />
                   </div>
                 </div>
-              </article>
+              </Link>
             );
           })}
         </div>
