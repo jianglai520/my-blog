@@ -73,7 +73,7 @@ npm run lint      # ESLint
 | 💬 评论区 | 昵称 + 内容，即时显示；后台可单删 / **多选批量删除**（IP 60 秒限流） |
 | 💬 **留言板** | 独立留言页 `/guestbook`（导航入口），匿名可发 + IP 限流，后台可删 |
 | ✉️ **站内私信** | 关于页底部私信表单（昵称/联系方式可选，**内容仅站长可见**），匿名可发 + IP 限流，后台管理查看/删除 |
-| 🏷️ **技能页** | `/skills` 技能清单页（后台配置「名称｜熟练度」，进度条 + 星级展示） |
+| 🏷️ **技能页** | `/skills` **Bento + 雷达图**（按分组展示能力分布 + 平均分圆环）+ **核心技术栈**大卡 + 等级文案；后台支持**逐技能独立保存/删除**、分组排序、实时预览，以及描述/年限/图标/核心标记 |
 | 📁 **项目展示** | `/projects` 项目列表页（**紧凑毛玻璃卡片**，点进 `/projects/[slug]` 详情页查看完整简介）；后台**每个项目独立保存/删除**（互不影响），名称/年份/描述/技术栈/链接，**封面支持本地上传或 URL** + **16:9 裁剪预览与位置滑块**，面试展示 |
 | 📄 **在线简历** | `/resume` 一页纸简历（复用资料/技能/项目 + 经历配置，**一键打印导出 PDF**，页脚入口） |
 | 🤖 **AI 问答（RAG）** | 文章页悬浮「问 AI」，**全站文章向量检索**回答（pgvector + BGE-M3 + DeepSeek，IP 限流防刷） |
@@ -129,7 +129,7 @@ my-blog/
 │   │   ├── GuestbookManager.tsx    # 留言板留言管理
 │   │   ├── MessageManager.tsx      # 站内私信管理（含联系方式）
 │   │   ├── ProjectManager.tsx      # 项目管理（每个项目独立保存/删除 + 封面上传）
-│   │   ├── SkillManager.tsx        # 技能清单管理
+│   │   ├── SkillManager.tsx        # 技能管理（逐技能保存/删除 + 分组排序 + 实时预览）
 │   │   ├── SettingsForm.tsx        # 站点设置（含头像上传）
 │   │   └── shared.ts               # 共享输入样式 + AdminPost 类型
 │   ├── login/
@@ -155,6 +155,7 @@ my-blog/
 │   ├── db.ts                       # Drizzle 客户端（连接池单例，仅服务端读路径）
 │   ├── posts.ts                    # 公开读数据层（Drizzle，强制 status='published' 过滤）
 │   ├── projects.ts                 # 项目 JSON 解析 / slug 生成 / 序列化
+│   ├── skills.ts                   # 技能 JSON 解析 / 分组 / 分组重排 / 等级文案
 │   ├── validations/                # zod 校验 schema（posts/comments/auth，服务端客户端共用）
 │   ├── format.ts                   # 中文日期格式化 / slugify / stripMarkdown / postHref
 ├── proxy.ts                        # 路由守卫（Next 16 中 middleware 更名为此）
@@ -294,7 +295,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `school_url` | 学校官网链接（可空，填了学校名可点击跳转） |
 | `avatar_url` | 头像图片 URL |
 | `icp` | 备案号 |
-| `skills` | 技能清单（JSON/文本，后台「技能清单」编辑，/skills 页展示） |
+| `skills` | 技能清单（JSON：group/name/level + 可选 description/years/icon/featured；后台「技能」编辑，/skills 页展示） |
 | `projects` | 项目清单（JSON，后台「项目」编辑，/projects 页展示，支持封面上传） |
 
 ### 表 `tags` / `post_tags`

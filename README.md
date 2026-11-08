@@ -73,7 +73,7 @@ npm run lint      # ESLint
 | 💬 Comments | Name + content, instant display; admin single delete / **bulk delete** (60s IP rate limit) |
 | 💬 **Guestbook** | Standalone `/guestbook` page (nav entry), anonymous + IP rate limit, admin delete |
 | ✉️ **Private messages** | About-page message form (name/contact optional, **content only visible to owner**), anonymous + IP rate limit, admin view/delete |
-| 🏷️ **Skills page** | `/skills` list (admin-configured name + proficiency, progress bar + stars) |
+| 🏷️ **Skills page** | `/skills` **Bento + radar chart** (ability distribution by group, average-score rings), **core skills** showcase, level labels; admin supports **per-skill save/delete**, group reordering, live preview, and optional description/years/icon/featured fields |
 | 📁 **Projects** | `/projects` list (**compact glass cards**, click into `/projects/[slug]` detail page with full description); each project is **saved/deleted independently** in admin (no batch overwrite); name/year/description/tech/links, **local cover upload or URL**, **16:9 crop preview with position sliders** |
 | 📄 **Online resume** | `/resume` one-page resume (reuses profile/skills/projects + experience config, **print to PDF**, footer entry) |
 | 🤖 **AI Q&A (RAG)** | Floating "Ask AI" on post pages, **site-wide vector search** answers (pgvector + BGE-M3 + DeepSeek, IP rate limit) |
@@ -129,7 +129,7 @@ my-blog/
 │   │   ├── GuestbookManager.tsx    # guestbook management
 │   │   ├── MessageManager.tsx      # private message management (with contact)
 │   │   ├── ProjectManager.tsx      # project management (per-project save/delete + cover upload)
-│   │   ├── SkillManager.tsx        # skills management
+│   │   ├── SkillManager.tsx        # skills management (per-skill save/delete, group order, live preview)
 │   │   ├── SettingsForm.tsx        # site settings (with avatar upload)
 │   │   └── shared.ts               # shared input styles + AdminPost type
 │   ├── login/
@@ -155,6 +155,7 @@ my-blog/
 │   ├── db.ts                       # Drizzle client (pool singleton, server read path only)
 │   ├── posts.ts                    # public-read data layer (Drizzle, forced status='published')
 │   ├── projects.ts                 # project JSON parse / slug generation / serialize
+│   ├── skills.ts                   # skill JSON parse / grouping / group reorder / level labels
 │   ├── validations/                # zod schemas (posts/comments/auth, shared client/server)
 │   ├── format.ts                   # Chinese date format / slugify / stripMarkdown / postHref
 ├── proxy.ts                        # route guard (Next 16 renamed middleware)
@@ -294,7 +295,7 @@ Site config (key-value, editable from admin, instant effect):
 | `school_url` | School website URL (optional, clickable) |
 | `avatar_url` | Avatar image URL |
 | `icp` | ICP filing number |
-| `skills` | Skills list (JSON/text, edited in admin, shown on `/skills`) |
+| `skills` | Skills list (JSON: group/name/level + optional description/years/icon/featured; edited in admin, shown on `/skills`) |
 | `projects` | Projects list (JSON, edited in admin, shown on `/projects`, cover upload supported) |
 
 ### Tables `tags` / `post_tags`
