@@ -177,6 +177,22 @@ body::before {
   }
 }
 
+/* ================= 技能进度条（进入时从 0 展开） ================= */
+
+@keyframes skill-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.skill-bar-fill {
+  transform-origin: left;
+  animation: skill-grow 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* 焦点可见性（可访问性） */
 :focus-visible {
   outline: 2px solid var(--color-glow-400);
