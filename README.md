@@ -67,7 +67,7 @@ npm run lint      # ESLint
 | 🏷️ **Tag system** | Tag posts; `/tags/xxx` tag pages; tags on cards |
 | 🔍 **Search** | Nav search box (debounced), fuzzy search over title/excerpt/content |
 | 📡 **RSS** | `/feed.xml` (Atom), injected into layout |
-| 🗂 **Archives / About** | Timeline archive page (gradient timeline, collapsible month groups, changelog-style commit rows with mono date/short hash/reading time/word count), about page (**configurable from admin**) |
+| 🗂 **Archives / About** | Timeline archive page (gradient timeline, collapsible month groups, changelog-style commit rows with mono date/short hash/reading time/word count); **developer-profile about page** (sticky profile card, pinned projects, skills, experience, private-message form, display limits) |
 | ⚙️ **Site settings** | Edit author name/intro/GitHub/email/**avatar (upload or URL)**/ICP from admin, instant effect |
 | 🌗 **Light/dark theme** | Header toggle; follows system + manual choice persisted (localStorage) |
 | 💬 Comments | Name + content, instant display; admin single delete / **bulk delete** (60s IP rate limit) |
@@ -136,7 +136,7 @@ my-blog/
 │   │   └── page.tsx                # login page (useActionState → Server Actions)
 │   ├── tags/[slug]/                # tag page (filter posts by tag)
 │   ├── archives/                   # timeline archive page (year/month timeline + changelog rows)
-│   ├── about/                      # about page
+│   ├── about/                      # about page (developer profile + pinned projects + skills + message form)
 │   ├── search/                     # search page
 │   ├── feed.xml/                   # RSS feed (Atom)
 │   ├── og/                         # dynamic OpenGraph image (edge, @vercel/og)
