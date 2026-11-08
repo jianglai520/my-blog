@@ -67,7 +67,7 @@ export default async function Home({
           </div>
 
           <h1 className="text-4xl font-bold leading-tight sm:text-5xl">
-            <span className="hero-title font-display">你好，我是{settings.author_name}</span>
+            <span className="hero-title font-brush font-normal">你好，我是{settings.author_name}</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-base text-fg-muted">{settings.intro}</p>
 

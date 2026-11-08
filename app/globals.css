@@ -48,6 +48,8 @@
     "Segoe UI", "PingFang SC", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
     "Liberation Mono", monospace;
+  /* 手写毛笔（首页 Hero 问候语专用，预览方案 2） */
+  --font-brush: "Ma Shan Zheng", "Noto Sans SC", cursive;
 }
 
 /* ================= 全局基础 ================= */

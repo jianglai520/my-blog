@@ -76,7 +76,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
         <link
-          href="https://fonts.googleapis.cn/css2?family=Noto+Sans+SC:wght@400;500;700&family=Outfit:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+          href="https://fonts.googleapis.cn/css2?family=Noto+Sans+SC:wght@400;500;700&family=Outfit:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Ma+Shan+Zheng&display=swap"
           rel="stylesheet"
         />
         <script
