@@ -41,6 +41,12 @@ export default function PostCard({ post }: { post: PostWithTags }) {
         )}
         {/* 图片底部轻微渐隐，衔接玻璃文字区 */}
         <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/20 to-transparent" />
+        {/* 置顶徽章（不拦截整卡点击） */}
+        {post.pinned && (
+          <span className="pointer-events-none absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+            📌 置顶
+          </span>
+        )}
       </div>
 
       {/* ===== 内容层（玻璃面板上，语义色自适应深浅色） ===== */}

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { deletePost, batchDeletePosts } from "@/app/actions/posts";
+import { deletePost, batchDeletePosts, togglePin } from "@/app/actions/posts";
 import { formatDate, postHref } from "@/lib/format";
 import type { AdminPost } from "./shared";
 
@@ -127,6 +127,11 @@ export default function PostList({
                       草稿
                     </span>
                   )}
+                  {post.pinned && (
+                    <span className="flex-shrink-0 rounded-full border border-brand-400/40 bg-brand-400/10 px-2 py-0.5 text-xs text-brand-300">
+                      📌 置顶
+                    </span>
+                  )}
                   {post.post_tags?.length ? (
                     <span className="hidden flex-shrink-0 text-xs text-fg-faint sm:inline">
                       {post.post_tags.map((pt) => `#${pt.tag.name}`).join(" ")}
@@ -142,6 +147,24 @@ export default function PostList({
             </div>
 
             <div className="ml-4 flex flex-shrink-0 gap-2">
+              <form action={togglePin}>
+                <input type="hidden" name="postId" value={post.id} />
+                <input
+                  type="hidden"
+                  name="pinned"
+                  value={post.pinned ? "false" : "true"}
+                />
+                <button
+                  type="submit"
+                  className={
+                    post.pinned
+                      ? "rounded-lg border border-brand-400/40 bg-brand-400/10 px-4 py-2 text-sm text-brand-300 transition-colors hover:bg-brand-400/20"
+                      : "rounded-lg border border-ink-600 px-4 py-2 text-sm text-fg-muted transition-colors hover:border-brand-400/50 hover:text-fg"
+                  }
+                >
+                  {post.pinned ? "取消置顶" : "📌 置顶"}
+                </button>
+              </form>
               <button
                 onClick={() => onEdit(post)}
                 className="rounded-lg border border-brand-400/30 px-4 py-2 text-sm text-brand-300 transition-colors hover:bg-brand-400/10"

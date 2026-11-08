@@ -8,6 +8,7 @@ import type { AdminPost } from "@/app/admin/shared";
 vi.mock("@/app/actions/posts", () => ({
   deletePost: vi.fn(),
   batchDeletePosts: vi.fn(),
+  togglePin: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
@@ -19,6 +20,8 @@ const basePost = {
   cover_image: null,
   view_count: 0,
   published: true,
+  index_status: "done",
+  pinned: false,
   created_at: "2026-08-02T10:00:00Z",
 };
 

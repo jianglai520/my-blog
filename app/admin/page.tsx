@@ -26,7 +26,7 @@ export default async function AdminPage() {
   ] = await Promise.all([
     supabase
       .from("posts")
-      .select("id,slug,title,content,excerpt,cover_image,created_at,published,status,post_tags(tag:tags(name))")
+      .select("id,slug,title,content,excerpt,cover_image,created_at,published,status,pinned,post_tags(tag:tags(name))")
       .order("created_at", { ascending: false }),
     supabase
       .from("comments")

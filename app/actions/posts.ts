@@ -289,3 +289,35 @@ export async function batchDeletePosts(ids: number[]): Promise<void> {
   revalidatePath("/sitemap.xml");
   updateTag("posts");
 }
+
+/** 置顶 / 取消置顶（仅博主）：更新 pinned 并刷新首页缓存 */
+export async function togglePin(formData: FormData): Promise<void> {
+  const postId = Number(formData.get("postId"));
+  const pinned = String(formData.get("pinned")) === "true";
+  if (!Number.isFinite(postId) || postId <= 0) return;
+
+  try {
+    await requireAdmin();
+  } catch {
+    return; // 非博主：静默拒绝
+  }
+
+  try {
+    const supabase = await getServerSupabase();
+    const { error } = await supabase
+      .from("posts")
+      .update({ pinned })
+      .eq("id", postId);
+
+    if (error) {
+      console.error("置顶操作失败:", error);
+      return;
+    }
+
+    revalidatePath("/");
+    revalidatePath("/admin");
+    updateTag("posts");
+  } catch (e) {
+    console.error("togglePin 异常:", e);
+  }
+}

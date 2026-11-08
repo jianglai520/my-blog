@@ -43,7 +43,7 @@ export const getPublishedPosts = unstable_cache(
       db.query.posts.findMany({
         where: eq(posts.status, "published"),
         with: { postTags: { with: { tag: true } } },
-        orderBy: [desc(posts.created_at)],
+        orderBy: [desc(posts.pinned), desc(posts.created_at)],
         limit: pageSize,
         offset,
       }),
