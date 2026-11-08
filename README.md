@@ -67,7 +67,7 @@ npm run lint      # ESLint
 | 🏷️ **Tag system** | Tag posts; `/tags/xxx` tag pages; tags on cards |
 | 🔍 **Search** | Nav search box (debounced), fuzzy search over title/excerpt/content |
 | 📡 **RSS** | `/feed.xml` (Atom), injected into layout |
-| 🗂 **Archives / About** | Year-month archive page, about page (**configurable from admin**) |
+| 🗂 **Archives / About** | Timeline archive page (gradient timeline, collapsible month groups, changelog-style commit rows with mono date/short hash/reading time/word count), about page (**configurable from admin**) |
 | ⚙️ **Site settings** | Edit author name/intro/GitHub/email/**avatar (upload or URL)**/ICP from admin, instant effect |
 | 🌗 **Light/dark theme** | Header toggle; follows system + manual choice persisted (localStorage) |
 | 💬 Comments | Name + content, instant display; admin single delete / **bulk delete** (60s IP rate limit) |
@@ -135,7 +135,7 @@ my-blog/
 │   ├── login/
 │   │   └── page.tsx                # login page (useActionState → Server Actions)
 │   ├── tags/[slug]/                # tag page (filter posts by tag)
-│   ├── archives/                   # archive page (grouped by year-month)
+│   ├── archives/                   # timeline archive page (year/month timeline + changelog rows)
 │   ├── about/                      # about page
 │   ├── search/                     # search page
 │   ├── feed.xml/                   # RSS feed (Atom)
