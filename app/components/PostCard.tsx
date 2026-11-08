@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Eye } from "lucide-react";
+import { Eye, Pin } from "lucide-react";
 import { formatDate, stripMarkdown, postHref, readingMinutes } from "@/lib/format";
 import type { PostWithTags } from "@/lib/posts";
 
@@ -17,7 +17,11 @@ export default function PostCard({ post }: { post: PostWithTags }) {
   const minutes = post.content ? readingMinutes(post.content) : null;
 
   return (
-    <article className="glass group relative flex h-full flex-col overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-glow-lg">
+    <article
+      className={`glass group relative flex h-full flex-col overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-glow-lg ${
+        post.pinned ? "ring-1 ring-brand-400/35" : ""
+      }`}
+    >
       {/* 整卡点击覆盖层（stretched link，z-0；内容链接需 relative z-10 才能在上层） */}
       <Link href={postUrl} className="absolute inset-0 z-0" aria-label={post.title} />
 
@@ -43,8 +47,9 @@ export default function PostCard({ post }: { post: PostWithTags }) {
         <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/20 to-transparent" />
         {/* 置顶徽章（不拦截整卡点击） */}
         {post.pinned && (
-          <span className="pointer-events-none absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
-            📌 置顶
+          <span className="pointer-events-none absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-brand-500/90 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white shadow-[0_2px_12px_rgba(53,191,171,0.35)] ring-1 ring-white/30 backdrop-blur-md">
+            <Pin size={11} className="rotate-45" />
+            置顶
           </span>
         )}
       </div>

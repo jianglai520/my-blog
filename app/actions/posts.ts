@@ -290,34 +290,52 @@ export async function batchDeletePosts(ids: number[]): Promise<void> {
   updateTag("posts");
 }
 
+export type PinState = { success: boolean; message: string };
+
 /** 置顶 / 取消置顶（仅博主）：更新 pinned 并刷新首页缓存 */
-export async function togglePin(formData: FormData): Promise<void> {
+export async function togglePin(formData: FormData): Promise<PinState> {
   const postId = Number(formData.get("postId"));
   const pinned = String(formData.get("pinned")) === "true";
-  if (!Number.isFinite(postId) || postId <= 0) return;
+  if (!Number.isFinite(postId) || postId <= 0) {
+    return { success: false, message: "文章 ID 不合法" };
+  }
 
   try {
     await requireAdmin();
-  } catch {
-    return; // 非博主：静默拒绝
+  } catch (e) {
+    return {
+      success: false,
+      message: e instanceof Error ? e.message : "无权限执行此操作",
+    };
   }
 
   try {
     const supabase = await getServerSupabase();
-    const { error } = await supabase
-      .from("posts")
-      .update({ pinned })
-      .eq("id", postId);
+    let query = supabase.from("posts").update({ pinned }).eq("id", postId);
+    // 只有已发布文章才允许置顶；取消置顶不受 status 限制
+    if (pinned) query = query.eq("status", "published");
+    const { data, error } = await query.select("id").maybeSingle();
 
     if (error) {
       console.error("置顶操作失败:", error);
-      return;
+      return { success: false, message: error.message };
+    }
+    if (!data) {
+      return {
+        success: false,
+        message: pinned ? "仅已发布文章可置顶" : "文章不存在",
+      };
     }
 
     revalidatePath("/");
     revalidatePath("/admin");
     updateTag("posts");
+    return { success: true, message: pinned ? "已置顶" : "已取消置顶" };
   } catch (e) {
     console.error("togglePin 异常:", e);
+    return {
+      success: false,
+      message: e instanceof Error ? e.message : "操作失败，请稍后重试",
+    };
   }
 }

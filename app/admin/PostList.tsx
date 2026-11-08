@@ -2,12 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2, Pin } from "lucide-react";
 import { deletePost, batchDeletePosts, togglePin } from "@/app/actions/posts";
 import { formatDate, postHref } from "@/lib/format";
 import type { AdminPost } from "./shared";
 
 /**
- * 文章管理列表：勾选 + 全选 + 批量删除，或逐篇编辑/删除。
+ * 文章管理列表：勾选 + 全选 + 批量删除，或逐篇置顶/编辑/删除。
+ * 置顶采用乐观更新：点击立即翻转 UI，失败自动回滚并提示。
  */
 export default function PostList({
   posts,
@@ -20,6 +22,11 @@ export default function PostList({
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  // 置顶：本地乐观状态（覆盖服务端 props，保证点击即反馈）
+  const [pinOverrides, setPinOverrides] = useState<Record<number, boolean>>({});
+  const [pinPendingId, setPinPendingId] = useState<number | null>(null);
+  const [pinError, setPinError] = useState("");
 
   const allSelected = posts.length > 0 && selected.size === posts.length;
 
@@ -49,6 +56,35 @@ export default function PostList({
       setSelected(new Set());
       router.refresh();
     });
+  }
+
+  async function handleTogglePin(post: AdminPost) {
+    const current = pinOverrides[post.id] ?? Boolean(post.pinned);
+    const next = !current;
+
+    // 乐观更新：先立即翻转 UI，再发请求
+    setPinOverrides((m) => ({ ...m, [post.id]: next }));
+    setPinPendingId(post.id);
+    setPinError("");
+
+    try {
+      const fd = new FormData();
+      fd.set("postId", String(post.id));
+      fd.set("pinned", String(next));
+      const res = await togglePin(fd);
+
+      if (!res.success) {
+        setPinOverrides((m) => ({ ...m, [post.id]: current })); // 失败回滚
+        setPinError(res.message);
+      } else {
+        router.refresh(); // 同步服务端数据（含 pinned 字段）
+      }
+    } catch {
+      setPinOverrides((m) => ({ ...m, [post.id]: current }));
+      setPinError("操作失败，请稍后重试");
+    } finally {
+      setPinPendingId(null);
+    }
   }
 
   if (posts.length === 0) {
@@ -98,96 +134,102 @@ export default function PostList({
         )}
       </div>
 
-      <div className="space-y-4">
-        {posts.map((post) => (
-          <div
-            key={post.id}
-            className="flex items-center justify-between rounded-lg border border-ink-700/60 bg-ink-800/40 p-4 transition-colors hover:bg-ink-800"
-          >
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              {selectMode && (
-                <input
-                  type="checkbox"
-                  checked={selected.has(post.id)}
-                  onChange={() => toggle(post.id)}
-                  aria-label={`选择文章 ${post.title}`}
-                  className="h-4 w-4 flex-shrink-0 accent-brand-500"
-                />
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <a
-                    href={postHref(post)}
-                    className="block truncate text-lg font-medium text-fg transition-colors hover:text-brand-300"
-                  >
-                    {post.title}
-                  </a>
-                  {post.status === "draft" && (
-                    <span className="flex-shrink-0 rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-xs text-amber-300">
-                      草稿
-                    </span>
-                  )}
-                  {post.pinned && (
-                    <span className="flex-shrink-0 rounded-full border border-brand-400/40 bg-brand-400/10 px-2 py-0.5 text-xs text-brand-300">
-                      📌 置顶
-                    </span>
-                  )}
-                  {post.post_tags?.length ? (
-                    <span className="hidden flex-shrink-0 text-xs text-fg-faint sm:inline">
-                      {post.post_tags.map((pt) => `#${pt.tag.name}`).join(" ")}
-                    </span>
-                  ) : null}
-                </div>
-                <p className="mt-1 text-sm text-fg-faint">
-                  {postHref(post)}
-                  {" · "}
-                  {formatDate(post.created_at)}
-                </p>
-              </div>
-            </div>
+      {pinError && <p className="mb-3 text-sm text-red-400">{pinError}</p>}
 
-            <div className="ml-4 flex flex-shrink-0 gap-2">
-              <form action={togglePin}>
-                <input type="hidden" name="postId" value={post.id} />
-                <input
-                  type="hidden"
-                  name="pinned"
-                  value={post.pinned ? "false" : "true"}
-                />
+      <div className="space-y-4">
+        {posts.map((post) => {
+          const isPinned = pinOverrides[post.id] ?? Boolean(post.pinned);
+          const isPinPending = pinPendingId === post.id;
+
+          return (
+            <div
+              key={post.id}
+              className="flex items-center justify-between rounded-lg border border-ink-700/60 bg-ink-800/40 p-4 transition-colors hover:bg-ink-800"
+            >
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                {selectMode && (
+                  <input
+                    type="checkbox"
+                    checked={selected.has(post.id)}
+                    onChange={() => toggle(post.id)}
+                    aria-label={`选择文章 ${post.title}`}
+                    className="h-4 w-4 flex-shrink-0 accent-brand-500"
+                  />
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={postHref(post)}
+                      className="block truncate text-lg font-medium text-fg transition-colors hover:text-brand-300"
+                    >
+                      {post.title}
+                    </a>
+                    {post.status === "draft" && (
+                      <span className="flex-shrink-0 rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-xs text-amber-300">
+                        草稿
+                      </span>
+                    )}
+                    {isPinned && (
+                      <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full border border-brand-400/40 bg-brand-400/10 px-2 py-0.5 text-xs font-medium text-brand-300">
+                        <Pin size={11} className="rotate-45" /> 置顶
+                      </span>
+                    )}
+                    {post.post_tags?.length ? (
+                      <span className="hidden flex-shrink-0 text-xs text-fg-faint sm:inline">
+                        {post.post_tags.map((pt) => `#${pt.tag.name}`).join(" ")}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-sm text-fg-faint">
+                    {postHref(post)}
+                    {" · "}
+                    {formatDate(post.created_at)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="ml-4 flex flex-shrink-0 gap-2">
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={() => handleTogglePin(post)}
+                  disabled={isPinPending}
                   className={
-                    post.pinned
-                      ? "rounded-lg border border-brand-400/40 bg-brand-400/10 px-4 py-2 text-sm text-brand-300 transition-colors hover:bg-brand-400/20"
-                      : "rounded-lg border border-ink-600 px-4 py-2 text-sm text-fg-muted transition-colors hover:border-brand-400/50 hover:text-fg"
+                    isPinned
+                      ? "inline-flex items-center gap-1.5 rounded-lg border border-brand-400/40 bg-brand-400/10 px-3.5 py-2 text-sm text-brand-300 transition-colors hover:bg-brand-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      : "inline-flex items-center gap-1.5 rounded-lg border border-ink-600 px-3.5 py-2 text-sm text-fg-muted transition-colors hover:border-brand-400/50 hover:text-fg disabled:cursor-not-allowed disabled:opacity-50"
                   }
                 >
-                  {post.pinned ? "取消置顶" : "📌 置顶"}
+                  {isPinPending ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Pin size={14} className="rotate-45" />
+                  )}
+                  {isPinned ? "取消置顶" : "置顶"}
                 </button>
-              </form>
-              <button
-                onClick={() => onEdit(post)}
-                className="rounded-lg border border-brand-400/30 px-4 py-2 text-sm text-brand-300 transition-colors hover:bg-brand-400/10"
-              >
-                编辑
-              </button>
-              <form
-                action={deletePost}
-                onSubmit={(e) => {
-                  if (!confirm("确定要删除这篇文章吗？")) e.preventDefault();
-                }}
-              >
-                <input type="hidden" name="postId" value={post.id} />
                 <button
-                  type="submit"
-                  className="rounded-lg border border-red-400/30 px-4 py-2 text-sm text-red-400 transition-colors hover:bg-red-400/10"
+                  onClick={() => onEdit(post)}
+                  className="rounded-lg border border-brand-400/30 px-4 py-2 text-sm text-brand-300 transition-colors hover:bg-brand-400/10"
                 >
-                  删除
+                  编辑
                 </button>
-              </form>
+                <form
+                  action={deletePost}
+                  onSubmit={(e) => {
+                    if (!confirm("确定要删除这篇文章吗？")) e.preventDefault();
+                  }}
+                >
+                  <input type="hidden" name="postId" value={post.id} />
+                  <button
+                    type="submit"
+                    className="rounded-lg border border-red-400/30 px-4 py-2 text-sm text-red-400 transition-colors hover:bg-red-400/10"
+                  >
+                    删除
+                  </button>
+                </form>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </>
   );
