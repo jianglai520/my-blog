@@ -2,6 +2,7 @@ import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import { posts, comments, tags as tagsTable, postTags, type Post, type Comment } from "@/db/schema";
+import { countWords, readingMinutes } from "./format";
 
 /**
  * 公开读数据层（Drizzle 直连，应用层安全过滤）。
@@ -202,6 +203,10 @@ export type ArchiveItem = {
   excerpt: string | null;
   view_count: number;
   created_at: string;
+  /** 阅读时长（分钟，服务端计算；可选以兼容旧数据/测试） */
+  reading_minutes?: number;
+  /** 字数（服务端计算；可选以兼容旧数据/测试） */
+  word_count?: number;
 };
 
 /**
@@ -218,12 +223,20 @@ export async function getArchives(): Promise<
       excerpt: posts.excerpt,
       view_count: posts.view_count,
       created_at: posts.created_at,
+      content: posts.content,
     })
     .from(posts)
     .where(eq(posts.status, "published"))
     .orderBy(desc(posts.created_at));
 
-  return groupArchivesByMonth(rows);
+  // content 仅用于计算阅读时长，不返回给页面（避免归档页传输整篇正文）
+  return groupArchivesByMonth(
+    rows.map(({ content, ...row }) => ({
+      ...row,
+      reading_minutes: readingMinutes(content),
+      word_count: countWords(content),
+    })),
+  );
 }
 
 /** 按年月分组（纯函数，可单测）；rows 已按时间倒序 */
