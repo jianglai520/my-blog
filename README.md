@@ -21,7 +21,7 @@ A full-stack personal blog built with **Next.js 16 + React 19 + Supabase + Verce
 | **Supabase** | ^2.108 | Auth + writes (RLS defense) |
 | **Drizzle ORM** | ^0.45 | Public-read data layer (schema as type truth, direct Postgres) |
 | **Vercel** | — | Hosting / deployment (auto-deploy on git push) |
-| **Fonts** | Noto Sans SC + Outfit + JetBrains Mono | Runtime-loaded from `fonts.googleapis.cn` (no build-time fetch; graceful system fallback) |
+| **Fonts** | Noto Serif SC + Ma Shan Zheng + JetBrains Mono | Runtime-loaded from `fonts.googleapis.cn`; serif site-wide, brush for the hero greeting, mono for code (no build-time fetch; graceful fallback) |
 
 > Runtime requirement: Node.js ≥ 20.9 (dev environment uses Node 24.14.0).
 
@@ -71,7 +71,7 @@ npm run lint      # ESLint
 | ⚙️ **Site settings** | Edit author name/intro/GitHub/email/**avatar (upload or URL)**/ICP from admin, instant effect |
 | 🌗 **Light/dark theme** | Header toggle; follows system + manual choice persisted (localStorage) |
 | 💬 Comments | Name + content, instant display; admin single delete / **bulk delete** (60s IP rate limit) |
-| 💬 **Guestbook** | Standalone `/guestbook` page (nav entry), anonymous + IP rate limit, admin delete |
+| 💬 **Guestbook** | Standalone `/guestbook` page in **letter/editorial style** (serif letters, signature line, decorative quote), anonymous + IP rate limit, admin delete |
 | ✉️ **Private messages** | About-page message form (name/contact optional, **content only visible to owner**), anonymous + IP rate limit, admin view/delete |
 | 🏷️ **Skills page** | `/skills` **Bento + radar chart** (ability distribution by group, average-score rings), **core skills** showcase, level labels; admin supports **per-skill save/delete**, group reordering, live preview, and optional description/years/icon/featured fields |
 | 📁 **Projects** | `/projects` list (**compact glass cards**, click into `/projects/[slug]` detail page with full description); each project is **saved/deleted independently** in admin (no batch overwrite); name/year/description/tech/links, **local cover upload or URL**, **16:9 crop preview with position sliders** |
@@ -137,6 +137,8 @@ my-blog/
 │   ├── tags/[slug]/                # tag page (filter posts by tag)
 │   ├── archives/                   # timeline archive page (year/month timeline + changelog rows)
 │   ├── about/                      # about page (developer profile + pinned projects + skills + message form)
+│   ├── guestbook/                  # letter-style guestbook (write a letter + letter cards)
+│   ├── skills/                     # Bento + radar skills page
 │   ├── search/                     # search page
 │   ├── feed.xml/                   # RSS feed (Atom)
 │   ├── og/                         # dynamic OpenGraph image (edge, @vercel/og)
