@@ -18,11 +18,15 @@ type ServerSupabase = Awaited<ReturnType<typeof getServerSupabase>>;
 
 /** 读取当前技能 JSON 数组 */
 async function readSkills(supabase: ServerSupabase): Promise<SkillItem[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("site_settings")
     .select("value")
     .eq("key", "skills")
     .maybeSingle();
+  // ⚠️ 读失败绝不能当成空数组：后续写回会覆盖掉其他技能
+  if (error) {
+    throw new Error(`读取技能失败：${error.message}`);
+  }
   return parseSkills(data?.value ?? "[]");
 }
 

@@ -13,11 +13,15 @@ type ServerSupabase = Awaited<ReturnType<typeof getServerSupabase>>;
 
 /** 读取当前项目 JSON 数组 */
 async function readProjects(supabase: ServerSupabase): Promise<ProjectItem[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("site_settings")
     .select("value")
     .eq("key", "projects")
     .maybeSingle();
+  // ⚠️ 读失败绝不能当成空数组：后续写回会覆盖掉其他项目
+  if (error) {
+    throw new Error(`读取项目失败：${error.message}`);
+  }
   return parseProjects(data?.value ?? "[]");
 }
 
