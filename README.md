@@ -53,7 +53,7 @@ npm run lint      # ESLint
 
 | Feature | Description |
 |---------|-------------|
-| 📄 Homepage | Hero (avatar/gradient title/**blob animation**/**stats row**/**learn-more CTA**) + post card grid (**teal glass cards**: 16:9 cover on top + glass content, hover lift/glow, **reading time**, tags, view count) + **hot tags** + **pagination** |
+| 📄 Homepage | Hero (avatar/gradient title/**blob animation**/**stats row**/**learn-more CTA**) + post card grid (**teal glass cards**: 16:9 cover on top + glass content, hover lift/glow, **reading time**, tags, view count) + **pinned posts first** + **hot tags** + **pagination** |
 | 📖 Post detail | Semantic slug links (legacy numeric id compatible, 301 redirect); tags, **view count**, **reading time (minutes)**; reading progress bar + table of contents (TOC) |
 | 📝 **Markdown body** | Headings / lists / **code highlighting (shiki light-dark themes, auto fallback for unlabeled blocks)** / tables / blockquotes / images; professional typography |
 | 🔍 **Image lightbox** | Click body images to zoom (click overlay / ✕ / Esc to close) |
@@ -83,7 +83,7 @@ npm run lint      # ESLint
 | 📤 **Share button** | Post sharing: copy link / Weibo / QQ / X |
 | 🔍 **Search enhancement** | In-page query input + **keyword highlighting** + compact list |
 | 🔐 Login | Supabase Auth email login (single admin) |
-| 🛡️ Admin dashboard | Server-side auth; post management (publish/edit/delete/draft/**bulk delete**) + **comment management** (single/bulk delete) |
+| 🛡️ Admin dashboard | Server-side auth; post management (publish/edit/delete/draft/**bulk delete**/**pin-unpin**) + **comment management** (single/bulk delete) |
 | 🌐 Custom domain | jianglai520.com bound to Vercel |
 
 ---
