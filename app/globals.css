@@ -40,16 +40,16 @@
   --shadow-glow: 0 0 24px 0 rgba(53, 191, 171, 0.3);
   --shadow-glow-lg: 0 0 48px 0 rgba(31, 201, 231, 0.35);
 
-  /* 字体：中文 Noto Sans SC（运行时从 fonts.googleapis.cn 加载）
-     英文/标题 Outfit，代码 JetBrains Mono；加载失败自动回退系统字体 */
-  --font-sans: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI",
-    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-  --font-display: "Outfit", "Noto Sans SC", -apple-system, BlinkMacSystemFont,
-    "Segoe UI", "PingFang SC", sans-serif;
+  /* 字体：全站主字体/标题使用思源宋体（信纸气质），
+     首页 Hero 问候语单独用 --font-brush（马善政毛笔） */
+  --font-sans: "Noto Serif SC", "Songti SC", "SimSun", Georgia, serif;
+  --font-display: "Noto Serif SC", "Songti SC", "SimSun", Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
     "Liberation Mono", monospace;
   /* 手写毛笔（首页 Hero 问候语专用，预览方案 2） */
   --font-brush: "Ma Shan Zheng", "Noto Sans SC", cursive;
+  /* 衬线（留言页信件风格专用） */
+  --font-serif: "Noto Serif SC", "Songti SC", "SimSun", Georgia, serif;
 }
 
 /* ================= 全局基础 ================= */
