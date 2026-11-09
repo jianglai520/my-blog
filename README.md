@@ -55,7 +55,7 @@ npm run lint      # ESLint
 |---------|-------------|
 | 📄 Homepage | Hero (avatar/gradient title/**blob animation**/**stats row**/**learn-more CTA**) + post card grid (**teal glass cards**: 16:9 cover on top + glass content, hover lift/glow, **reading time**, tags, view count) + **pinned posts first** + **hot tags** + **pagination** |
 | 📖 Post detail | Semantic slug links (legacy numeric id compatible, 301 redirect); tags, **view count**, **reading time (minutes)**; reading progress bar + table of contents (TOC) |
-| 📝 **Markdown body** | Headings / lists / **code highlighting (shiki light-dark themes, auto fallback for unlabeled blocks)** / tables / blockquotes / images; professional typography |
+| 📝 **Markdown body** | Headings / lists / **code highlighting (shiki light-dark themes, auto fallback for unlabeled blocks)** / tables / blockquotes / images; professional typography; inline code rendered clean (Typography auto-backticks disabled) |
 | 🔍 **Image lightbox** | Click body images to zoom (click overlay / ✕ / Esc to close) |
 | 📋 **Code copy** | One-click copy button on code blocks |
 | 🖊️ **Rich text editor** | TipTap WYSIWYG, saved as Markdown; **source mode (MD) is the default** for raw Markdown, preserving tables/code fences |
