@@ -87,6 +87,9 @@ const ListWithoutAutoDetect = [
   BulletList.extend({ addInputRules() { return []; } }),
 ];
 
+/** 检测 Markdown 表格（表头 + 分隔行），用于默认进入源码模式 */
+const TABLE_RE = /(^|\r?\n)\s*\|.+\|\s*\r?\n\s*\|[\s:|-]+\|/;
+
 const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string) => void }>(
   function Editor({ value, onChange }, ref) {
     const fileRef = useRef<HTMLInputElement>(null);
@@ -98,6 +101,11 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
     const [attachPending, setAttachPending] = useState(false);
     // 表情面板开关
     const [showEmoji, setShowEmoji] = useState(false);
+    // 源码模式：含表格的 Markdown 默认进入源码模式，避免 TipTap 把表格压平
+    const [sourceMode, setSourceMode] = useState(() => TABLE_RE.test(value));
+    const [sourceText, setSourceText] = useState(() =>
+      TABLE_RE.test(value) ? value : "",
+    );
 
     const editor = useEditor({
       extensions: [
@@ -120,9 +128,10 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
     useImperativeHandle(
       ref,
       () => ({
-        getMarkdown: () => editor?.getMarkdown() ?? "",
+        getMarkdown: () =>
+          sourceMode ? sourceText : editor?.getMarkdown() ?? "",
       }),
-      [editor],
+      [editor, sourceMode, sourceText],
     );
 
   // 选择本地图片后浏览器直传，成功后插入编辑器
@@ -185,6 +194,21 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
   function insertEmoji(emoji: string) {
     editor?.chain().focus().insertContent(emoji).run();
     setShowEmoji(false);
+  }
+
+  // 源码模式：在原始 Markdown 与可视化编辑之间切换
+  function toggleSourceMode() {
+    if (!editor) return;
+    if (!sourceMode) {
+      setSourceText(editor.getMarkdown());
+      setSourceMode(true);
+    } else {
+      editor.commands.setContent(sourceText, {
+        contentType: "markdown",
+        emitUpdate: false,
+      });
+      setSourceMode(false);
+    }
   }
 
   if (!editor) {
@@ -279,6 +303,13 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
         >
           😀
         </ToolbarButton>
+        <ToolbarButton
+          title="源码模式（可直接粘贴 Markdown 表格）"
+          onClick={toggleSourceMode}
+          active={sourceMode}
+        >
+          MD
+        </ToolbarButton>
         <span className="mx-1 h-5 w-px bg-ink-700" />
         <ToolbarButton
           title="撤销"
@@ -336,10 +367,28 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
       )}
 
       {/* ===== 编辑区 ===== */}
-      <EditorContent
-        editor={editor}
-        className="editor-content min-h-[320px] px-4 py-3 text-fg"
-      />
+      {sourceMode ? (
+        <div>
+          <textarea
+            value={sourceText}
+            onChange={(e) => {
+              setSourceText(e.target.value);
+              onChange?.(e.target.value);
+            }}
+            spellCheck={false}
+            placeholder="直接粘贴或编辑 Markdown 源码…（表格、代码块会原样保存）"
+            className="min-h-[320px] w-full resize-y bg-transparent px-4 py-3 font-mono text-[13px] leading-relaxed text-fg outline-none placeholder:text-fg-faint"
+          />
+          <p className="border-t border-ink-700/60 px-4 py-2 text-[11px] leading-relaxed text-fg-faint">
+            源码模式：保存的是原始 Markdown。表格等复杂内容请保持此模式编辑，切回可视化可能被压平。
+          </p>
+        </div>
+      ) : (
+        <EditorContent
+          editor={editor}
+          className="editor-content min-h-[320px] px-4 py-3 text-fg"
+        />
+      )}
 
       {/* 文件选择框（视觉隐藏但可交互；仅博主可上传） */}
       <input
