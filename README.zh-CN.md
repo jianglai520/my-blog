@@ -58,7 +58,7 @@ npm run lint      # ESLint
 | 📝 **Markdown 正文** | 标题 / 列表 / **代码高亮（shiki 深浅双主题，无语言代码块自动补默认）** / 表格 / 引用 / 图片完整渲染；专业排版（标题层级/嵌套列表/引用卡片/表格渐变/代码块投影） |
 | 🔍 **图片点击放大** | 文章正文图片点击查看大图（lightbox，点遮罩 / ✕ / Esc 关闭） |
 | 📋 **代码块复制** | 代码块右上角一键复制按钮 |
-| 🖊️ **富文本编辑器** | TipTap 所见即所得，保存为 Markdown |
+| 🖊️ **富文本编辑器** | TipTap 所见即所得，保存为 Markdown；**源码模式（MD）**可直接编辑原始 Markdown，保留表格/代码块 |
 | 📥 **草稿与编辑** | 存草稿 / 发布 / 编辑续写，草稿永不公开 |
 | 🖼️ **图片上传** | 编辑器内选图 **浏览器直传** Supabase Storage（不经服务器中转，更快）→ 自动插入 |
 | 🖼️ **封面图上传** | 写文章可**本地上传**封面图（≤5MB，浏览器直传 Supabase Storage，自动填入 URL）或粘贴外链图床地址 |
@@ -112,7 +112,7 @@ my-blog/
 │   │   ├── Toc.tsx                 # 文章目录（TOC）
 │   │   ├── ThemeToggle.tsx         # 深浅色主题切换
 │   │   ├── MessageForm.tsx         # 站内私信表单（关于页，client）
-│   │   └── Editor.tsx              # TipTap 富文本编辑器（client，工具栏含表情插入）
+│   │   └── Editor.tsx              # TipTap 富文本编辑器（client，表情 + Markdown 源码模式）
 │   ├── posts/
 │   │   └── [identifier]/
 │   │       ├── page.tsx            # 文章详情页（slug/id 双解析）
@@ -167,7 +167,8 @@ my-blog/
 ├── scripts/
 │   ├── generate-og.mjs             # 一次性脚本：生成 public/og.png
 │   ├── backup.mjs                  # 数据库备份脚本（导出全表 JSON 到 backups/）
-│   └── restore-drill.mjs           # 备份恢复演练（临时 schema 重建 + 行数校验，安全不碰生产表）
+│   ├── restore-drill.mjs           # 备份恢复演练（临时 schema 重建 + 行数校验，安全不碰生产表）
+│   └── render-docs.mjs             # Markdown 文档 → 排版好的 HTML（桌面文档目录）
 ├── e2e/                            # Playwright E2E 测试（homepage/post/search/rss/auth）
 ├── public/
 │   └── og.png                      # OpenGraph 分享图（1200×630）

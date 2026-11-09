@@ -58,7 +58,7 @@ npm run lint      # ESLint
 | 📝 **Markdown body** | Headings / lists / **code highlighting (shiki light-dark themes, auto fallback for unlabeled blocks)** / tables / blockquotes / images; professional typography |
 | 🔍 **Image lightbox** | Click body images to zoom (click overlay / ✕ / Esc to close) |
 | 📋 **Code copy** | One-click copy button on code blocks |
-| 🖊️ **Rich text editor** | TipTap WYSIWYG, saved as Markdown |
+| 🖊️ **Rich text editor** | TipTap WYSIWYG, saved as Markdown; **source mode (MD)** for raw Markdown, preserving tables/code fences |
 | 📥 **Drafts & editing** | Save draft / publish / edit, drafts never public |
 | 🖼️ **Image upload** | Editor image **direct browser upload** to Supabase Storage (no server hop) → auto insert |
 | 🖼️ **Cover upload** | Local cover upload (≤5MB, direct browser upload, auto-fills URL) or paste external URL |
@@ -112,7 +112,7 @@ my-blog/
 │   │   ├── Toc.tsx                 # table of contents
 │   │   ├── ThemeToggle.tsx         # light/dark toggle
 │   │   ├── MessageForm.tsx         # private message form (about page, client)
-│   │   └── Editor.tsx              # TipTap rich editor (client, emoji toolbar)
+│   │   └── Editor.tsx              # TipTap rich editor (client, emoji toolbar + Markdown source mode)
 │   ├── posts/
 │   │   └── [identifier]/
 │   │       ├── page.tsx            # post detail (slug/id resolution)
@@ -167,7 +167,8 @@ my-blog/
 ├── scripts/
 │   ├── generate-og.mjs             # one-off: generate public/og.png
 │   ├── backup.mjs                  # DB backup script (export all tables to backups/)
-│   └── restore-drill.mjs           # restore drill (temp schema rebuild + row count check)
+│   ├── restore-drill.mjs           # restore drill (temp schema rebuild + row count check)
+│   └── render-docs.mjs             # Markdown docs → styled HTML (desktop docs folder)
 ├── e2e/                            # Playwright E2E tests (homepage/post/search/rss/auth)
 ├── public/
 │   └── og.png                      # OpenGraph share image (1200×630)
