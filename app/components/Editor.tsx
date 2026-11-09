@@ -87,9 +87,6 @@ const ListWithoutAutoDetect = [
   BulletList.extend({ addInputRules() { return []; } }),
 ];
 
-/** 检测 Markdown 表格（表头 + 分隔行），用于默认进入源码模式 */
-const TABLE_RE = /(^|\r?\n)\s*\|.+\|\s*\r?\n\s*\|[\s:|-]+\|/;
-
 const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string) => void }>(
   function Editor({ value, onChange }, ref) {
     const fileRef = useRef<HTMLInputElement>(null);
@@ -101,11 +98,9 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
     const [attachPending, setAttachPending] = useState(false);
     // 表情面板开关
     const [showEmoji, setShowEmoji] = useState(false);
-    // 源码模式：含表格的 Markdown 默认进入源码模式，避免 TipTap 把表格压平
-    const [sourceMode, setSourceMode] = useState(() => TABLE_RE.test(value));
-    const [sourceText, setSourceText] = useState(() =>
-      TABLE_RE.test(value) ? value : "",
-    );
+    // 默认源码模式：技术文章含表格/复杂 Markdown，避免 TipTap 序列化把结构压平
+    const [sourceMode, setSourceMode] = useState(true);
+    const [sourceText, setSourceText] = useState(value);
 
     const editor = useEditor({
       extensions: [

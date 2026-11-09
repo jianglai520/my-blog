@@ -58,7 +58,7 @@ npm run lint      # ESLint
 | 📝 **Markdown body** | Headings / lists / **code highlighting (shiki light-dark themes, auto fallback for unlabeled blocks)** / tables / blockquotes / images; professional typography |
 | 🔍 **Image lightbox** | Click body images to zoom (click overlay / ✕ / Esc to close) |
 | 📋 **Code copy** | One-click copy button on code blocks |
-| 🖊️ **Rich text editor** | TipTap WYSIWYG, saved as Markdown; **source mode (MD)** for raw Markdown, preserving tables/code fences |
+| 🖊️ **Rich text editor** | TipTap WYSIWYG, saved as Markdown; **source mode (MD) is the default** for raw Markdown, preserving tables/code fences |
 | 📥 **Drafts & editing** | Save draft / publish / edit, drafts never public |
 | 🖼️ **Image upload** | Editor image **direct browser upload** to Supabase Storage (no server hop) → auto insert |
 | 🖼️ **Cover upload** | Local cover upload (≤5MB, direct browser upload, auto-fills URL) or paste external URL |
@@ -168,7 +168,8 @@ my-blog/
 │   ├── generate-og.mjs             # one-off: generate public/og.png
 │   ├── backup.mjs                  # DB backup script (export all tables to backups/)
 │   ├── restore-drill.mjs           # restore drill (temp schema rebuild + row count check)
-│   └── render-docs.mjs             # Markdown docs → styled HTML (desktop docs folder)
+│   ├── render-docs.mjs             # Markdown docs → styled HTML (desktop docs folder)
+│   └── check-markdown.mjs          # scan posts for flattened tables / broken Markdown
 ├── e2e/                            # Playwright E2E tests (homepage/post/search/rss/auth)
 ├── public/
 │   └── og.png                      # OpenGraph share image (1200×630)
@@ -197,6 +198,7 @@ Open http://localhost:3000; visit `/admin` for the dashboard (login required).
 npm run build   # production build (Next 16 removed `next lint`, build includes type check)
 npm start       # start production server
 npm run lint    # ESLint
+npm run check:markdown  # scan posts for flattened tables / broken Markdown
 ```
 
 ---
