@@ -378,6 +378,12 @@ body::before {
   font-family: var(--font-mono), ui-monospace, monospace;
 }
 
+/* 去掉 @tailwindcss/typography 自动给行内代码加的反引号（::before/::after） */
+.markdown-body code::before,
+.markdown-body code::after {
+  content: none;
+}
+
 /* ---- 代码块（rehype-pretty-code 输出，保留 shiki 主题背景色）---- */
 .markdown-body pre {
   border: 1px solid var(--color-ink-700);
