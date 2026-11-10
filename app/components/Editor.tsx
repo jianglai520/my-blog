@@ -91,12 +91,13 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
   function Editor({ value, onChange }, ref) {
     const fileRef = useRef<HTMLInputElement>(null);
     const attachRef = useRef<HTMLInputElement>(null);
-    const attachNameRef = useRef("附件");
     const sourceRef = useRef<HTMLTextAreaElement>(null);
     const [uploadState, setUploadState] = useState<UploadResult>(initialUploadState);
     const [attachState, setAttachState] = useState<UploadResult>(initialUploadState);
     const [uploadPending, setUploadPending] = useState(false);
     const [attachPending, setAttachPending] = useState(false);
+    // 批量附件上传进度（如 "2/5"，单个文件时为空）
+    const [attachProgress, setAttachProgress] = useState("");
     // 表情面板开关
     const [showEmoji, setShowEmoji] = useState(false);
     // 默认源码模式：技术文章含表格/复杂 Markdown，避免 TipTap 序列化把结构压平
@@ -165,9 +166,10 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
     const date = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
     setUploadPending(true);
     setUploadState(initialUploadState);
+    setAttachState(initialUploadState);
     try {
       const res = await uploadImageToStorage(file, `posts/${date}`);
-      setUploadState(res);
+      setUploadState(res.success ? { ...res, message: "✅ 已插入图片" } : res);
       if (res.success && res.url) {
         const alt = file.name.replace(/[[\]]/g, "");
         if (!insertMarkdownAtCursor(`![${alt}](${res.url})`)) {
@@ -188,35 +190,60 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
     }
   }
 
-  // 选择附件后浏览器直传，成功后插入下载链接（Markdown 语法，用原始文件名）
+  // 选择附件后浏览器直传，支持多选：逐个上传，全部完成后一次性插入下载链接
   async function handleAttachChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    attachNameRef.current = file.name; // 记录原始文件名（存储路径是 UUID，插入链接时用原名）
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
     const date = new Date().toISOString().slice(0, 10);
     setAttachPending(true);
     setAttachState(initialUploadState);
-    try {
-      const res = await uploadAttachmentToStorage(file, `attachments/${date}`);
-      setAttachState(res);
-      if (res.success && res.url) {
-        const filename = (attachNameRef.current || "附件").replace(/[[\]]/g, "");
-        const md = `[📎 ${filename}](${res.url})`;
-        if (!insertMarkdownAtCursor(md)) {
-          editor?.chain().focus().insertContent(md, { contentType: "markdown" }).run();
+    setUploadState(initialUploadState);
+
+    const snippets: string[] = [];
+    const failed: string[] = [];
+    let lastError = "";
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (files.length > 1) setAttachProgress(`${i + 1}/${files.length}`);
+      try {
+        const res = await uploadAttachmentToStorage(file, `attachments/${date}`);
+        if (res.success && res.url) {
+          const filename = file.name.replace(/[[\]]/g, "");
+          snippets.push(`[📎 ${filename}](${res.url})`);
+        } else {
+          failed.push(file.name);
+          lastError = res.message.replace(/^❌\s*/, "");
         }
+      } catch (err) {
+        console.error("附件上传异常:", err);
+        failed.push(file.name);
+        lastError = err instanceof Error ? err.message : "未知错误";
       }
-    } catch (err) {
-      console.error("附件上传异常:", err);
-      setAttachState({
-        url: null,
-        message: `❌ 上传失败：${err instanceof Error ? err.message : "未知错误"}（请检查登录状态与网络后重试）`,
-        success: false,
-      });
-    } finally {
-      setAttachPending(false);
-      e.target.value = "";
     }
+
+    // 批量插入一次完成，避免逐条 setState 相互覆盖
+    if (snippets.length > 0) {
+      const md = snippets.join("\n\n");
+      if (!insertMarkdownAtCursor(md)) {
+        editor?.chain().focus().insertContent(md, { contentType: "markdown" }).run();
+      }
+    }
+
+    setAttachState({
+      url: null,
+      success: snippets.length > 0,
+      message:
+        failed.length === 0
+          ? `✅ 已插入 ${snippets.length} 个附件`
+          : snippets.length > 0
+            ? `⚠️ 成功 ${snippets.length} 个，失败 ${failed.length} 个（${failed.join("、")}）：${lastError}`
+            : `❌ 上传失败：${lastError || "请稍后重试"}`,
+    });
+
+    setAttachPending(false);
+    setAttachProgress("");
+    e.target.value = "";
   }
 
   // 插入表情到光标处，然后收起面板
@@ -322,7 +349,7 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
           🖼
         </ToolbarButton>
         <ToolbarButton
-          title="插入附件（PDF/Word/Excel）"
+          title="插入附件（PDF/Word/Excel，可多选）"
           onClick={() => attachRef.current?.click()}
         >
           📎
@@ -360,16 +387,8 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
         {/* 上传状态提示 */}
         <span className="ml-auto text-xs text-fg-faint">
           {uploadPending || attachPending
-            ? "上传中…"
-            : uploadState.success
-              ? "✅ 已插入图片"
-              : attachState.success
-                ? "✅ 已插入附件"
-                : uploadState.message.startsWith("❌")
-                  ? uploadState.message
-                  : attachState.message.startsWith("❌")
-                    ? attachState.message
-                    : ""}
+            ? `上传中…${attachProgress ? ` ${attachProgress}` : ""}`
+            : uploadState.message || attachState.message || ""}
         </span>
       </div>
 
@@ -433,6 +452,7 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
       <input
         ref={attachRef}
         type="file"
+        multiple
         accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.txt,.md,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,text/plain,text/markdown"
         onChange={handleAttachChange}
         className="sr-only"
