@@ -92,6 +92,7 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
     const fileRef = useRef<HTMLInputElement>(null);
     const attachRef = useRef<HTMLInputElement>(null);
     const attachNameRef = useRef("附件");
+    const sourceRef = useRef<HTMLTextAreaElement>(null);
     const [uploadState, setUploadState] = useState<UploadResult>(initialUploadState);
     const [attachState, setAttachState] = useState<UploadResult>(initialUploadState);
     const [uploadPending, setUploadPending] = useState(false);
@@ -129,6 +130,34 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
       [editor, sourceMode, sourceText],
     );
 
+  /**
+   * 把 Markdown 片段插入到「当前编辑位置」。
+   * 编辑器默认是源码模式：此时必须写进 textarea 的 sourceText，
+   * 否则片段只落在隐藏的 TipTap 实例里，提交时 getMarkdown() 读到的仍是空串
+   * （表现为“已插入附件”，发布却提示“内容不能为空”）。
+   * 返回 true 表示已按源码模式插入；false 表示应走可视化编辑器。
+   */
+  function insertMarkdownAtCursor(snippet: string): boolean {
+    if (!sourceMode) return false;
+    const el = sourceRef.current;
+    // 优先读 DOM 实时值，避免上传期间用户继续输入导致覆盖
+    const current = el?.value ?? sourceText;
+    const start = el?.selectionStart ?? current.length;
+    const end = el?.selectionEnd ?? current.length;
+    const next = current.slice(0, start) + snippet + current.slice(end);
+    setSourceText(next);
+    onChange?.(next);
+    // 等 React 渲染完再恢复光标位置
+    requestAnimationFrame(() => {
+      const node = sourceRef.current;
+      if (!node) return;
+      const pos = start + snippet.length;
+      node.focus();
+      node.setSelectionRange(pos, pos);
+    });
+    return true;
+  }
+
   // 选择本地图片后浏览器直传，成功后插入编辑器
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -139,8 +168,11 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
     try {
       const res = await uploadImageToStorage(file, `posts/${date}`);
       setUploadState(res);
-      if (res.success && res.url && editor) {
-        editor.chain().focus().setImage({ src: res.url }).run();
+      if (res.success && res.url) {
+        const alt = file.name.replace(/[[\]]/g, "");
+        if (!insertMarkdownAtCursor(`![${alt}](${res.url})`)) {
+          editor?.chain().focus().setImage({ src: res.url }).run();
+        }
       }
     } catch (err) {
       console.error("图片上传异常:", err);
@@ -167,10 +199,12 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
     try {
       const res = await uploadAttachmentToStorage(file, `attachments/${date}`);
       setAttachState(res);
-      if (res.success && res.url && editor) {
-        const filename = attachNameRef.current || "附件";
+      if (res.success && res.url) {
+        const filename = (attachNameRef.current || "附件").replace(/[[\]]/g, "");
         const md = `[📎 ${filename}](${res.url})`;
-        editor.chain().focus().insertContent(md, { contentType: "markdown" }).run();
+        if (!insertMarkdownAtCursor(md)) {
+          editor?.chain().focus().insertContent(md, { contentType: "markdown" }).run();
+        }
       }
     } catch (err) {
       console.error("附件上传异常:", err);
@@ -187,7 +221,9 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
 
   // 插入表情到光标处，然后收起面板
   function insertEmoji(emoji: string) {
-    editor?.chain().focus().insertContent(emoji).run();
+    if (!insertMarkdownAtCursor(emoji)) {
+      editor?.chain().focus().insertContent(emoji).run();
+    }
     setShowEmoji(false);
   }
 
@@ -365,6 +401,7 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
       {sourceMode ? (
         <div>
           <textarea
+            ref={sourceRef}
             value={sourceText}
             onChange={(e) => {
               setSourceText(e.target.value);

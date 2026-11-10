@@ -58,11 +58,11 @@ npm run lint      # ESLint
 | 📝 **Markdown body** | Headings / lists / **code highlighting (shiki light-dark themes, auto fallback for unlabeled blocks)** / tables / blockquotes / images; professional typography; inline code rendered clean (Typography auto-backticks disabled) |
 | 🔍 **Image lightbox** | Click body images to zoom (click overlay / ✕ / Esc to close) |
 | 📋 **Code copy** | One-click copy button on code blocks |
-| 🖊️ **Rich text editor** | TipTap WYSIWYG, saved as Markdown; **source mode (MD) is the default** for raw Markdown, preserving tables/code fences |
+| 🖊️ **Rich text editor** | TipTap WYSIWYG, saved as Markdown; **source mode (MD) is the default** for raw Markdown, preserving tables/code fences; images/attachments/emoji are inserted at the cursor of the **active** mode |
 | 📥 **Drafts & editing** | Save draft / publish / edit, drafts never public |
 | 🖼️ **Image upload** | Editor image **direct browser upload** to Supabase Storage (no server hop) → auto insert |
 | 🖼️ **Cover upload** | Local cover upload (≤5MB, direct browser upload, auto-fills URL) or paste external URL |
-| 📎 **Attachment upload** | Insert PDF/Word/Excel/zip, generate download links (≤20MB, direct browser upload) |
+| 📎 **Attachment upload** | Insert PDF/Word/Excel/zip (≤20MB, direct browser upload); rendered as a **file card with online preview + download** (PDF/txt/md inline, Office via Office Online Viewer); insertion works in both source and WYSIWYG modes |
 | 😀 **Emoji insertion** | Editor toolbar emoji panel, grouped emojis inserted at cursor |
 | 🏷️ **Tag system** | Tag posts; `/tags/xxx` tag pages; tags on cards |
 | 🔍 **Search** | Nav search box (debounced), fuzzy search over title/excerpt/content |
