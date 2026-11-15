@@ -132,30 +132,148 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
     );
 
   /**
+   * 源码模式下对 textarea 做一次选区变换。
+   * 用最小 diff + `insertText` 写回，而不是直接 setState：
+   * 这样每次工具栏操作都会进入 textarea 的原生撤销栈，撤销/重做才可用。
+   * 返回 false 表示当前不是源码模式（调用方回退到 TipTap）。
+   */
+  function editSource(
+    transform: (
+      text: string,
+      start: number,
+      end: number,
+    ) => { text: string; start: number; end: number },
+  ): boolean {
+    if (!sourceMode) return false;
+    const el = sourceRef.current;
+    if (!el) return false;
+    const oldText = el.value;
+    const result = transform(oldText, el.selectionStart, el.selectionEnd);
+    if (result.text === oldText) return true;
+
+    // 计算变化区间，只替换这一段，保留其余文本与滚动位置
+    let prefix = 0;
+    while (
+      prefix < oldText.length &&
+      prefix < result.text.length &&
+      oldText[prefix] === result.text[prefix]
+    ) {
+      prefix++;
+    }
+    let suffix = 0;
+    while (
+      suffix < oldText.length - prefix &&
+      suffix < result.text.length - prefix &&
+      oldText[oldText.length - 1 - suffix] ===
+        result.text[result.text.length - 1 - suffix]
+    ) {
+      suffix++;
+    }
+
+    el.focus();
+    el.setSelectionRange(prefix, oldText.length - suffix);
+    document.execCommand(
+      "insertText",
+      false,
+      result.text.slice(prefix, result.text.length - suffix),
+    );
+    el.setSelectionRange(result.start, Math.max(result.start, result.end));
+
+    const nextText = el.value;
+    setSourceText(nextText);
+    onChange?.(nextText);
+    return true;
+  }
+
+  /**
    * 把 Markdown 片段插入到「当前编辑位置」。
    * 编辑器默认是源码模式：此时必须写进 textarea 的 sourceText，
    * 否则片段只落在隐藏的 TipTap 实例里，提交时 getMarkdown() 读到的仍是空串
    * （表现为“已插入附件”，发布却提示“内容不能为空”）。
-   * 返回 true 表示已按源码模式插入；false 表示应走可视化编辑器。
    */
   function insertMarkdownAtCursor(snippet: string): boolean {
+    return editSource((text, start, end) => ({
+      text: text.slice(0, start) + snippet + text.slice(end),
+      start: start + snippet.length,
+      end: start + snippet.length,
+    }));
+  }
+
+  /** 源码模式：给选区包上 Markdown 标记（加粗/斜体/删除线） */
+  function wrapSourceSelection(before: string, after = before): boolean {
+    return editSource((text, start, end) => {
+      const selected = text.slice(start, end);
+      return {
+        text: text.slice(0, start) + before + selected + after + text.slice(end),
+        start: start + before.length,
+        end: start + before.length + selected.length,
+      };
+    });
+  }
+
+  /** 源码模式：给选中行加前缀（标题/列表/引用），再次点击则取消 */
+  function prefixSourceLines(prefix: string, clearHeadings = false): boolean {
+    return editSource((text, start, end) => {
+      const lineStart = text.lastIndexOf("\n", start - 1) + 1;
+      let lineEnd = text.indexOf("\n", end);
+      if (lineEnd === -1) lineEnd = text.length;
+      const block = text.slice(lineStart, lineEnd);
+      const lines = block.split("\n");
+      const allPrefixed = lines.every((line) => line.startsWith(prefix));
+      // 添加新的块级格式前，先剥掉旧的标题/引用/列表标记，避免 "1. - >" 层层叠加
+      const blockPrefix = /^(?:#{1,6}\s+|>\s?|[-*+]\s+|\d+\.\s+)/;
+      const clean = (line: string) => {
+        let base = line;
+        while (blockPrefix.test(base)) base = base.replace(blockPrefix, "");
+        return clearHeadings ? base.replace(/^#{1,6}\s+/, "") : base;
+      };
+      const nextLines = lines.map((line) =>
+        allPrefixed ? line.slice(prefix.length) : `${prefix}${clean(line)}`,
+      );
+      const nextBlock = nextLines.join("\n");
+      const delta = nextBlock.length - block.length;
+      return {
+        text: text.slice(0, lineStart) + nextBlock + text.slice(lineEnd),
+        start,
+        end: Math.max(start, end + delta),
+      };
+    });
+  }
+
+  /** 源码模式：把选区包成代码块；选区本身已是代码块时去掉围栏 */
+  function toggleSourceCodeBlock(): boolean {
+    return editSource((text, start, end) => {
+      const selected = text.slice(start, end);
+      const fence = "```";
+      const fenced = selected.match(/^```[^\n]*\n([\s\S]*?)\n?```$/);
+      if (fenced) {
+        const inner = fenced[1];
+        return {
+          text: text.slice(0, start) + inner + text.slice(end),
+          start,
+          end: start + inner.length,
+        };
+      }
+      const body = selected;
+      const insert =
+        fence + "\n" + body + (body && !body.endsWith("\n") ? "\n" : "") + fence;
+      return {
+        text: text.slice(0, start) + insert + text.slice(end),
+        start: start + fence.length + 1,
+        end: start + fence.length + 1 + body.length,
+      };
+    });
+  }
+
+  /** 源码模式：撤销/重做走 textarea 原生历史 */
+  function sourceUndoRedo(command: "undo" | "redo"): boolean {
     if (!sourceMode) return false;
     const el = sourceRef.current;
-    // 优先读 DOM 实时值，避免上传期间用户继续输入导致覆盖
-    const current = el?.value ?? sourceText;
-    const start = el?.selectionStart ?? current.length;
-    const end = el?.selectionEnd ?? current.length;
-    const next = current.slice(0, start) + snippet + current.slice(end);
-    setSourceText(next);
-    onChange?.(next);
-    // 等 React 渲染完再恢复光标位置
-    requestAnimationFrame(() => {
-      const node = sourceRef.current;
-      if (!node) return;
-      const pos = start + snippet.length;
-      node.focus();
-      node.setSelectionRange(pos, pos);
-    });
+    if (!el) return false;
+    el.focus();
+    document.execCommand(command);
+    setSourceText(el.value);
+    onChange?.(el.value);
     return true;
   }
 
@@ -279,66 +397,88 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
       <div className="flex flex-wrap items-center gap-1 border-b border-ink-700/60 bg-ink-800/60 px-2 py-1.5">
         <ToolbarButton
           title="加粗"
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          active={editor.isActive("bold")}
+          onClick={() => {
+            if (!wrapSourceSelection("**")) editor.chain().focus().toggleBold().run();
+          }}
+          active={!sourceMode && editor.isActive("bold")}
         >
           <b>B</b>
         </ToolbarButton>
         <ToolbarButton
           title="斜体"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          active={editor.isActive("italic")}
+          onClick={() => {
+            if (!wrapSourceSelection("*")) editor.chain().focus().toggleItalic().run();
+          }}
+          active={!sourceMode && editor.isActive("italic")}
         >
           <i>I</i>
         </ToolbarButton>
         <ToolbarButton
           title="删除线"
-          onClick={() => editor.chain().focus().toggleStrike().run()}
-          active={editor.isActive("strike")}
+          onClick={() => {
+            if (!wrapSourceSelection("~~")) editor.chain().focus().toggleStrike().run();
+          }}
+          active={!sourceMode && editor.isActive("strike")}
         >
           <s>S</s>
         </ToolbarButton>
         <span className="mx-1 h-5 w-px bg-ink-700" />
         <ToolbarButton
           title="二级标题"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          active={editor.isActive("heading", { level: 2 })}
+          onClick={() => {
+            if (!prefixSourceLines("## ", true)) {
+              editor.chain().focus().toggleHeading({ level: 2 }).run();
+            }
+          }}
+          active={!sourceMode && editor.isActive("heading", { level: 2 })}
         >
           H2
         </ToolbarButton>
         <ToolbarButton
           title="三级标题"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          active={editor.isActive("heading", { level: 3 })}
+          onClick={() => {
+            if (!prefixSourceLines("### ", true)) {
+              editor.chain().focus().toggleHeading({ level: 3 }).run();
+            }
+          }}
+          active={!sourceMode && editor.isActive("heading", { level: 3 })}
         >
           H3
         </ToolbarButton>
         <span className="mx-1 h-5 w-px bg-ink-700" />
         <ToolbarButton
           title="无序列表"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          active={editor.isActive("bulletList")}
+          onClick={() => {
+            if (!prefixSourceLines("- ")) editor.chain().focus().toggleBulletList().run();
+          }}
+          active={!sourceMode && editor.isActive("bulletList")}
         >
           •≡
         </ToolbarButton>
         <ToolbarButton
           title="有序列表"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          active={editor.isActive("orderedList")}
+          onClick={() => {
+            if (!prefixSourceLines("1. ")) editor.chain().focus().toggleOrderedList().run();
+          }}
+          active={!sourceMode && editor.isActive("orderedList")}
         >
           1≡
         </ToolbarButton>
         <ToolbarButton
           title="引用"
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          active={editor.isActive("blockquote")}
+          onClick={() => {
+            if (!prefixSourceLines("> ")) editor.chain().focus().toggleBlockquote().run();
+          }}
+          active={!sourceMode && editor.isActive("blockquote")}
         >
           ❝
         </ToolbarButton>
         <ToolbarButton
           title="代码块"
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          active={editor.isActive("codeBlock")}
+          onClick={() => {
+            if (!toggleSourceCodeBlock()) editor.chain().focus().toggleCodeBlock().run();
+          }}
+          active={!sourceMode && editor.isActive("codeBlock")}
         >
           {"</>"}
         </ToolbarButton>
@@ -371,15 +511,19 @@ const Editor = forwardRef<EditorHandle, { value: string; onChange?: (md: string)
         <span className="mx-1 h-5 w-px bg-ink-700" />
         <ToolbarButton
           title="撤销"
-          onClick={() => editor.chain().focus().undo().run()}
-          disabled={!editor.can().undo()}
+          onClick={() => {
+            if (!sourceUndoRedo("undo")) editor.chain().focus().undo().run();
+          }}
+          disabled={!sourceMode && !editor.can().undo()}
         >
           ↩
         </ToolbarButton>
         <ToolbarButton
           title="重做"
-          onClick={() => editor.chain().focus().redo().run()}
-          disabled={!editor.can().redo()}
+          onClick={() => {
+            if (!sourceUndoRedo("redo")) editor.chain().focus().redo().run();
+          }}
+          disabled={!sourceMode && !editor.can().redo()}
         >
           ↪
         </ToolbarButton>

@@ -58,7 +58,7 @@ npm run lint      # ESLint
 | 📝 **Markdown body** | Headings / lists / **code highlighting (shiki light-dark themes, auto fallback for unlabeled blocks)** / tables / blockquotes / images; professional typography; inline code rendered clean (Typography auto-backticks disabled) |
 | 🔍 **Image lightbox** | Click body images to zoom (click overlay / ✕ / Esc to close) |
 | 📋 **Code copy** | One-click copy button on code blocks |
-| 🖊️ **Rich text editor** | TipTap WYSIWYG, saved as Markdown; **source mode (MD) is the default** for raw Markdown, preserving tables/code fences; images/attachments/emoji are inserted at the cursor of the **active** mode |
+| 🖊️ **Rich text editor** | TipTap WYSIWYG, saved as Markdown; **source mode (MD) is the default** for raw Markdown, preserving tables/code fences; images/attachments/emoji are inserted at the cursor of the **active** mode; **toolbar formatting (bold/headings/lists/quote/code block) writes Markdown syntax in source mode**, with undo/redo |
 | 📥 **Drafts & editing** | Save draft / publish / edit, drafts never public |
 | 🖼️ **Image upload** | Editor image **direct browser upload** to Supabase Storage (no server hop) → auto insert |
 | 🖼️ **Cover upload** | Local cover upload (≤5MB, direct browser upload, auto-fills URL) or paste external URL |
