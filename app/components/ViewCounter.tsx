@@ -5,8 +5,8 @@ import { incrementView } from "@/app/actions/views";
 
 /**
  * 文章浏览量计数器（客户端）：
- * 每次打开文章页都 +1（博主选择「每次访问都 +1」，无防刷）。
- * calledRef 防止 React StrictMode 下 effect 双调用导致的重复计数。
+ * 服务端按「同一访客（IP 哈希）每天每篇一次」去重，刷新不会重复计数。
+ * calledRef 防止 React StrictMode 下 effect 双调用导致的重复请求。
  */
 export default function ViewCounter({
   postId,
@@ -21,6 +21,8 @@ export default function ViewCounter({
   useEffect(() => {
     if (calledRef.current) return;
     calledRef.current = true;
+    // 自动化浏览器不计数（与访客统计保持一致）
+    if (typeof navigator !== "undefined" && navigator.webdriver) return;
 
     incrementView(postId).then((n) => {
       if (typeof n === "number") setCount(n);

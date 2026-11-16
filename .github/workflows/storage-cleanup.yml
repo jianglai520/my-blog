@@ -1,0 +1,32 @@
+name: 定时清理孤儿文件
+
+on:
+  # 每月 1 日 03:17 UTC（≈ 北京时间 11:17），错开整点
+  schedule:
+    - cron: "17 3 1 * *"
+  # 支持手动触发：Actions → 定时清理孤儿文件 → Run workflow
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      # 只删除「超过 45 天且未被任何文章/站点配置引用」的文件
+      - name: 清理 Storage 孤儿文件
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+        run: node scripts/cleanup-storage.mjs --apply --days=45

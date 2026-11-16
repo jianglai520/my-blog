@@ -41,11 +41,12 @@ A full-stack personal blog built with **Next.js 16 + React 19 + Supabase + Verce
 
 ```bash
 npm test          # unit tests
+npx tsc --noEmit  # type check
 npm run test:e2e  # E2E tests (requires build first)
 npm run lint      # ESLint
 ```
 
-> CI build/E2E requires GitHub Secrets: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `DATABASE_URL`, and optionally `TEST_EMAIL`/`TEST_PASSWORD` for E2E login.
+> CI build/E2E requires GitHub Secrets: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `DATABASE_URL`, and `TEST_EMAIL`/`TEST_PASSWORD` (E2E login and the monthly storage-cleanup workflow need them).
 
 ---
 
@@ -54,7 +55,7 @@ npm run lint      # ESLint
 | Feature | Description |
 |---------|-------------|
 | 📄 Homepage | Hero (avatar/gradient title/**blob animation**/**stats row**/**learn-more CTA**) + post card grid (**teal glass cards**: 16:9 cover on top + glass content, hover lift/glow, **reading time**, tags, view count) + **pinned posts first** + **hot tags** + **pagination** |
-| 📖 Post detail | Semantic slug links (legacy numeric id compatible, 301 redirect); tags, **view count**, **reading time (minutes)**; reading progress bar + table of contents (TOC) |
+| 📖 Post detail | Semantic slug links (legacy numeric id compatible, 301 redirect); tags, **view count (deduplicated: once per visitor per day)**, **reading time (minutes)**; reading progress bar + table of contents (TOC) |
 | 📝 **Markdown body** | Headings / lists / **code highlighting (shiki light-dark themes, auto fallback for unlabeled blocks)** / tables / blockquotes / images; professional typography; inline code rendered clean (Typography auto-backticks disabled) |
 | 🔍 **Image lightbox** | Click body images to zoom (click overlay / ✕ / Esc to close) |
 | 📋 **Code copy** | One-click copy button on code blocks |
@@ -69,6 +70,7 @@ npm run lint      # ESLint
 | 📡 **RSS** | `/feed.xml` (Atom), injected into layout |
 | 🕒 **Uptime & changelog** | Footer shows **live site uptime** (days HH:MM:SS, ticks every second, hydration-safe); `/logs` renders a **commit-driven changelog** (GitHub API, 1h ISR cache, test/merge commits filtered, type badges + commit links) |
 | 👣 **Visitor stats** | Self-hosted **cumulative UV + today UV**: SHA-256 hashed IP/UA, one row per visitor per day, no raw IP stored; shown in footer and homepage stats |
+| 🧹 **Storage hygiene** | Admin shows bucket usage (`files · size`); `npm run cleanup:storage` scans references and reports orphan files (dry-run by default); monthly GitHub Action removes unreferenced files older than 45 days |
 | 🗂 **Archives / About** | Timeline archive page (gradient timeline, collapsible month groups, changelog-style commit rows with mono date/short hash/reading time/word count); **developer-profile about page** (sticky profile card, pinned projects, skills, experience, private-message form, display limits) |
 | ⚙️ **Site settings** | Edit author name/intro/GitHub/email/**avatar (upload or URL)**/ICP from admin, instant effect |
 | 🌗 **Light/dark theme** | Header toggle; follows system + manual choice persisted (localStorage) |
@@ -165,7 +167,7 @@ my-blog/
 ├── proxy.ts                        # route guard (Next 16 renamed middleware)
 ├── drizzle.config.ts               # drizzle-kit config (schema → migration SQL)
 ├── supabase/
-│   └── migrations/                 # DB migration SQL (0001~0017, run manually in SQL Editor)
+│   └── migrations/                 # DB migration SQL (0001~0018, run manually in SQL Editor)
 ├── scripts/
 │   ├── generate-og.mjs             # one-off: generate public/og.png
 │   ├── backup.mjs                  # DB backup script (export all tables to backups/)
@@ -201,6 +203,7 @@ npm run build   # production build (Next 16 removed `next lint`, build includes 
 npm start       # start production server
 npm run lint    # ESLint
 npm run check:markdown  # scan posts for flattened tables / broken Markdown
+npm run cleanup:storage # report orphan files in Supabase Storage (dry-run)
 ```
 
 ---
@@ -242,7 +245,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `excerpt` | text (nullable) | Summary for cards and sharing |
 | `cover_image` | text (nullable) | Cover image URL |
 | `status` | text | `published` / `draft` (drafts never public) |
-| `view_count` | int | View count (RPC `increment_view`, cookie anti-abuse) |
+| `view_count` | int | View count (RPC `record_post_view`, deduplicated per visitor per day via `post_views`) |
 | `index_status` | text | Vector index status (`pending`/`done`/`failed`, async publishing) |
 | `created_at` | timestamptz | Creation time |
 | `published` | boolean | Legacy field (redundant with `status`) |
@@ -324,7 +327,7 @@ Site config (key-value, editable from admin, instant effect):
 
 Public-read image bucket (only the owner can upload/delete, RLS policies in `0002_rls.sql` / `0003_markdown_draft.sql`; project covers reuse the `projects/` folder in this bucket).
 
-> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0017). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
+> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0018). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
 
 ---
 

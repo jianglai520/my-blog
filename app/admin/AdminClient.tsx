@@ -16,6 +16,7 @@ import type { AdminPost } from "./shared";
 import type { SiteSettings } from "@/lib/site";
 import type { Comment } from "@/lib/posts";
 import type { GuestbookMessage, Message } from "@/db/schema";
+import { formatBytes } from "@/lib/format";
 
 /**
  * 后台主界面：顶部导航 + Tab 切换 + 组合各管理模块。
@@ -28,6 +29,7 @@ export default function AdminClient({
   guestbookMessages,
   messages,
   siteSettings,
+  storageUsage,
 }: {
   userEmail: string;
   posts: AdminPost[];
@@ -35,6 +37,7 @@ export default function AdminClient({
   guestbookMessages: GuestbookMessage[];
   messages: Message[];
   siteSettings: SiteSettings;
+  storageUsage: { files: number; bytes: number };
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState<AdminPost | null>(null);
@@ -65,6 +68,9 @@ export default function AdminClient({
           </Link>
           <h1 className="mt-2 text-3xl font-bold text-fg">后台管理</h1>
           <p className="mt-1 text-sm text-fg-faint">当前登录：{userEmail}</p>
+          <p className="mt-1 font-mono text-xs text-fg-faint">
+            存储：{storageUsage.files} 个文件 · {formatBytes(storageUsage.bytes)}
+          </p>
         </div>
         <form action={logout}>
           <button

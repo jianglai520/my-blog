@@ -41,11 +41,12 @@
 
 ```bash
 npm test          # 单元测试
+npx tsc --noEmit  # 类型检查
 npm run test:e2e  # E2E 测试（需先 build）
 npm run lint      # ESLint
 ```
 
-> CI 的 build/E2E 需要 GitHub Secrets：`NEXT_PUBLIC_SUPABASE_URL`、`NEXT_PUBLIC_SUPABASE_ANON_KEY`、`DATABASE_URL`、（E2E 可选）`TEST_EMAIL`/`TEST_PASSWORD`。
+> CI 的 build/E2E 需要 GitHub Secrets：`NEXT_PUBLIC_SUPABASE_URL`、`NEXT_PUBLIC_SUPABASE_ANON_KEY`、`DATABASE_URL`、`TEST_EMAIL`/`TEST_PASSWORD`（E2E 登录与每月存储清理都依赖）。
 
 ---
 
@@ -54,7 +55,7 @@ npm run lint      # ESLint
 | 功能 | 说明 |
 |------|------|
 | 📄 首页 | 英雄区（头像/渐变标题/**光斑动效**/**站点统计行**/**了解更多 CTA**）+ 文章卡片列表（**青绿毛玻璃卡片**：封面图置顶 16:9 + 文字区玻璃面板、hover 上浮发光、**阅读时长**、标签、阅读数）+ **置顶文章优先** + **热门标签入口** + **分页** |
-| 📖 文章详情页 | 语义化 slug 链接（兼容旧数字 id，301 跳转）；显示标签、**浏览量**、**阅读时长（分钟）**；阅读进度条 + 文章目录（TOC） |
+| 📖 文章详情页 | 语义化 slug 链接（兼容旧数字 id，301 跳转）；显示标签、**浏览量（同一访客每天只计一次）**、**阅读时长（分钟）**；阅读进度条 + 文章目录（TOC） |
 | 📝 **Markdown 正文** | 标题 / 列表 / **代码高亮（shiki 深浅双主题，无语言代码块自动补默认）** / 表格 / 引用 / 图片完整渲染；专业排版（标题层级/嵌套列表/引用卡片/表格渐变/代码块投影）；行内代码不带自动反引号 |
 | 🔍 **图片点击放大** | 文章正文图片点击查看大图（lightbox，点遮罩 / ✕ / Esc 关闭） |
 | 📋 **代码块复制** | 代码块右上角一键复制按钮 |
@@ -69,6 +70,7 @@ npm run lint      # ESLint
 | 📡 **RSS** | `/feed.xml`（Atom），layout 注入订阅链接 |
 | 🕒 **运行时长 / 更新日志** | 页脚实时显示**本站已运行**时长（天 HH:MM:SS，逐秒跳动，避免 hydration 不一致）；`/logs` 从仓库提交自动生成**更新日志**（GitHub API、1 小时 ISR 缓存、过滤测试/合并提交、类型徽标 + 提交链接） |
 | 👣 **访客统计** | 自建**累计 UV + 今日 UV**：IP/UA 做 SHA-256 哈希，同一访客每天只记一条，不保存原始 IP；首页统计行与页脚展示 |
+| 🧹 **存储清理** | 后台显示桶用量（文件数 · 体积）；`npm run cleanup:storage` 扫描引用并报告孤儿文件（默认预演）；每月 GitHub Action 清理超过 45 天且未被引用的文件 |
 | 🗂 **归档 / 关于** | 时间轴归档页（渐变时间线、月份折叠、Changelog 风格 commit 行：等宽日期/短编号/阅读时长/字数）；**开发者名片式关于页**（固定资料卡、Pinned 项目、技能、经历、私信表单、展示数量上限） |
 | ⚙️ **站点设置** | 后台可随时修改博主名/简介/GitHub/邮箱/**头像（可上传或填 URL）**/备案号，前台即时生效 |
 | 🌗 **深浅色主题** | header 切换按钮；跟随系统偏好 + 手动选择记忆（localStorage） |
@@ -165,7 +167,7 @@ my-blog/
 ├── proxy.ts                        # 路由守卫（Next 16 中 middleware 更名为此）
 ├── drizzle.config.ts               # drizzle-kit 配置（schema → 迁移 SQL）
 ├── supabase/
-│   └── migrations/                 # 数据库迁移 SQL（0001~0017，手动在 SQL Editor 执行）
+│   └── migrations/                 # 数据库迁移 SQL（0001~0018，手动在 SQL Editor 执行）
 ├── scripts/
 │   ├── generate-og.mjs             # 一次性脚本：生成 public/og.png
 │   ├── backup.mjs                  # 数据库备份脚本（导出全表 JSON 到 backups/）
@@ -201,6 +203,7 @@ npm run build   # 生产构建（Next 16 已移除 next lint，构建含类型�
 npm start       # 启动生产服务器
 npm run lint    # ESLint 检查
 npm run check:markdown  # 扫描文章中的压平表格 / 异常 Markdown
+npm run cleanup:storage # 扫描 Storage 孤儿文件（默认预演，不删除）
 ```
 
 ---
@@ -242,7 +245,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `excerpt` | text（可空） | 摘要，用于列表卡片与分享 |
 | `cover_image` | text（可空） | 封面图 URL |
 | `status` | text | `published`（已发布）/ `draft`（草稿，永不公开） |
-| `view_count` | int | 浏览量（RPC `increment_view` 递增，客户端 cookie 防刷） |
+| `view_count` | int | 浏览量（RPC `record_post_view`，`post_views` 按访客/天去重） |
 | `index_status` | text | 向量索引状态（`pending`/`done`/`failed`，发布异步化用） |
 | `created_at` | timestamptz | 创建时间 |
 | `published` | boolean | 兼容旧字段（`status` 的冗余，新代码用 status） |
@@ -323,7 +326,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 公开读的文章图片存储桶（仅博主可上传/删除，RLS 策略见 `0002_rls.sql` / `0003_markdown_draft.sql`；项目封面也复用此桶的 `projects/` 目录）。
 
-> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0017），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0018），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
 
 ---
 

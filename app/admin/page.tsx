@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import AdminClient from "./AdminClient";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { getSiteSettings } from "@/lib/site";
+import { getStorageUsage } from "@/lib/storage";
 import type { Post, Comment } from "@/lib/posts";
 import type { GuestbookMessage, Message } from "@/db/schema";
 
@@ -46,6 +47,7 @@ export default async function AdminPage() {
   ]);
 
   const siteSettings = await getSiteSettings();
+  const storageUsage = await getStorageUsage();
 
   return (
     <AdminClient
@@ -55,6 +57,7 @@ export default async function AdminPage() {
       guestbookMessages={(guestbook ?? []) as GuestbookMessage[]}
       messages={(messages ?? []) as Message[]}
       siteSettings={siteSettings}
+      storageUsage={storageUsage}
     />
   );
 }
