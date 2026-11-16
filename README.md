@@ -67,6 +67,7 @@ npm run lint      # ESLint
 | 🏷️ **Tag system** | Tag posts; `/tags/xxx` tag pages; tags on cards |
 | 🔍 **Search** | Nav search box (debounced), fuzzy search over title/excerpt/content |
 | 📡 **RSS** | `/feed.xml` (Atom), injected into layout |
+| 🕒 **Uptime & changelog** | Footer shows **live site uptime** (days HH:MM:SS, ticks every second, hydration-safe); `/logs` renders a **commit-driven changelog** (GitHub API, 1h ISR cache, test/merge commits filtered, type badges + commit links) |
 | 🗂 **Archives / About** | Timeline archive page (gradient timeline, collapsible month groups, changelog-style commit rows with mono date/short hash/reading time/word count); **developer-profile about page** (sticky profile card, pinned projects, skills, experience, private-message form, display limits) |
 | ⚙️ **Site settings** | Edit author name/intro/GitHub/email/**avatar (upload or URL)**/ICP from admin, instant effect |
 | 🌗 **Light/dark theme** | Header toggle; follows system + manual choice persisted (localStorage) |

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { GitFork, Mail, Feather, FileText } from "lucide-react";
 import { getSiteSettings } from "@/lib/site";
+import SiteUptime from "./SiteUptime";
 
 export default async function SiteFooter() {
   const settings = await getSiteSettings();
@@ -61,6 +62,12 @@ export default async function SiteFooter() {
                   在线简历
                 </Link>
               </li>
+              <li>
+                <Link href="/logs" className="inline-flex items-center gap-2 text-fg-muted transition-colors hover:text-brand-300">
+                  <Feather size={14} className="text-fg-faint" />
+                  更新日志
+                </Link>
+              </li>
               <li className="flex items-center gap-2 text-fg-faint">
                 <Feather size={14} />
                 © {new Date().getFullYear()} {settings.author_name} · jianglai520.com
@@ -68,6 +75,28 @@ export default async function SiteFooter() {
               {settings.icp && <li className="text-fg-faint">{settings.icp}</li>}
             </ul>
           </div>
+        </div>
+
+        {/* 底栏：运行时长 + 次要入口 */}
+        <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-ink-700/50 pt-6 sm:flex-row">
+          <div className="flex items-center gap-2.5">
+            <span className="relative flex h-2 w-2" aria-hidden="true">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-50 motion-reduce:animate-none" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
+            </span>
+            <SiteUptime />
+          </div>
+          <nav
+            className="flex items-center gap-4 text-xs text-fg-faint"
+            aria-label="页脚导航"
+          >
+            <Link href="/logs" className="transition-colors hover:text-brand-300">
+              更新日志
+            </Link>
+            <Link href="/feed.xml" className="transition-colors hover:text-brand-300">
+              RSS
+            </Link>
+          </nav>
         </div>
       </div>
     </footer>
