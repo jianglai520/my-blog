@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState, useActionState } from "react";
 import {
   deleteGuestbookMessage,
   replyGuestbookMessage,
@@ -11,42 +11,102 @@ import type { GuestbookMessage } from "@/db/schema";
 
 const initialState: GuestbookReplyState = { message: "", success: false };
 
-/** 单条留言的博主回复表单：保存 / 更新 / 清空 */
+/** 单条留言的博主回复：默认收起，编辑时展开 */
 function ReplyForm({ message }: { message: GuestbookMessage }) {
+  const [editing, setEditing] = useState(false);
   const [state, action, pending] = useActionState<GuestbookReplyState, FormData>(
     replyGuestbookMessage,
     initialState,
   );
 
+  if (!editing) {
+    return (
+      <div className="mt-3">
+        {message.reply ? (
+          <div className="rounded-xl border border-brand-400/15 bg-brand-500/[0.06] px-4 py-3">
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <span className="text-[11px] tracking-wide text-brand-300">
+                博主回复
+              </span>
+              <div className="flex items-center gap-3">
+                {message.replied_at && (
+                  <span className="font-mono text-[10px] text-fg-faint">
+                    {formatDateTime(message.replied_at)}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  aria-expanded={editing}
+                  className="text-[11px] text-fg-faint transition-colors hover:text-brand-300"
+                >
+                  编辑
+                </button>
+              </div>
+            </div>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-fg-muted">
+              {message.reply}
+            </p>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            aria-expanded={editing}
+            className="text-xs text-fg-faint transition-colors hover:text-brand-300"
+          >
+            ↩ 回复这封来信
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <form action={action} className="mt-3 border-t border-ink-700/60 pt-3">
+    <form
+      action={action}
+      className="mt-3 rounded-xl border border-ink-600/70 bg-ink-900/50 p-3"
+    >
       <input type="hidden" name="messageId" value={message.id} />
       <label
         htmlFor={`reply-${message.id}`}
-        className="mb-1 block text-xs text-fg-faint"
+        className="mb-1.5 block text-[11px] text-fg-faint"
       >
         博主回复
         {message.reply && message.replied_at
-          ? ` · 已回复于 ${formatDateTime(message.replied_at)}`
+          ? ` · 上次回复 ${formatDateTime(message.replied_at)}`
           : ""}
       </label>
       <textarea
         id={`reply-${message.id}`}
         name="reply"
         defaultValue={message.reply ?? ""}
-        rows={2}
+        rows={3}
         maxLength={1000}
-        placeholder="回复这封来信…（清空后保存可清除回复）"
-        className="w-full resize-y rounded-lg border border-ink-600 bg-ink-900 px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-brand-500"
+        autoFocus
+        placeholder="写一封回信…"
+        className="w-full resize-y rounded-lg border border-ink-600 bg-ink-800/70 px-3 py-2 text-sm leading-relaxed text-fg placeholder:text-fg-faint focus:border-brand-500/50 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
       />
-      <div className="mt-2 flex items-center gap-3">
+      <div className="mt-2 flex flex-wrap items-center gap-3">
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg border border-brand-400/40 bg-brand-500/10 px-3 py-1 text-xs text-brand-300 transition-colors hover:bg-brand-500/20 disabled:opacity-50"
+          className="rounded-lg bg-gradient-to-r from-brand-600 to-brand-500 px-3.5 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          {pending ? "保存中…" : message.reply ? "更新回复" : "回复"}
+          {pending ? "保存中…" : message.reply ? "更新回复" : "发送回复"}
         </button>
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          className="text-xs text-fg-faint transition-colors hover:text-fg"
+        >
+          取消
+        </button>
+        {message.reply && (
+          <span className="text-[11px] text-fg-faint">
+            清空内容后保存可删除回复
+          </span>
+        )}
         {state.message && (
           <span
             className={`text-xs ${state.success ? "text-emerald-400" : "text-red-400"}`}
@@ -88,7 +148,7 @@ export default function GuestbookManager({
 
           <ReplyForm message={message} />
 
-          <div className="mt-2">
+          <div className="mt-3 border-t border-ink-700/40 pt-2.5">
             <form
               action={deleteGuestbookMessage}
               onSubmit={(e) => {
@@ -98,9 +158,9 @@ export default function GuestbookManager({
               <input type="hidden" name="messageId" value={message.id} />
               <button
                 type="submit"
-                className="rounded-lg border border-red-400/30 px-3 py-1 text-xs text-red-400 transition-colors hover:bg-red-400/10"
+                className="text-[11px] text-fg-faint transition-colors hover:text-red-400"
               >
-                删除
+                删除留言
               </button>
             </form>
           </div>

@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getGuestbookMessages } from "@/lib/guestbook";
+import { getSiteSettings } from "@/lib/site";
 import { formatDate } from "@/lib/format";
 import GuestbookForm from "./GuestbookForm";
 
 export const metadata: Metadata = { title: "留言" };
 
 export default async function GuestbookPage() {
-  const messages = await getGuestbookMessages();
+  const [messages, settings] = await Promise.all([
+    getGuestbookMessages(),
+    getSiteSettings(),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
@@ -81,20 +85,35 @@ export default async function GuestbookPage() {
                   </span>
                 </div>
 
-                {/* 博主回复 */}
+                {/* 博主回复：信件式回信 */}
                 {message.reply && (
-                  <div className="mt-5 rounded-xl border-l-2 border-brand-400/60 bg-brand-500/5 px-4 py-3">
-                    <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-brand-300">
-                      博主回复
-                    </p>
-                    <p className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-fg-muted">
-                      {message.reply}
-                    </p>
-                    {message.replied_at && (
-                      <p className="mt-2 text-right font-mono text-[10px] text-fg-faint">
-                        {formatDate(message.replied_at)}
+                  <div className="relative mt-6 pl-5">
+                    <span
+                      aria-hidden="true"
+                      className="absolute bottom-1 left-0 top-1 w-px bg-gradient-to-b from-brand-400/70 via-brand-400/30 to-transparent"
+                    />
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-[-2px] top-1.5 h-[5px] w-[5px] rounded-full bg-brand-400"
+                    />
+                    <div className="rounded-2xl bg-gradient-to-br from-brand-500/[0.08] via-brand-500/[0.03] to-transparent px-5 py-4 ring-1 ring-brand-400/10">
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <span className="font-serif text-xs tracking-[0.08em] text-brand-300">
+                          博主回信
+                        </span>
+                        {message.replied_at && (
+                          <span className="font-mono text-[10px] text-fg-faint">
+                            {formatDate(message.replied_at)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="whitespace-pre-wrap font-serif text-[14.5px] leading-[1.95] text-fg-muted">
+                        {message.reply}
                       </p>
-                    )}
+                      <p className="mt-2 text-right font-serif text-xs text-fg-faint">
+                        — {settings.author_name}
+                      </p>
+                    </div>
                   </div>
                 )}
               </article>
