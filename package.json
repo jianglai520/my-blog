@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "check:markdown": "node scripts/check-markdown.mjs",
-    "cleanup:storage": "node scripts/cleanup-storage.mjs"
+    "cleanup:storage": "node scripts/cleanup-storage.mjs",
+    "eval:rag": "node scripts/eval-rag.mjs"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.78.0",

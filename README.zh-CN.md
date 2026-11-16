@@ -44,6 +44,7 @@ npm test          # 单元测试
 npx tsc --noEmit  # 类型检查
 npm run test:e2e  # E2E 测试（需先 build）
 npm run lint      # ESLint
+npm run eval:rag  # RAG 检索评测（Recall@5 / MRR / P95）
 ```
 
 > CI 的 build/E2E 需要 GitHub Secrets：`NEXT_PUBLIC_SUPABASE_URL`、`NEXT_PUBLIC_SUPABASE_ANON_KEY`、`DATABASE_URL`、`TEST_EMAIL`/`TEST_PASSWORD`（E2E 登录与每月存储清理都依赖）。
@@ -66,7 +67,8 @@ npm run lint      # ESLint
 | 📎 **附件上传** | 文章可插入 PDF/Word/Excel/压缩包（**支持多选批量上传**，单个 ≤20MB，浏览器直传）；正文渲染为**附件卡片，带在线预览 + 下载**（PDF/txt/md 直接预览，Office 走 Office Online Viewer）；源码/可视化模式均可插入 |
 | 😀 **表情插入** | 编辑器工具栏「表情」面板，常用 emoji 分组点击插入光标处 |
 | 🏷️ **标签系统** | 写文章打标签；`/tags/xxx` 标签页；首页卡片显示标签 |
-| 🔍 **搜索** | 导航搜索框（防抖），标题/摘要/正文模糊搜索 |
+| 🔍 **搜索** | 导航搜索框（防抖），**相关性排序**（标题 3 / 摘要 2 / 正文 1 + trgm 相似度），trgm GIN 索引 |
+| 🤖 **AI 问答（RAG）** | 文章页悬浮「问 AI」：**混合检索**（pgvector Top8 + trgm 关键词 Top8 → 融合 Top5，单篇最多 2 段）、**SSE 流式输出**、**可点击引用来源**、Prompt 注入防护、数据库限流，并带**评测脚本**（`npm run eval:rag`） |
 | 📡 **RSS** | `/feed.xml`（Atom），layout 注入订阅链接 |
 | 🕒 **运行时长 / 更新日志** | 页脚实时显示**本站已运行**时长（天 HH:MM:SS，逐秒跳动，避免 hydration 不一致）；`/logs` 从仓库提交自动生成**更新日志**（GitHub API、1 小时 ISR 缓存、过滤测试/合并提交、类型徽标 + 提交链接） |
 | 👣 **访客统计** | 自建**累计 UV + 今日 UV**：IP/UA 做 SHA-256 哈希，同一访客每天只记一条，不保存原始 IP；首页统计行与页脚展示 |
@@ -80,7 +82,6 @@ npm run lint      # ESLint
 | 🏷️ **技能页** | `/skills` **Bento + 雷达图**（按分组展示能力分布 + 平均分圆环）+ **核心技术栈**大卡 + 等级文案；后台支持**逐技能独立保存/删除**、分组排序、实时预览，以及描述/年限/图标/核心标记 |
 | 📁 **项目展示** | `/projects` 项目列表页（**紧凑毛玻璃卡片**，点进 `/projects/[slug]` 详情页查看完整简介）；后台**每个项目独立保存/删除**（互不影响），名称/年份/描述/技术栈/链接，**封面支持本地上传或 URL** + **16:9 裁剪预览与位置滑块**，面试展示 |
 | 📄 **在线简历** | `/resume` 一页纸简历（复用资料/技能/项目 + 经历配置，**一键打印导出 PDF**，页脚入口） |
-| 🤖 **AI 问答（RAG）** | 文章页悬浮「问 AI」，**全站文章向量检索**回答（pgvector + BGE-M3 + DeepSeek，IP 限流防刷） |
 | 📄 **llms.txt（GEO）** | 站点根路径 `llms.txt` 输出 AI 可读的文章索引（llmstxt.org 标准）；`robots.txt` 显式允许 GPTBot/ClaudeBot/Google-Extended |
 | 🔝 **返回顶部** | 长文滚动后右下角一键回顶（平滑滚动，AI 按钮上方） |
 | 🎭 **404 趣味页** | 个性化 404（大号渐变 + 快捷入口），文章/标签不存在也走这里 |
@@ -167,7 +168,7 @@ my-blog/
 ├── proxy.ts                        # 路由守卫（Next 16 中 middleware 更名为此）
 ├── drizzle.config.ts               # drizzle-kit 配置（schema → 迁移 SQL）
 ├── supabase/
-│   └── migrations/                 # 数据库迁移 SQL（0001~0018，手动在 SQL Editor 执行）
+│   └── migrations/                 # 数据库迁移 SQL（0001~0019，手动在 SQL Editor 执行）
 ├── scripts/
 │   ├── generate-og.mjs             # 一次性脚本：生成 public/og.png
 │   ├── backup.mjs                  # 数据库备份脚本（导出全表 JSON 到 backups/）
@@ -326,7 +327,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 公开读的文章图片存储桶（仅博主可上传/删除，RLS 策略见 `0002_rls.sql` / `0003_markdown_draft.sql`；项目封面也复用此桶的 `projects/` 目录）。
 
-> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0018），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0019），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
 
 ---
 

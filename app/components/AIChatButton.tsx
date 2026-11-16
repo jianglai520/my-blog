@@ -1,7 +1,14 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { MessageCircle, X, Loader2, Sparkles, GripHorizontal } from "lucide-react";
+
+type Citation = {
+  post_id: number;
+  title: string;
+  href: string;
+  similarity: number;
+};
 
 /** 行内渲染：**粗体** 与 `行内代码`（React 元素安全渲染，防 XSS） */
 function inline(text: string): ReactNode[] {
@@ -69,12 +76,17 @@ export default function AIChatButton({ identifier }: { identifier: string }) {
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
+  const [citations, setCitations] = useState<Citation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   // 拖动位置：null = 默认右下角；拖动后记忆（仅本次会话）
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const dragRef = useRef<{ sx: number; sy: number; ox: number; oy: number } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // 组件卸载时中止未完成的流
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   function startDrag(e: React.MouseEvent) {
     const rect = panelRef.current?.getBoundingClientRect();
@@ -95,22 +107,80 @@ export default function AIChatButton({ identifier }: { identifier: string }) {
   async function ask() {
     const q = question.trim();
     if (!q || loading) return;
+
+    // 新提问先中止上一次未完成的流
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
     setError("");
     setAnswer("");
+    setCitations([]);
+
     try {
       const res = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier, question: q }),
+        signal: controller.signal,
       });
-      const data = (await res.json()) as { answer?: string; error?: string };
-      if (!res.ok) throw new Error(data.error || "请求失败，请稍后再试");
-      setAnswer(data.answer ?? "");
+
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error || "请求失败，请稍后再试");
+      }
+      if (!res.body) throw new Error("浏览器不支持流式响应");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let full = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          const payload = trimmed.slice(5).trim();
+          if (!payload || payload === "[DONE]") continue;
+
+          let event: {
+            type?: string;
+            text?: string;
+            error?: string;
+            citations?: Citation[];
+          };
+          try {
+            event = JSON.parse(payload);
+          } catch {
+            continue;
+          }
+
+          if (event.type === "citations") {
+            setCitations(event.citations ?? []);
+          } else if (event.type === "delta" && event.text) {
+            full += event.text;
+            setAnswer(full);
+          } else if (event.type === "error") {
+            throw new Error(event.error || "回答生成中断，请重试");
+          }
+        }
+      }
     } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
       setError(e instanceof Error ? e.message : "请求失败，请稍后再试");
     } finally {
-      setLoading(false);
+      if (abortRef.current === controller) {
+        abortRef.current = null;
+        setLoading(false);
+      }
     }
   }
 
@@ -168,7 +238,7 @@ export default function AIChatButton({ identifier }: { identifier: string }) {
           </button>
 
           <div className="mt-3 max-h-64 space-y-2 overflow-y-auto text-sm">
-            {loading && (
+            {loading && !answer && (
               <p className="flex items-center gap-2 text-fg-muted">
                 <Loader2 size={14} className="animate-spin" /> AI 正在阅读文章并思考…
               </p>
@@ -178,11 +248,35 @@ export default function AIChatButton({ identifier }: { identifier: string }) {
                 {renderMarkdown(answer)}
               </div>
             )}
+            {citations.length > 0 && (
+              <div className="rounded-lg border border-ink-700/60 bg-ink-800/40 p-2.5">
+                <p className="mb-1.5 text-[11px] font-medium text-fg-faint">
+                  参考来源
+                </p>
+                <ul className="space-y-1">
+                  {citations.map((citation) => (
+                    <li key={citation.post_id}>
+                      <a
+                        href={citation.href}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="flex items-center justify-between gap-2 text-[11px] text-brand-300 transition-colors hover:text-brand-200 hover:underline"
+                      >
+                        <span className="truncate">{citation.title}</span>
+                        <span className="shrink-0 font-mono text-fg-faint">
+                          {Math.round(citation.similarity * 100)}%
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {error && <p className="text-sm text-red-400">{error}</p>}
           </div>
 
           <p className="mt-2 text-[11px] leading-relaxed text-fg-faint">
-            回答基于本文内容生成，内容会发送给 AI 服务；如有偏差请以原文为准。
+            回答基于站内文章生成，内容会发送给 AI 服务；引用来源可点击核对原文。
           </p>
         </div>
       )}

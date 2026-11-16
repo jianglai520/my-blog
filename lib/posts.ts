@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import { posts, comments, tags as tagsTable, postTags, type Post, type Comment } from "@/db/schema";
@@ -176,23 +176,50 @@ export async function getPostsByTag(
   };
 }
 
-/** 搜索已发布文章（标题/摘要/正文 ILIKE），返回前 limit 条 */
+/**
+ * 搜索已发布文章（相关性排序）。
+ * 评分：
+ *   标题命中 3 + 摘要命中 2 + 正文命中 1
+ *   + 标题相似度 × 2 + 摘要相似度 × 1
+ * 依赖 0005 / 0019 的 trgm GIN 索引；正文只作为兜底命中。
+ */
 export async function searchPosts(q: string, limit = 20): Promise<PostWithTags[]> {
-  const pattern = `%${q.trim()}%`;
-  const rows = await db.query.posts.findMany({
-    where: and(
-      eq(posts.status, "published"),
-      or(
-        ilike(posts.title, pattern),
-        ilike(posts.excerpt, pattern),
-        ilike(posts.content, pattern),
-      ),
-    ),
+  const query = q.trim();
+  if (!query) return [];
+  const pattern = `%${query}%`;
+
+  const ranked = await db.execute(sql`
+    select
+      p.id,
+      (
+        case when p.title ilike ${pattern} then 3 else 0 end
+        + case when coalesce(p.excerpt, '') ilike ${pattern} then 2 else 0 end
+        + case when p.content ilike ${pattern} then 1 else 0 end
+        + similarity(p.title, ${query}) * 2
+        + similarity(coalesce(p.excerpt, ''), ${query})
+      ) as score
+    from posts p
+    where p.status = 'published'
+      and (
+        p.title ilike ${pattern}
+        or coalesce(p.excerpt, '') ilike ${pattern}
+        or p.content ilike ${pattern}
+      )
+    order by score desc, p.created_at desc
+    limit ${limit}
+  `);
+
+  const ids = (ranked.rows ?? []).map((row) => Number(row.id));
+  if (ids.length === 0) return [];
+
+  const matched = await db.query.posts.findMany({
+    where: inArray(posts.id, ids),
     with: { postTags: { with: { tag: true } } },
-    orderBy: [desc(posts.created_at)],
-    limit,
   });
-  return rows.map(mapPostTags);
+  const byId = new Map(matched.map((row) => [row.id, mapPostTags(row)]));
+  return ids
+    .map((id) => byId.get(id))
+    .filter((post): post is PostWithTags => Boolean(post));
 }
 
 /** 归档条目（归档页展示用） */

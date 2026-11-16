@@ -44,6 +44,7 @@ npm test          # unit tests
 npx tsc --noEmit  # type check
 npm run test:e2e  # E2E tests (requires build first)
 npm run lint      # ESLint
+npm run eval:rag  # RAG retrieval eval (Recall@5 / MRR / P95)
 ```
 
 > CI build/E2E requires GitHub Secrets: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `DATABASE_URL`, and `TEST_EMAIL`/`TEST_PASSWORD` (E2E login and the monthly storage-cleanup workflow need them).
@@ -66,7 +67,8 @@ npm run lint      # ESLint
 | 📎 **Attachment upload** | Insert PDF/Word/Excel/zip (**multi-select batch**, ≤20MB each, direct browser upload); rendered as a **file card with online preview + download** (PDF/txt/md inline, Office via Office Online Viewer); insertion works in both source and WYSIWYG modes |
 | 😀 **Emoji insertion** | Editor toolbar emoji panel, grouped emojis inserted at cursor |
 | 🏷️ **Tag system** | Tag posts; `/tags/xxx` tag pages; tags on cards |
-| 🔍 **Search** | Nav search box (debounced), fuzzy search over title/excerpt/content |
+| 🔍 **Search** | Nav search box (debounced), **relevance-ranked search** (title 3 / excerpt 2 / content 1 + trgm similarity), trgm GIN indexes |
+| 🤖 **AI Q&A (RAG)** | Floating "Ask AI" on post pages: **hybrid retrieval** (pgvector Top8 + trgm keyword Top8 → fused Top5, max 2 chunks per post), **streaming SSE**, **clickable citations**, prompt-injection guard, DB-backed rate limit, and an **eval script** (`npm run eval:rag`) |
 | 📡 **RSS** | `/feed.xml` (Atom), injected into layout |
 | 🕒 **Uptime & changelog** | Footer shows **live site uptime** (days HH:MM:SS, ticks every second, hydration-safe); `/logs` renders a **commit-driven changelog** (GitHub API, 1h ISR cache, test/merge commits filtered, type badges + commit links) |
 | 👣 **Visitor stats** | Self-hosted **cumulative UV + today UV**: SHA-256 hashed IP/UA, one row per visitor per day, no raw IP stored; shown in footer and homepage stats |
@@ -80,7 +82,6 @@ npm run lint      # ESLint
 | 🏷️ **Skills page** | `/skills` **Bento + radar chart** (ability distribution by group, average-score rings), **core skills** showcase, level labels; admin supports **per-skill save/delete**, group reordering, live preview, and optional description/years/icon/featured fields |
 | 📁 **Projects** | `/projects` list (**compact glass cards**, click into `/projects/[slug]` detail page with full description); each project is **saved/deleted independently** in admin (no batch overwrite); name/year/description/tech/links, **local cover upload or URL**, **16:9 crop preview with position sliders** |
 | 📄 **Online resume** | `/resume` one-page resume (reuses profile/skills/projects + experience config, **print to PDF**, footer entry) |
-| 🤖 **AI Q&A (RAG)** | Floating "Ask AI" on post pages, **site-wide vector search** answers (pgvector + BGE-M3 + DeepSeek, IP rate limit) |
 | 📄 **llms.txt (GEO)** | Root `llms.txt` outputs AI-readable article index (llmstxt.org); `robots.txt` allows GPTBot/ClaudeBot/Google-Extended |
 | 🔝 **Back to top** | Floating button after scroll (smooth scroll, above AI button) |
 | 🎭 **404 page** | Custom 404 (large gradient + quick links), also for missing posts/tags |
@@ -167,7 +168,7 @@ my-blog/
 ├── proxy.ts                        # route guard (Next 16 renamed middleware)
 ├── drizzle.config.ts               # drizzle-kit config (schema → migration SQL)
 ├── supabase/
-│   └── migrations/                 # DB migration SQL (0001~0018, run manually in SQL Editor)
+│   └── migrations/                 # DB migration SQL (0001~0019, run manually in SQL Editor)
 ├── scripts/
 │   ├── generate-og.mjs             # one-off: generate public/og.png
 │   ├── backup.mjs                  # DB backup script (export all tables to backups/)
@@ -327,7 +328,7 @@ Site config (key-value, editable from admin, instant effect):
 
 Public-read image bucket (only the owner can upload/delete, RLS policies in `0002_rls.sql` / `0003_markdown_draft.sql`; project covers reuse the `projects/` folder in this bucket).
 
-> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0018). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
+> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0019). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
 
 ---
 
