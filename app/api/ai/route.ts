@@ -3,18 +3,17 @@ import { headers } from "next/headers";
 import { embedText } from "@/lib/ai";
 import { searchChunks } from "@/lib/rag";
 import { getPostByIdentifier } from "@/lib/posts";
+import { checkRateLimit } from "@/lib/server/rate-limit";
+import { getClientIp, hashIp } from "@/lib/server/ip";
 
 /**
  * 站内 AI 问答（Phase 2 RAG + 当前文章上下文）：
  * 访客提问 → 问题向量化 → pgvector 检索全站分块；
  * 同时带上「当前正在阅读的文章」作为最高优先级上下文（解决"这篇文章"类代词问题）。
- * 安全：① IP 限流（防刷 API 费用）；② API key 仅在服务端。
- *
- * ⚠️ 限流用内存 Map（单实例够用）；多实例部署需换 Redis/数据库限流。
+ * 安全：① IP 限流（数据库实现，serverless 多实例有效）② API key 仅在服务端。
  */
 const RATE_LIMIT_MAX = 3; // 窗口内最多提问次数
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAP = new Map<string, number[]>();
+const RATE_LIMIT_WINDOW_SECONDS = 60;
 
 const MAX_ANSWER_TOKENS = 800;
 const CURRENT_POST_MAX_CHARS = 6000; // 当前文章喂入上限
@@ -25,20 +24,24 @@ const SYSTEM_PROMPT =
   "如果提供的内容中没有相关信息，请如实说明，不要编造。";
 
 export async function POST(req: Request) {
-  // ---------- ① IP 限流 ----------
-  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  const now = Date.now();
-  const recent = (RATE_LIMIT_MAP.get(ip) ?? []).filter(
-    (t) => now - t < RATE_LIMIT_WINDOW_MS,
-  );
-  if (recent.length >= RATE_LIMIT_MAX) {
+  // ---------- ① IP 限流（数据库计数，多实例有效） ----------
+  const ipHash = hashIp(getClientIp(await headers()));
+  const allowed = await checkRateLimit(
+    "ai",
+    ipHash,
+    RATE_LIMIT_MAX,
+    RATE_LIMIT_WINDOW_SECONDS,
+  ).catch((error) => {
+    // 限流表异常时不阻断问答（可用性优先），但记录日志
+    console.error("AI 限流检查失败:", error);
+    return true;
+  });
+  if (!allowed) {
     return NextResponse.json(
       { error: "提问太频繁了，请一分钟后再试" },
       { status: 429 },
     );
   }
-  recent.push(now);
-  RATE_LIMIT_MAP.set(ip, recent);
 
   // ---------- ② 参数校验 ----------
   let body: { identifier?: string; question?: string };

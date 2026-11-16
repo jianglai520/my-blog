@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath, updateTag } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
+import { getClientIp, hashIp } from "@/lib/server/ip";
 import { commentSchema } from "@/lib/validations/comments";
 
 export type CommentFormState = {
@@ -22,13 +23,13 @@ export async function createComment(
   _prev: CommentFormState,
   formData: FormData
 ): Promise<CommentFormState> {
-  // ① 按 IP 限流（防脚本刷评论）
-  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  // ① 按 IP 哈希限流（防脚本刷评论；不保存明文 IP）
+  const ipHash = hashIp(getClientIp(await headers()));
   const supabase = await getServerSupabase();
   const { count, error: countError } = await supabase
     .from("comments")
     .select("id", { count: "exact", head: true })
-    .eq("ip", ip)
+    .eq("ip", ipHash)
     .gte("created_at", new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString());
 
   if (!countError && (count ?? 0) >= RATE_LIMIT_MAX) {
@@ -52,7 +53,7 @@ export async function createComment(
     post_id: postId,
     name,
     content,
-    ip,
+    ip: ipHash,
   });
 
   if (error) {

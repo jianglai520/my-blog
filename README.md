@@ -14,7 +14,7 @@ A full-stack personal blog built with **Next.js 16 + React 19 + Supabase + Verce
 
 | Tech | Version | Purpose |
 |------|---------|---------|
-| **Next.js** | 16.2.9 | Frontend framework (App Router + Turbopack) |
+| **Next.js** | 16.4.6 | Frontend framework (App Router + Turbopack) |
 | **React** | 19.2.4 | UI components |
 | **TypeScript** | ^5 | Type safety |
 | **Tailwind CSS** | ^4 | Styling (CSS-first `@theme` design system) |
@@ -143,7 +143,7 @@ my-blog/
 │   ├── skills/                     # Bento + radar skills page
 │   ├── search/                     # search page
 │   ├── feed.xml/                   # RSS feed (Atom)
-│   ├── og/                         # dynamic OpenGraph image (edge, @vercel/og)
+│   ├── og/                         # dynamic OpenGraph image (edge, next/og)
 │   ├── robots.ts                   # search engine + AI crawler rules
 │   ├── llms.txt/                   # AI-readable site index (llmstxt.org)
 │   ├── sitemap.ts                  # dynamic sitemap
@@ -165,7 +165,7 @@ my-blog/
 ├── proxy.ts                        # route guard (Next 16 renamed middleware)
 ├── drizzle.config.ts               # drizzle-kit config (schema → migration SQL)
 ├── supabase/
-│   └── migrations/                 # DB migration SQL (0001~0016, run manually in SQL Editor)
+│   └── migrations/                 # DB migration SQL (0001~0017, run manually in SQL Editor)
 ├── scripts/
 │   ├── generate-og.mjs             # one-off: generate public/og.png
 │   ├── backup.mjs                  # DB backup script (export all tables to backups/)
@@ -324,7 +324,7 @@ Site config (key-value, editable from admin, instant effect):
 
 Public-read image bucket (only the owner can upload/delete, RLS policies in `0002_rls.sql` / `0003_markdown_draft.sql`; project covers reuse the `projects/` folder in this bucket).
 
-> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0016). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
+> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0017). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
 
 ---
 
@@ -345,6 +345,10 @@ Browser form ──▶ Server Action (zod validation → server session auth →
 | Server Action auth | `requireAdmin()`: only `profiles.is_admin = true` can publish/delete |
 | RLS policies | Even with the public anon key, non-owners cannot modify `posts`; comments can be created anonymously but only the owner can delete |
 | zod validation | All form input validated server-side (required title/content, slug format, comment length) |
+| Rate limiting | DB-backed per-IP-hash counters (`rate_limit_events`): AI 3/min, comments/guestbook/messages 3/min; IP is stored as SHA-256 only |
+| Download proxy | `/api/download` parses the URL and only allows `*.supabase.co/storage/v1/object/public/*` (SSRF-safe) |
+| Security headers | `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options: DENY`, `Permissions-Policy` |
+| Storage hardening | Bucket-level MIME whitelist + 20MB file limit on `post-images` (direct browser uploads) |
 
 On first deployment, run in the Supabase console:
 

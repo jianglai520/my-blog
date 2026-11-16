@@ -13,19 +13,18 @@
     "check:markdown": "node scripts/check-markdown.mjs"
   },
   "dependencies": {
-    "@sentry/nextjs": "^10.69.0",
+    "@sentry/nextjs": "^10.78.0",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.108.2",
-    "@tiptap/extension-image": "^3.29.2",
-    "@tiptap/markdown": "^3.29.2",
-    "@tiptap/pm": "^3.29.2",
-    "@tiptap/react": "^3.29.2",
-    "@tiptap/starter-kit": "^3.29.2",
+    "@tiptap/extension-image": "^3.34.0",
+    "@tiptap/markdown": "^3.34.0",
+    "@tiptap/pm": "^3.34.0",
+    "@tiptap/react": "^3.34.0",
+    "@tiptap/starter-kit": "^3.34.0",
     "@vercel/analytics": "^2.0.1",
-    "@vercel/og": "^0.11.1",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.28.0",
-    "next": "16.2.9",
+    "next": "16.4.6",
     "next-themes": "^0.4.6",
     "pg": "^8.22.0",
     "postgres": "^3.4.9",
@@ -38,7 +37,7 @@
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
     "shiki": "^4.4.1",
-    "zod": "^4.4.3"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

@@ -14,7 +14,7 @@
 
 | 技术 | 版本 | 用途 |
 |------|------|------|
-| **Next.js** | 16.2.9 | 前端框架（App Router + Turbopack） |
+| **Next.js** | 16.4.6 | 前端框架（App Router + Turbopack） |
 | **React** | 19.2.4 | UI 组件 |
 | **TypeScript** | ^5 | 类型安全 |
 | **Tailwind CSS** | ^4 | 样式（CSS-first `@theme` 设计系统） |
@@ -143,7 +143,7 @@ my-blog/
 │   ├── skills/                     # Bento + 雷达图技能页
 │   ├── search/                     # 搜索页
 │   ├── feed.xml/                   # RSS 订阅（Atom）
-│   ├── og/                         # 动态 OpenGraph 分享图（edge，@vercel/og）
+│   ├── og/                         # 动态 OpenGraph 分享图（edge，next/og）
 │   ├── robots.ts                   # 搜索引擎 + AI 爬虫规则（GPTBot/ClaudeBot 允许）
 │   ├── llms.txt/                   # AI 可读站点索引（llmstxt.org 标准，route.ts 动态生成）
 │   ├── sitemap.ts                  # 站点地图（动态生成）
@@ -165,7 +165,7 @@ my-blog/
 ├── proxy.ts                        # 路由守卫（Next 16 中 middleware 更名为此）
 ├── drizzle.config.ts               # drizzle-kit 配置（schema → 迁移 SQL）
 ├── supabase/
-│   └── migrations/                 # 数据库迁移 SQL（0001~0016，手动在 SQL Editor 执行）
+│   └── migrations/                 # 数据库迁移 SQL（0001~0017，手动在 SQL Editor 执行）
 ├── scripts/
 │   ├── generate-og.mjs             # 一次性脚本：生成 public/og.png
 │   ├── backup.mjs                  # 数据库备份脚本（导出全表 JSON 到 backups/）
@@ -323,7 +323,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 公开读的文章图片存储桶（仅博主可上传/删除，RLS 策略见 `0002_rls.sql` / `0003_markdown_draft.sql`；项目封面也复用此桶的 `projects/` 目录）。
 
-> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0016），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0017），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
 
 ---
 
@@ -344,6 +344,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | Server Actions 鉴权 | `requireAdmin()`：仅 `profiles.is_admin = true` 的博主可发文/删文 |
 | RLS 策略 | 即使拿到公开 anon key 直连数据库，非博主也无法增删改 `posts`；评论匿名可发但仅博主可删 |
 | zod 校验 | 所有表单输入在服务端校验（标题/内容必填、slug 格式、评论限长） |
+| 限流 | 数据库按 IP 哈希计数（`rate_limit_events`）：AI 3 次/分，评论/留言/私信 3 次/分；IP 只存 SHA-256 |
+| 下载代理 | `/api/download` 解析 URL，仅放行 `*.supabase.co/storage/v1/object/public/*`（防 SSRF） |
+| 安全响应头 | `X-Content-Type-Options`、`Referrer-Policy`、`X-Frame-Options: DENY`、`Permissions-Policy` |
+| Storage 加固 | `post-images` 桶配置 MIME 白名单 + 20MB 单文件上限（浏览器直传场景） |
 
 首次部署需在 Supabase 控制台执行：
 

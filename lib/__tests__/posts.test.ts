@@ -36,6 +36,8 @@ const basePost = {
   view_count: 10,
   created_at: "2026-08-02T10:00:00Z",
   published: true,
+  pinned: false,
+  index_status: "done",
 };
 
 /* ============ 纯函数：标签映射 ============ */

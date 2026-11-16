@@ -19,6 +19,7 @@ const baseSettings: SiteSettings = {
   icp: "",
   skills: "[]",
   projects: "[]",
+  resume: "[]",
 };
 
 describe("SettingsForm 站点设置表单", () => {

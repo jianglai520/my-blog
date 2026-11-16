@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
+import { getClientIp, hashIp } from "@/lib/server/ip";
 import { guestbookSchema } from "@/lib/validations/guestbook";
 
 export type GuestbookFormState = {
@@ -22,13 +23,13 @@ export async function createGuestbookMessage(
   _prev: GuestbookFormState,
   formData: FormData
 ): Promise<GuestbookFormState> {
-  // ① 按 IP 限流（防脚本刷留言）
-  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  // ① 按 IP 哈希限流（防脚本刷留言；不保存明文 IP）
+  const ipHash = hashIp(getClientIp(await headers()));
   const supabase = await getServerSupabase();
   const { count, error: countError } = await supabase
     .from("guestbook_messages")
     .select("id", { count: "exact", head: true })
-    .eq("ip", ip)
+    .eq("ip", ipHash)
     .gte("created_at", new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString());
 
   if (!countError && (count ?? 0) >= RATE_LIMIT_MAX) {
@@ -50,7 +51,7 @@ export async function createGuestbookMessage(
   const { error } = await supabase.from("guestbook_messages").insert({
     name: parsed.data.name,
     content: parsed.data.content,
-    ip,
+    ip: ipHash,
   });
 
   if (error) {

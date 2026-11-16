@@ -20,6 +20,23 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "cdn.jsdelivr.net" },
     ],
   },
+  // 基础安全响应头（CSP 需要 nonce，后续单独以 Report-Only 方式引入）
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-Frame-Options", value: "DENY" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

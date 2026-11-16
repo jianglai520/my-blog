@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
+import { getClientIp, hashIp } from "@/lib/server/ip";
 import { messageSchema } from "@/lib/validations/message";
 
 export type MessageFormState = {
@@ -22,13 +23,13 @@ export async function createMessage(
   _prev: MessageFormState,
   formData: FormData
 ): Promise<MessageFormState> {
-  // ① 按 IP 限流（防脚本刷私信）
-  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  // ① 按 IP 哈希限流（防脚本刷私信；不保存明文 IP）
+  const ipHash = hashIp(getClientIp(await headers()));
   const supabase = await getServerSupabase();
   const { count, error: countError } = await supabase
     .from("messages")
     .select("id", { count: "exact", head: true })
-    .eq("ip", ip)
+    .eq("ip", ipHash)
     .gte("created_at", new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString());
 
   if (!countError && (count ?? 0) >= RATE_LIMIT_MAX) {
@@ -52,7 +53,7 @@ export async function createMessage(
     name: parsed.data.name,
     contact: parsed.data.contact || null,
     content: parsed.data.content,
-    ip,
+    ip: ipHash,
   });
 
   if (error) {

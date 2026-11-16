@@ -122,6 +122,19 @@ export const siteVisits = pgTable("site_visits", {
     .defaultNow(),
 });
 
+/**
+ * 通用限流事件（数据库限流，serverless 多实例可用）。
+ * bucket + identifier + created_at 构成窗口计数依据；identifier 用 IP 哈希。
+ */
+export const rateLimitEvents = pgTable("rate_limit_events", {
+  id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
+  bucket: text("bucket").notNull(),
+  identifier: text("identifier").notNull(),
+  created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
+    .notNull()
+    .defaultNow(),
+});
+
 /* ================= relations（供 db.query 嵌套查询） ================= */
 
 export const postsRelations = relations(posts, ({ many }) => ({

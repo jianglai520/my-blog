@@ -17,16 +17,20 @@ vi.mock("next/link", () => ({
 
 const basePost = {
   id: 1,
+  author_id: null,
   slug: "hello",
   title: "你好，世界",
   content: "这是一段正文内容，用于摘要兜底。",
   excerpt: "手动摘要",
   cover_image: null,
   status: "published",
+  published: true,
+  pinned: false,
   view_count: 10,
+  index_status: "done",
   created_at: "2026-08-02T10:00:00Z",
   tags: [{ name: "Next.js", slug: "nextjs" }],
-} as const;
+};
 
 describe("PostCard 文章卡片", () => {
   it("渲染标题 / 摘要 / 阅读数 / 标签 / 日期", () => {
