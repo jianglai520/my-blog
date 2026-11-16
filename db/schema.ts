@@ -47,6 +47,9 @@ export const comments = pgTable("comments", {
   name: text("name").notNull(),
   content: text("content").notNull(),
   status: text("status").notNull().default("approved"),
+  // 博主回复：reply 为空表示未回复
+  reply: text("reply"),
+  replied_at: timestamp("replied_at", { withTimezone: true, mode: "string" }),
   created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
 

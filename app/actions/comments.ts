@@ -113,3 +113,55 @@ export async function batchDeleteComments(ids: number[]): Promise<void> {
   revalidatePath("/admin");
   updateTag("comments");
 }
+
+export type CommentReplyState = {
+  message: string;
+  success: boolean;
+};
+
+/**
+ * 博主回复评论。
+ * reply 为空字符串时表示清除回复（reply/replied_at 置空）。
+ */
+export async function replyComment(
+  _prev: CommentReplyState,
+  formData: FormData,
+): Promise<CommentReplyState> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { message: "❌ 无权限执行此操作", success: false };
+  }
+
+  const commentId = Number(formData.get("commentId"));
+  if (!Number.isFinite(commentId) || commentId <= 0) {
+    return { message: "❌ 评论 ID 不合法", success: false };
+  }
+
+  const replyText = String(formData.get("reply") ?? "").trim();
+  if (replyText.length > 1000) {
+    return { message: "❌ 回复最长 1000 字", success: false };
+  }
+
+  const supabase = await getServerSupabase();
+  const { error } = await supabase
+    .from("comments")
+    .update({
+      reply: replyText || null,
+      replied_at: replyText ? new Date().toISOString() : null,
+    })
+    .eq("id", commentId);
+
+  if (error) {
+    console.error("回复评论失败:", error);
+    return { message: "❌ 保存失败，请稍后重试", success: false };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  updateTag("comments");
+  return {
+    message: replyText ? "✅ 回复已保存" : "✅ 回复已清除",
+    success: true,
+  };
+}

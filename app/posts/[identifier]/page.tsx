@@ -13,6 +13,7 @@ import ImageLightbox from "@/app/components/ImageLightbox";
 import AIChatButton from "@/app/components/AIChatButton";
 import ShareButton from "@/app/components/ShareButton";
 import { getComments, getPostByIdentifier } from "@/lib/posts";
+import { getSiteSettings } from "@/lib/site";
 import { formatDateTime, postHref, readingMinutes } from "@/lib/format";
 
 const SITE_URL = "https://jianglai520.com";
@@ -82,7 +83,10 @@ export default async function PostPage({ params }: Props) {
     permanentRedirect(`/posts/${post.slug}`);
   }
 
-  const comments = await getComments(post.id);
+  const [comments, settings] = await Promise.all([
+    getComments(post.id),
+    getSiteSettings(),
+  ]);
   const minutes = post.content ? readingMinutes(post.content) : null;
 
   // 文章级结构化数据（Article）
@@ -197,6 +201,28 @@ export default async function PostPage({ params }: Props) {
                   </span>
                 </div>
                 <p className="text-fg-muted">{comment.content}</p>
+
+                {/* 博主回复 */}
+                {comment.reply && (
+                  <div className="mt-4 rounded-xl border-l-2 border-brand-400/50 bg-brand-500/[0.06] px-4 py-3">
+                    <div className="mb-1 flex items-center justify-between gap-3">
+                      <span className="text-[11px] tracking-wide text-brand-300">
+                        博主回复
+                      </span>
+                      {comment.replied_at && (
+                        <span className="font-mono text-[10px] text-fg-faint">
+                          {formatDateTime(comment.replied_at)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-fg-muted">
+                      {comment.reply}
+                    </p>
+                    <p className="mt-1.5 text-right font-serif text-xs text-fg-faint">
+                      — {settings.author_name}
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>

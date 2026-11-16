@@ -1,11 +1,126 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useActionState } from "react";
 import { useRouter } from "next/navigation";
-import { deleteComment, batchDeleteComments } from "@/app/actions/comments";
+import {
+  deleteComment,
+  batchDeleteComments,
+  replyComment,
+  type CommentReplyState,
+} from "@/app/actions/comments";
 import { formatDateTime, postHref } from "@/lib/format";
 import type { Comment } from "@/lib/posts";
 import type { AdminPost } from "./shared";
+
+const initialReplyState: CommentReplyState = { message: "", success: false };
+
+/** 单条评论的博主回复：默认收起，编辑时展开 */
+function CommentReplyForm({ comment }: { comment: Comment }) {
+  const [editing, setEditing] = useState(false);
+  const [state, action, pending] = useActionState<CommentReplyState, FormData>(
+    replyComment,
+    initialReplyState,
+  );
+
+  if (!editing) {
+    return (
+      <div className="mt-3">
+        {comment.reply ? (
+          <div className="rounded-xl border border-brand-400/15 bg-brand-500/[0.06] px-4 py-3">
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <span className="text-[11px] tracking-wide text-brand-300">
+                博主回复
+              </span>
+              <div className="flex items-center gap-3">
+                {comment.replied_at && (
+                  <span className="font-mono text-[10px] text-fg-faint">
+                    {formatDateTime(comment.replied_at)}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  aria-expanded={editing}
+                  className="text-[11px] text-fg-faint transition-colors hover:text-brand-300"
+                >
+                  编辑
+                </button>
+              </div>
+            </div>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-fg-muted">
+              {comment.reply}
+            </p>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            aria-expanded={editing}
+            className="text-xs text-fg-faint transition-colors hover:text-brand-300"
+          >
+            ↩ 回复这条评论
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <form
+      action={action}
+      className="mt-3 rounded-xl border border-ink-600/70 bg-ink-900/50 p-3"
+    >
+      <input type="hidden" name="commentId" value={comment.id} />
+      <label
+        htmlFor={`reply-${comment.id}`}
+        className="mb-1.5 block text-[11px] text-fg-faint"
+      >
+        博主回复
+        {comment.reply && comment.replied_at
+          ? ` · 上次回复 ${formatDateTime(comment.replied_at)}`
+          : ""}
+      </label>
+      <textarea
+        id={`reply-${comment.id}`}
+        name="reply"
+        defaultValue={comment.reply ?? ""}
+        rows={3}
+        maxLength={1000}
+        autoFocus
+        placeholder="写一条回复…"
+        className="w-full resize-y rounded-lg border border-ink-600 bg-ink-800/70 px-3 py-2 text-sm leading-relaxed text-fg placeholder:text-fg-faint focus:border-brand-500/50 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+      />
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-lg bg-gradient-to-r from-brand-600 to-brand-500 px-3.5 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          {pending ? "保存中…" : comment.reply ? "更新回复" : "发送回复"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          className="text-xs text-fg-faint transition-colors hover:text-fg"
+        >
+          取消
+        </button>
+        {comment.reply && (
+          <span className="text-[11px] text-fg-faint">
+            清空内容后保存可删除回复
+          </span>
+        )}
+        {state.message && (
+          <span
+            className={`text-xs ${state.success ? "text-emerald-400" : "text-red-400"}`}
+          >
+            {state.message}
+          </span>
+        )}
+      </div>
+    </form>
+  );
+}
 
 /**
  * 评论管理列表：勾选 + 全选 + 批量删除，或逐条删除。
@@ -130,6 +245,7 @@ export default function CommentManager({
                     )}
                   </div>
                   <p className="text-fg-muted">{comment.content}</p>
+                  <CommentReplyForm comment={comment} />
                 </div>
 
                 <div className="flex flex-shrink-0 items-center gap-2">

@@ -31,7 +31,7 @@ export default async function AdminPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("comments")
-      .select("id,post_id,name,content,created_at,status")
+      .select("id,post_id,name,content,reply,replied_at,created_at,status")
       .order("created_at", { ascending: false })
       .limit(200),
     supabase
