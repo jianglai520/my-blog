@@ -10,33 +10,60 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## 技术栈
 
-- **Next.js 16**（App Router + Turbopack）+ **React 19** + **TypeScript** + **Tailwind CSS 4**
+- **Next.js 16.4.6**（App Router + Turbopack）+ **React 19** + **TypeScript** + **Tailwind CSS 4**
+- 编辑器：**TipTap 3.34**（默认源码模式，保存 Markdown）
 - **Drizzle ORM**（公开读，直连 Postgres）+ **Supabase**（Auth + 写操作 + Storage）
-- 部署：**Vercel**（Git push 自动部署）；测试：**Vitest** + **Playwright**；CI：**GitHub Actions**
+- AI：**BGE-M3**（1024 维 embedding）+ **pgvector** + **pg_trgm** + **DeepSeek**（流式）
+- 部署：**Vercel**；测试：**Vitest** + **Playwright**；CI：**GitHub Actions**
 
 ## 数据访问（安全约定，必须遵守）
 
-- **公开读**：`lib/posts.ts` 用 Drizzle 直连（绕过 RLS），**必须显式过滤 `status = 'published'`**（草稿永不公开）；评论只返回 `approved`
+- **公开读**：`lib/posts.ts` / `lib/rag.ts` 用 Drizzle 直连（绕过 RLS），**必须显式过滤 `status = 'published'`**（草稿永不公开）；评论只返回 `approved`
 - **写操作**：一律走 **Server Actions**（`app/actions/`），服务端 `requireAdmin()` 鉴权 + 数据库 RLS 双保险
 - **浏览器端零数据库写权限**；**绝不使用 `service_role` key**（会绕过 RLS）
 - 连接池：`lib/db.ts` 用 `pg` 驱动 + globalThis 缓存（生产模式也必须复用）
+- **IP 不落明文**：统一 `sha256(IP | salt)`（`lib/server/ip.ts`），用于限流、浏览量、访客统计
+- **限流**：`rate_limit_events` 表 + `lib/server/rate-limit.ts`；不要用进程内 Map（Vercel 多实例失效）
+- **浏览量**：`record_post_view` RPC + `post_views` 表，同一访客每天每篇只计一次
+- **访客 UV**：`site_visits` + `/api/visit`，按天去重；站长登录态与爬虫不计入
+
+## AI / RAG 约定
+
+- 检索：**向量 Top8 + 关键词 Top8 → 融合 0.7/0.3 → 单篇最多 2 段 → Top5**
+- 关键词提取：英文术语整词 + 中文双字滑窗（`lib/rag.ts → extractKeywords`），不要整句 ILIKE
+- 生成：DeepSeek `stream: true`，API 返回 **SSE**（`citations → delta → done`）
+- 检索内容视为**不可信数据**：`<untrusted_articles>` 包裹、清洗边界标签、System Prompt 明确忽略资料内指令
+- 改动检索逻辑后必须跑 `npm run eval:rag`，并在文档中更新 Recall@5 / MRR / P95
+- 索引异步：发布只标记 `index_status='pending'`，由 `scripts/index-posts.mjs` / GitHub Actions 补偿
 
 ## 常用命令
 
 ```bash
-npm run dev        # 开发（localhost:3000）
-npm run build      # 生产构建
-npm run start      # 生产服务器
-npm run lint       # ESLint
-npm test           # Vitest 单测
-npm run test:e2e   # Playwright E2E（生产模式，需先 build）
+npm run dev            # 开发（localhost:3000）
+npm run build          # 生产构建
+npm run start          # 生产服务器
+npm run lint           # ESLint
+npx tsc --noEmit       # 类型检查（CI 门禁，必须保持全绿）
+npm test               # Vitest 单测
+npm run test:e2e       # Playwright E2E（生产模式，需先 build）
+npm run eval:rag       # RAG 检索评测（Recall@5 / MRR / P95）
+npm run cleanup:storage # Storage 孤儿文件扫描（默认预演，不删除）
 ```
 
 ## 数据库迁移
 
-- 迁移脚本在 `supabase/migrations/`（0001~0008，幂等），**手动在 Supabase SQL Editor 执行**
+- 迁移脚本在 `supabase/migrations/`（**0001~0019**，幂等），**手动在 Supabase SQL Editor 执行**
 - **新表必须同时配「表级 GRANT + RLS 策略」**；公开读/写路径要用 **anon（未登录）身份**测试，不能只用登录态
 - 旧表结构变更：`create table if not exists` 不补已存在表，需显式 `ALTER TABLE`
+- 涉及安全函数（RPC）时：`security definer` + `set search_path = public`，并 `revoke ... from public` 后只 grant 必要角色
+- 近期新增：`site_visits`（UV）、`rate_limit_events`（限流）、`post_views`（浏览量去重）、trgm 检索索引（0019）
+
+## 安全约定
+
+- 安全响应头在 `next.config.ts`（nosniff / Referrer-Policy / X-Frame-Options / Permissions-Policy）
+- `/api/download` 必须用 `new URL()` 校验 hostname 与 pathname，**禁止用 `includes` 做 URL 白名单**
+- Storage 桶 `post-images` 有 MIME 白名单 + 20MB 单文件上限；上传失败必须给出明确提示
+- 依赖升级后必须跑 `npm audit`（官方 registry）并回归 lint/tsc/test/build
 
 ## 设计系统
 
@@ -48,8 +75,17 @@ npm run test:e2e   # Playwright E2E（生产模式，需先 build）
 
 - 单测聚焦**纯逻辑 + 权限分支**（mock `@/lib/server/supabase`；mock 清理用 `vi.resetAllMocks()`）
 - E2E **必须用生产模式**（`build + start`，不用 dev）；登录测试凭据走 `TEST_EMAIL`/`TEST_PASSWORD` 环境变量（未配置跳过）
+- CI 门禁：lint → `tsc --noEmit` → 单测 → build → E2E；类型错误必须当场修掉
+- RAG 相关改动：同步更新 `data/eval/rag-qa.jsonl` 或在文档记录评测结果
 
 ## 文档
 
-- `README.md`：使用/部署；`supabase/migrations/`：数据库档案；桌面 `my-blog搭建/` 文件夹：优化方案/面试/经验文档
+- `README.md` / `README.zh-CN.md`：使用、部署、安全架构、功能清单
+- `supabase/migrations/`：数据库档案；`scripts/`：索引、备份、清理、评测脚本
+- 桌面 `my-blog搭建/`：
+  - `项目优化方案.md`：每批改动的实施记录
+  - `开发经验与踩坑合集.md`：可复用经验
+  - `AI问答RAG实战详解.md`：架构、指标、面试追问
+  - `面试准备与项目总结.md`：项目亮点与问答
+  - `存储孤儿文件说明.md`：Storage 生命周期
 - 每次功能或修复后，同步更新对应文档（工程化可交付）
