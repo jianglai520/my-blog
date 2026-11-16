@@ -77,7 +77,7 @@ npm run eval:rag  # RAG retrieval eval (Recall@5 / MRR / P95)
 | ⚙️ **Site settings** | Edit author name/intro/GitHub/email/**avatar (upload or URL)**/ICP from admin, instant effect |
 | 🌗 **Light/dark theme** | Header toggle; follows system + manual choice persisted (localStorage) |
 | 💬 Comments | Name + content, instant display; admin single delete / **bulk delete** (60s IP rate limit) |
-| 💬 **Guestbook** | Standalone `/guestbook` page in **letter/editorial style** (serif letters, signature line, decorative quote), anonymous + IP rate limit, admin delete |
+| 💬 **Guestbook** | Standalone `/guestbook` page in **letter/editorial style** (serif letters, signature line, decorative quote), anonymous + IP rate limit; **owner can reply** from admin, reply shown under each letter; admin delete |
 | ✉️ **Private messages** | About-page message form (name/contact optional, **content only visible to owner**), anonymous + IP rate limit, admin view/delete |
 | 🏷️ **Skills page** | `/skills` **Bento + radar chart** (ability distribution by group, average-score rings), **core skills** showcase, level labels; admin supports **per-skill save/delete**, group reordering, live preview, and optional description/years/icon/featured fields |
 | 📁 **Projects** | `/projects` list (**compact glass cards**, click into `/projects/[slug]` detail page with full description); each project is **saved/deleted independently** in admin (no batch overwrite); name/year/description/tech/links, **local cover upload or URL**, **16:9 crop preview with position sliders** |
@@ -168,7 +168,7 @@ my-blog/
 ├── proxy.ts                        # route guard (Next 16 renamed middleware)
 ├── drizzle.config.ts               # drizzle-kit config (schema → migration SQL)
 ├── supabase/
-│   └── migrations/                 # DB migration SQL (0001~0019, run manually in SQL Editor)
+│   └── migrations/                 # DB migration SQL (0001~0020, run manually in SQL Editor)
 ├── scripts/
 │   ├── generate-og.mjs             # one-off: generate public/og.png
 │   ├── backup.mjs                  # DB backup script (export all tables to backups/)
@@ -270,7 +270,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `id` | int8 / PK | Primary key |
 | `name` | text | Nickname |
 | `content` | text | Message content |
-| `ip` | text (nullable) | IP (60s rate limit) |
+| `ip` | text (nullable) | IP hash (60s rate limit) |
+| `reply` | text (nullable) | Owner reply (null = not replied) |
+| `replied_at` | timestamptz (nullable) | Reply time |
 | `created_at` | timestamptz | Creation time |
 
 ### Table `messages` (private messages)
@@ -328,7 +330,7 @@ Site config (key-value, editable from admin, instant effect):
 
 Public-read image bucket (only the owner can upload/delete, RLS policies in `0002_rls.sql` / `0003_markdown_draft.sql`; project covers reuse the `projects/` folder in this bucket).
 
-> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0019). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
+> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0020). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
 
 ---
 

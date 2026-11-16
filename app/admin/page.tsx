@@ -36,7 +36,7 @@ export default async function AdminPage() {
       .limit(200),
     supabase
       .from("guestbook_messages")
-      .select("id,name,content,created_at")
+      .select("id,name,content,reply,replied_at,created_at")
       .order("created_at", { ascending: false })
       .limit(200),
     supabase

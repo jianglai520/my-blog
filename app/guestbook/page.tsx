@@ -80,6 +80,23 @@ export default async function GuestbookPage() {
                     {formatDate(message.created_at)}
                   </span>
                 </div>
+
+                {/* 博主回复 */}
+                {message.reply && (
+                  <div className="mt-5 rounded-xl border-l-2 border-brand-400/60 bg-brand-500/5 px-4 py-3">
+                    <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-brand-300">
+                      博主回复
+                    </p>
+                    <p className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-fg-muted">
+                      {message.reply}
+                    </p>
+                    {message.replied_at && (
+                      <p className="mt-2 text-right font-mono text-[10px] text-fg-faint">
+                        {formatDate(message.replied_at)}
+                      </p>
+                    )}
+                  </div>
+                )}
               </article>
             ))}
           </div>

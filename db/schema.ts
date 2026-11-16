@@ -56,6 +56,9 @@ export const guestbookMessages = pgTable("guestbook_messages", {
   name: text("name").notNull(),
   content: text("content").notNull(),
   ip: text("ip"),
+  // 博主回复：reply 为空表示未回复
+  reply: text("reply"),
+  replied_at: timestamp("replied_at", { withTimezone: true, mode: "string" }),
   created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
 
