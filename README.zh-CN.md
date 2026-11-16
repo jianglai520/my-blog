@@ -68,6 +68,7 @@ npm run lint      # ESLint
 | 🔍 **搜索** | 导航搜索框（防抖），标题/摘要/正文模糊搜索 |
 | 📡 **RSS** | `/feed.xml`（Atom），layout 注入订阅链接 |
 | 🕒 **运行时长 / 更新日志** | 页脚实时显示**本站已运行**时长（天 HH:MM:SS，逐秒跳动，避免 hydration 不一致）；`/logs` 从仓库提交自动生成**更新日志**（GitHub API、1 小时 ISR 缓存、过滤测试/合并提交、类型徽标 + 提交链接） |
+| 👣 **访客统计** | 自建**累计 UV + 今日 UV**：IP/UA 做 SHA-256 哈希，同一访客每天只记一条，不保存原始 IP；首页统计行与页脚展示 |
 | 🗂 **归档 / 关于** | 时间轴归档页（渐变时间线、月份折叠、Changelog 风格 commit 行：等宽日期/短编号/阅读时长/字数）；**开发者名片式关于页**（固定资料卡、Pinned 项目、技能、经历、私信表单、展示数量上限） |
 | ⚙️ **站点设置** | 后台可随时修改博主名/简介/GitHub/邮箱/**头像（可上传或填 URL）**/备案号，前台即时生效 |
 | 🌗 **深浅色主题** | header 切换按钮；跟随系统偏好 + 手动选择记忆（localStorage） |
@@ -164,7 +165,7 @@ my-blog/
 ├── proxy.ts                        # 路由守卫（Next 16 中 middleware 更名为此）
 ├── drizzle.config.ts               # drizzle-kit 配置（schema → 迁移 SQL）
 ├── supabase/
-│   └── migrations/                 # 数据库迁移 SQL（0001~0014，手动在 SQL Editor 执行）
+│   └── migrations/                 # 数据库迁移 SQL（0001~0016，手动在 SQL Editor 执行）
 ├── scripts/
 │   ├── generate-og.mjs             # 一次性脚本：生成 public/og.png
 │   ├── backup.mjs                  # 数据库备份脚本（导出全表 JSON 到 backups/）
@@ -322,7 +323,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 公开读的文章图片存储桶（仅博主可上传/删除，RLS 策略见 `0002_rls.sql` / `0003_markdown_draft.sql`；项目封面也复用此桶的 `projects/` 目录）。
 
-> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0014），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0016），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
 
 ---
 

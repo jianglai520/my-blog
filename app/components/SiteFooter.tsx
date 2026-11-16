@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { GitFork, Mail, Feather, FileText } from "lucide-react";
 import { getSiteSettings } from "@/lib/site";
+import { getVisitStats } from "@/lib/visits";
 import SiteUptime from "./SiteUptime";
 
 export default async function SiteFooter() {
-  const settings = await getSiteSettings();
+  const [settings, visits] = await Promise.all([
+    getSiteSettings(),
+    getVisitStats(),
+  ]);
 
   const socials = [
     settings.github && { label: "GitHub", href: settings.github, icon: GitFork },
@@ -79,12 +83,22 @@ export default async function SiteFooter() {
 
         {/* 底栏：运行时长 + 次要入口 */}
         <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-ink-700/50 pt-6 sm:flex-row">
-          <div className="flex items-center gap-2.5">
-            <span className="relative flex h-2 w-2" aria-hidden="true">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-50 motion-reduce:animate-none" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
+            <span className="flex items-center gap-2.5">
+              <span className="relative flex h-2 w-2" aria-hidden="true">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-50 motion-reduce:animate-none" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
+              </span>
+              <SiteUptime />
             </span>
-            <SiteUptime />
+            <span className="hidden text-fg-faint sm:inline" aria-hidden="true">
+              ·
+            </span>
+            <span className="font-mono text-xs tabular-nums text-fg-faint">
+              累计访客 <span className="text-fg-muted">{visits.totalUv}</span>
+              <span className="mx-1.5 text-fg-faint">/</span>
+              今日 <span className="text-fg-muted">{visits.todayUv}</span>
+            </span>
           </div>
           <nav
             className="flex items-center gap-4 text-xs text-fg-faint"

@@ -4,6 +4,7 @@ import { GitFork, Mail, ArrowRight } from "lucide-react";
 import PostCard from "@/app/components/PostCard";
 import { getPublishedPosts, getTags, getSiteStats } from "@/lib/posts";
 import { getSiteSettings } from "@/lib/site";
+import { getVisitStats } from "@/lib/visits";
 
 const PAGE_SIZE = 10;
 
@@ -24,11 +25,12 @@ export default async function Home({
   const { page: pageStr } = await searchParams;
   const page = Math.max(1, Number(pageStr) || 1);
 
-  const [{ posts, total }, settings, stats, tags] = await Promise.all([
+  const [{ posts, total }, settings, stats, tags, visits] = await Promise.all([
     getPublishedPosts(page, PAGE_SIZE),
     getSiteSettings(),
     getSiteStats(),
     getTags(),
+    getVisitStats(),
   ]);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const hotTags = tags.slice(0, 8);
@@ -96,6 +98,15 @@ export default async function Home({
                   : stats.totalViews}
               </span>{" "}
               次浏览
+            </span>
+            <span className="text-ink-600">·</span>
+            <span>
+              <span className="font-semibold text-fg">
+                {visits.totalUv >= 1000
+                  ? `${(visits.totalUv / 1000).toFixed(1)}k`
+                  : visits.totalUv}
+              </span>{" "}
+              位访客
             </span>
           </div>
 

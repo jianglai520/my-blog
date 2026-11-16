@@ -68,6 +68,7 @@ npm run lint      # ESLint
 | 🔍 **Search** | Nav search box (debounced), fuzzy search over title/excerpt/content |
 | 📡 **RSS** | `/feed.xml` (Atom), injected into layout |
 | 🕒 **Uptime & changelog** | Footer shows **live site uptime** (days HH:MM:SS, ticks every second, hydration-safe); `/logs` renders a **commit-driven changelog** (GitHub API, 1h ISR cache, test/merge commits filtered, type badges + commit links) |
+| 👣 **Visitor stats** | Self-hosted **cumulative UV + today UV**: SHA-256 hashed IP/UA, one row per visitor per day, no raw IP stored; shown in footer and homepage stats |
 | 🗂 **Archives / About** | Timeline archive page (gradient timeline, collapsible month groups, changelog-style commit rows with mono date/short hash/reading time/word count); **developer-profile about page** (sticky profile card, pinned projects, skills, experience, private-message form, display limits) |
 | ⚙️ **Site settings** | Edit author name/intro/GitHub/email/**avatar (upload or URL)**/ICP from admin, instant effect |
 | 🌗 **Light/dark theme** | Header toggle; follows system + manual choice persisted (localStorage) |
@@ -164,7 +165,7 @@ my-blog/
 ├── proxy.ts                        # route guard (Next 16 renamed middleware)
 ├── drizzle.config.ts               # drizzle-kit config (schema → migration SQL)
 ├── supabase/
-│   └── migrations/                 # DB migration SQL (0001~0014, run manually in SQL Editor)
+│   └── migrations/                 # DB migration SQL (0001~0016, run manually in SQL Editor)
 ├── scripts/
 │   ├── generate-og.mjs             # one-off: generate public/og.png
 │   ├── backup.mjs                  # DB backup script (export all tables to backups/)
@@ -323,7 +324,7 @@ Site config (key-value, editable from admin, instant effect):
 
 Public-read image bucket (only the owner can upload/delete, RLS policies in `0002_rls.sql` / `0003_markdown_draft.sql`; project covers reuse the `projects/` folder in this bucket).
 
-> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0014). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
+> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0016). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
 
 ---
 

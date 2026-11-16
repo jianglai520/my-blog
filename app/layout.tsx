@@ -5,6 +5,7 @@ import "./globals.css";
 import SiteHeader from "./components/SiteHeader";
 import SiteFooter from "./components/SiteFooter";
 import BackToTop from "./components/BackToTop";
+import VisitTracker from "./components/VisitTracker";
 
 const SITE_URL = "https://jianglai520.com";
 
@@ -96,6 +97,7 @@ export default function RootLayout({
           <BackToTop />
         </ThemeProvider>
         <Analytics />
+        <VisitTracker />
       </body>
     </html>
   );

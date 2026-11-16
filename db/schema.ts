@@ -5,9 +5,10 @@ import {
   boolean,
   uuid,
   timestamp,
+  date,
   primaryKey,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 /**
  * 数据库 schema（镜像现有表结构，由 0001~0005 迁移建立）。
@@ -102,6 +103,23 @@ export const siteSettings = pgTable("site_settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull().default(""),
   updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+});
+
+/**
+ * 全站访客（按天去重）。
+ * visitor_hash = sha256(ip | user-agent | salt)，不存原始 IP/UA；
+ * unique (visit_date, visitor_hash) 由迁移脚本 0016 建立。
+ */
+export const siteVisits = pgTable("site_visits", {
+  id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
+  visit_date: date("visit_date", { mode: "string" })
+    .notNull()
+    .default(sql`((now() at time zone 'Asia/Shanghai')::date)`),
+  visitor_hash: text("visitor_hash").notNull(),
+  path: text("path"),
+  created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
+    .notNull()
+    .defaultNow(),
 });
 
 /* ================= relations（供 db.query 嵌套查询） ================= */
