@@ -350,6 +350,8 @@ body::before {
   padding: 0.75rem 1.25rem;
   margin: 1.4rem 0;
   color: var(--color-fg-muted);
+  /* 覆盖 Typography 默认的斜体：中文斜体是合成倾斜，观感很差 */
+  font-style: normal;
 }
 .markdown-body blockquote p {
   margin: 0.4rem 0;
