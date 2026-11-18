@@ -16,7 +16,9 @@ import { parseResume } from "@/lib/resume";
 import MessageForm from "@/app/components/MessageForm";
 
 export const metadata: Metadata = { title: "关于" };
-export const dynamic = "force-dynamic";
+// 数据层已有 60s 缓存（站点配置/统计/访客），页面用 ISR 即可，
+// 不要 force-dynamic：否则每次访问都要服务端重新渲染，首包会慢到约 1s。
+export const revalidate = 60;
 
 /** 从 GitHub 链接推导 @handle；失败回退站点名 */
 function githubHandle(url: string): string {
