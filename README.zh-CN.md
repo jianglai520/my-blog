@@ -21,7 +21,7 @@
 | **Supabase** | ^2.108 | 认证（Auth）+ 写操作（RLS 防线） |
 | **Drizzle ORM** | ^0.45 | 公开读数据层（schema 即类型真相，直连 Postgres） |
 | **Vercel** | — | 托管部署（Git 推送自动部署） |
-| **字体** | Noto Serif SC + 马善政 + JetBrains Mono | 运行时从 `fonts.googleapis.cn` 加载；全站宋体，Hero 问候语用毛笔，代码用等宽（不走构建期拉取，失败自动回退系统字体） |
+| **字体** | 自托管 WOFF2 子集 | **自托管**在 `public/fonts`（1.07MB，1409 字子集）；`font-display: optional` + preload；由 `scripts/build-fonts.mjs` 生成，无外部字体请求 |
 
 > 运行环境要求：Node.js ≥ 20.9（开发环境使用 Node 24.14.0）。
 
