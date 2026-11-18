@@ -34,6 +34,7 @@ const basePost = {
   cover_image: null,
   status: "published",
   view_count: 10,
+  reading_minutes: 1,
   created_at: "2026-08-02T10:00:00Z",
   published: true,
   pinned: false,

@@ -55,7 +55,7 @@ npm run eval:rag  # RAG 检索评测（Recall@5 / MRR / P95）
 
 | 功能 | 说明 |
 |------|------|
-| 📄 首页 | 英雄区（头像/渐变标题/**光斑动效**/**站点统计行**/**了解更多 CTA**）+ 文章卡片列表（**青绿毛玻璃卡片**：封面图置顶 16:9 + 文字区玻璃面板、hover 上浮发光、**阅读时长**、标签、阅读数）+ **置顶文章优先** + **热门标签入口** + **分页** |
+| 📄 首页 | 英雄区（头像/渐变标题/**光斑动效**/**站点统计行**/**了解更多 CTA**）+ 文章卡片列表（**青绿毛玻璃卡片**：封面图置顶 16:9 + 文字区玻璃面板、hover 上浮发光、**阅读时长（落库）**、标签、阅读数）+ **置顶文章优先** + **热门标签入口** + **分页**；列表只取正文前 **500 字**（不传输全文） |
 | 📖 文章详情页 | 语义化 slug 链接（兼容旧数字 id，301 跳转）；显示标签、**浏览量（同一访客每天只计一次）**、**阅读时长（分钟）**；阅读进度条 + 文章目录（TOC） |
 | 📝 **Markdown 正文** | 标题 / 列表 / **代码高亮（shiki 深浅双主题，无语言代码块自动补默认）** / 表格 / 引用 / 图片完整渲染；专业排版（标题层级/嵌套列表/引用卡片/表格渐变/代码块投影）；行内代码不带自动反引号 |
 | 🔍 **图片点击放大** | 文章正文图片点击查看大图（lightbox，点遮罩 / ✕ / Esc 关闭） |
@@ -168,7 +168,7 @@ my-blog/
 ├── proxy.ts                        # 路由守卫（Next 16 中 middleware 更名为此）
 ├── drizzle.config.ts               # drizzle-kit 配置（schema → 迁移 SQL）
 ├── supabase/
-│   └── migrations/                 # 数据库迁移 SQL（0001~0021，手动在 SQL Editor 执行）
+│   └── migrations/                 # 数据库迁移 SQL（0001~0022，手动在 SQL Editor 执行）
 ├── scripts/
 │   ├── generate-og.mjs             # 一次性脚本：生成 public/og.png
 │   ├── backup.mjs                  # 数据库备份脚本（导出全表 JSON 到 backups/）
@@ -331,7 +331,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 公开读的文章图片存储桶（仅博主可上传/删除，RLS 策略见 `0002_rls.sql` / `0003_markdown_draft.sql`；项目封面也复用此桶的 `projects/` 目录）。
 
-> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0021），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0022），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
 
 ---
 

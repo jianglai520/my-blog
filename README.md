@@ -55,7 +55,7 @@ npm run eval:rag  # RAG retrieval eval (Recall@5 / MRR / P95)
 
 | Feature | Description |
 |---------|-------------|
-| 📄 Homepage | Hero (avatar/gradient title/**blob animation**/**stats row**/**learn-more CTA**) + post card grid (**teal glass cards**: 16:9 cover on top + glass content, hover lift/glow, **reading time**, tags, view count) + **pinned posts first** + **hot tags** + **pagination** |
+| 📄 Homepage | Hero (avatar/gradient title/**blob animation**/**stats row**/**learn-more CTA**) + post card grid (**teal glass cards**: 16:9 cover on top + glass content, hover lift/glow, **precomputed reading time**, tags, view count) + **pinned posts first** + **hot tags** + **pagination**; list queries fetch only a **500-char content snippet** (no full articles) |
 | 📖 Post detail | Semantic slug links (legacy numeric id compatible, 301 redirect); tags, **view count (deduplicated: once per visitor per day)**, **reading time (minutes)**; reading progress bar + table of contents (TOC) |
 | 📝 **Markdown body** | Headings / lists / **code highlighting (shiki light-dark themes, auto fallback for unlabeled blocks)** / tables / blockquotes / images; professional typography; inline code rendered clean (Typography auto-backticks disabled) |
 | 🔍 **Image lightbox** | Click body images to zoom (click overlay / ✕ / Esc to close) |
@@ -168,7 +168,7 @@ my-blog/
 ├── proxy.ts                        # route guard (Next 16 renamed middleware)
 ├── drizzle.config.ts               # drizzle-kit config (schema → migration SQL)
 ├── supabase/
-│   └── migrations/                 # DB migration SQL (0001~0021, run manually in SQL Editor)
+│   └── migrations/                 # DB migration SQL (0001~0022, run manually in SQL Editor)
 ├── scripts/
 │   ├── generate-og.mjs             # one-off: generate public/og.png
 │   ├── backup.mjs                  # DB backup script (export all tables to backups/)
@@ -332,7 +332,7 @@ Site config (key-value, editable from admin, instant effect):
 
 Public-read image bucket (only the owner can upload/delete, RLS policies in `0002_rls.sql` / `0003_markdown_draft.sql`; project covers reuse the `projects/` folder in this bucket).
 
-> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0021). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
+> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0022). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
 
 ---
 

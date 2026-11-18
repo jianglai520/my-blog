@@ -17,7 +17,6 @@ export type PostWithTags = Post & { tags: { name: string; slug: string }[] };
 
 const PAGE_SIZE = 10;
 
-/** 把 drizzle 嵌套返回的 postTags 映射为 tags 数组（纯函数，可单测） */
 export function mapPostTags(
   post: Post & { postTags?: { tag: { name: string; slug: string } }[] },
 ): PostWithTags {
@@ -42,6 +41,11 @@ export const getPublishedPosts = unstable_cache(
 
     const [rows, countRows] = await Promise.all([
       db.query.posts.findMany({
+        // 排除完整正文，只额外取前 500 字用于无摘要时的兜底
+        columns: { content: false },
+        extras: {
+          content: sql<string>`left(${posts.content}, 500)`.as("content"),
+        },
         where: eq(posts.status, "published"),
         with: { postTags: { with: { tag: true } } },
         orderBy: [desc(posts.pinned), desc(posts.created_at)],
@@ -160,6 +164,10 @@ export async function getPostsByTag(
 
   const [rows, countRows] = await Promise.all([
     db.query.posts.findMany({
+      columns: { content: false },
+      extras: {
+        content: sql<string>`left(${posts.content}, 500)`.as("content"),
+      },
       where,
       with: { postTags: { with: { tag: true } } },
       orderBy: [desc(posts.created_at)],
@@ -228,6 +236,7 @@ const searchPostsCached = unstable_cache(
         published: posts.published,
         pinned: posts.pinned,
         view_count: posts.view_count,
+        reading_minutes: posts.reading_minutes,
         index_status: posts.index_status,
         created_at: posts.created_at,
       })

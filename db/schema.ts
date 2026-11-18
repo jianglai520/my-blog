@@ -6,6 +6,7 @@ import {
   uuid,
   timestamp,
   date,
+  integer,
   primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
@@ -33,6 +34,8 @@ export const posts = pgTable("posts", {
   // 是否置顶（首页优先展示）
   pinned: boolean("pinned").notNull().default(false),
   view_count: bigint("view_count", { mode: "number" }).notNull().default(0),
+  // 预计阅读时长（分钟），发布/编辑时计算，列表页直接使用
+  reading_minutes: integer("reading_minutes").notNull().default(1),
   // AI 索引状态：pending（待同步）/ done（已索引）/ failed（失败可重试）
   index_status: text("index_status").notNull().default("pending"),
   created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),

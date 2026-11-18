@@ -19,6 +19,7 @@ const basePost = {
   excerpt: "",
   cover_image: null,
   view_count: 0,
+  reading_minutes: 1,
   published: true,
   index_status: "done",
   pinned: false,

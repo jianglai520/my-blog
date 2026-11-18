@@ -12,6 +12,7 @@
     "test:e2e": "playwright test",
     "check:markdown": "node scripts/check-markdown.mjs",
     "cleanup:storage": "node scripts/cleanup-storage.mjs",
+    "backfill:reading": "node scripts/backfill-reading-time.mjs",
     "eval:rag": "node scripts/eval-rag.mjs"
   },
   "dependencies": {

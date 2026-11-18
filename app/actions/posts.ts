@@ -3,7 +3,7 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { postSchema, type PostFormInput } from "@/lib/validations/posts";
-import { slugify } from "@/lib/format";
+import { slugify, readingMinutes } from "@/lib/format";
 import { deletePostChunks } from "@/lib/rag";
 
 export type PostFormState = {
@@ -130,6 +130,7 @@ export async function createPost(
         excerpt: excerpt || null,
         cover_image: coverImage || null,
         content,
+        reading_minutes: readingMinutes(content),
         status,
         published: status === "published",
         author_id: admin.id,
@@ -198,6 +199,7 @@ export async function updatePost(
         excerpt: excerpt || null,
         cover_image: coverImage || null,
         content,
+        reading_minutes: readingMinutes(content),
         status,
         published: status === "published",
         // 编辑后标记待索引，embedding 由后台定时任务批量处理

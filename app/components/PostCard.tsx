@@ -14,7 +14,7 @@ import type { PostWithTags } from "@/lib/posts";
 export default function PostCard({ post }: { post: PostWithTags }) {
   const postUrl = postHref(post);
   const excerpt = post.excerpt || (post.content ? stripMarkdown(post.content).slice(0, 120) : "");
-  const minutes = post.content ? readingMinutes(post.content) : null;
+  const minutes = post.reading_minutes ?? (post.content ? readingMinutes(post.content) : null);
 
   return (
     <article
