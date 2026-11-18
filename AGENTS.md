@@ -28,6 +28,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **分页优先用路径参数**（`/page/N`）；不要让根路由 `/` 读取 `searchParams`，否则首页会失去静态化与预取，点击导航比别的页面慢
 - **外部字体 CSS 不得阻塞渲染**：用 `media="print" onload → all` 或异步注入，不要把 Google Fonts 的 `<link rel="stylesheet">` 直接放 `<head>`
 - **正文图片必须懒加载**：Markdown 图片统一补 `loading="lazy"` + `decoding="async"`
+- **重服务端渲染必须缓存**：Markdown + Shiki 的 HTML 用 `unstable_cache` 按正文内容缓存（tag `posts`），文章/评论查询各加 60s 缓存（tag `posts` / `comments`）
 - **IP 不落明文**：统一 `sha256(IP | salt)`（`lib/server/ip.ts`），用于限流、浏览量、访客统计
 - **限流**：`rate_limit_events` 表 + `lib/server/rate-limit.ts`；不要用进程内 Map（Vercel 多实例失效）
 - **浏览量**：`record_post_view` RPC + `post_views` 表，同一访客每天每篇只计一次

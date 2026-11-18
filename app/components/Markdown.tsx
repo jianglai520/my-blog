@@ -1,4 +1,4 @@
-import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
@@ -63,26 +63,34 @@ function defaultCodeLang() {
  * Markdown → HTML（纯服务端渲染，客户端零 JS）。
  * 管线：remark-parse → remark-gfm → remark-rehype → rehype-slug → defaultCodeLang → rehype-pretty-code → rehype-stringify
  * 不启用 rehypeRaw，文章内原始 HTML 会被忽略（防注入，内容来源只有博主编辑器）。
+ *
+ * 使用 unstable_cache 按「正文内容」缓存渲染结果：
+ * Shiki 代码高亮是文章页 TTFB 的主要成本，缓存后重复访问不再重新渲染。
+ * tag "posts" 在发布/编辑时失效；内容变化本身也会生成新的缓存 key。
  */
-const toHtml = cache(async (source: string) => {
-  const file = await unified()
-    .use(remarkParse)
-    .use(remarkGfm)
-    .use(remarkRehype)
-    .use(rehypeSlug)
-    .use(lazyImages)
-    .use(defaultCodeLang)
-    .use(rehypePrettyCode, {
-      theme: {
-        dark: "github-dark",
-        light: "github-light",
-      },
-      keepBackground: true,
-    })
-    .use(rehypeStringify)
-    .process(source);
-  return String(file);
-});
+const toHtml = unstable_cache(
+  async (source: string) => {
+    const file = await unified()
+      .use(remarkParse)
+      .use(remarkGfm)
+      .use(remarkRehype)
+      .use(rehypeSlug)
+      .use(lazyImages)
+      .use(defaultCodeLang)
+      .use(rehypePrettyCode, {
+        theme: {
+          dark: "github-dark",
+          light: "github-light",
+        },
+        keepBackground: true,
+      })
+      .use(rehypeStringify)
+      .process(source);
+    return String(file);
+  },
+  ["markdown-html"],
+  { revalidate: 3600, tags: ["posts"] },
+);
 
 export default async function Markdown({ source }: { source: string }) {
   const html = await toHtml(source);

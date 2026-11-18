@@ -67,23 +67,35 @@ export const getPublishedPosts = unstable_cache(
 /**
  * 按 slug 或 id 查已发布文章（公开访问），带标签。
  * 兼容旧数字 id 链接：先按 slug，若 identifier 为纯数字再按 id 兜底。
+ * 缓存 60s + tag "posts"：文章详情页首屏少一次数据库往返。
  */
-export async function getPostByIdentifier(identifier: string): Promise<PostWithTags | null> {
-  const numId = /^\d+$/.test(identifier) ? Number(identifier) : null;
+const getPostByIdentifierCached = unstable_cache(
+  async (identifier: string): Promise<PostWithTags | null> => {
+    const numId = /^\d+$/.test(identifier) ? Number(identifier) : null;
 
-  // 纯数字 identifier 只按 id 匹配：避免与数字 slug 混淆。
-  // 若某文章 slug 恰好是纯数字（如 "5"），按 slug 查会与 /posts/<id> 冲突
-  // 甚至引发重定向循环（详情页会对纯数字 identifier 重定向到 slug）。
-  const conditions = numId !== null
-    ? [eq(posts.id, numId)]
-    : [eq(posts.slug, identifier)];
+    // 纯数字 identifier 只按 id 匹配：避免与数字 slug 混淆。
+    // 若某文章 slug 恰好是纯数字（如 "5"），按 slug 查会与 /posts/<id> 冲突
+    // 甚至引发重定向循环（详情页会对纯数字 identifier 重定向到 slug）。
+    const conditions =
+      numId !== null
+        ? [eq(posts.id, numId)]
+        : [eq(posts.slug, identifier)];
 
-  const row = await db.query.posts.findFirst({
-    where: and(eq(posts.status, "published"), or(...conditions)),
-    with: { postTags: { with: { tag: true } } },
-  });
+    const row = await db.query.posts.findFirst({
+      where: and(eq(posts.status, "published"), or(...conditions)),
+      with: { postTags: { with: { tag: true } } },
+    });
 
-  return row ? mapPostTags(row) : null;
+    return row ? mapPostTags(row) : null;
+  },
+  ["post-by-identifier"],
+  { revalidate: 60, tags: ["posts"] },
+);
+
+export async function getPostByIdentifier(
+  identifier: string,
+): Promise<PostWithTags | null> {
+  return getPostByIdentifierCached(identifier);
 }
 
 export type PostContext = {
@@ -118,13 +130,21 @@ export async function getPostContextByIdentifier(
   return rows[0] ?? null;
 }
 
-/** 某篇文章已公开的评论（按时间正序） */
+/** 某篇文章已公开的评论（按时间正序）。缓存 60s + tag "comments" */
+const getCommentsCached = unstable_cache(
+  async (postId: number): Promise<Comment[]> => {
+    return db
+      .select()
+      .from(comments)
+      .where(and(eq(comments.post_id, postId), eq(comments.status, "approved")))
+      .orderBy(asc(comments.created_at));
+  },
+  ["post-comments"],
+  { revalidate: 60, tags: ["comments"] },
+);
+
 export async function getComments(postId: number): Promise<Comment[]> {
-  return db
-    .select()
-    .from(comments)
-    .where(and(eq(comments.post_id, postId), eq(comments.status, "approved")))
-    .orderBy(asc(comments.created_at));
+  return getCommentsCached(postId);
 }
 
 /** 全部标签 + 已发布文章数（按文章数倒序，只含至少一篇文章的标签）。缓存 60s + tag "posts" */
