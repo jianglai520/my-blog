@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
+    // 优先 AVIF/WebP，减小封面图传输体积
+    formats: ["image/avif", "image/webp"],
     // 允许远程封面图来自常用图床；本地 public 下的图片无需配置
     remotePatterns: [
       { protocol: "https", hostname: "**.supabase.co" },

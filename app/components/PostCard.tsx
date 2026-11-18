@@ -11,7 +11,13 @@ import type { PostWithTags } from "@/lib/posts";
  * - 整卡高度一致（flex h-full），杜绝同排卡片高低错落
  * - stretched-link：整卡点击用绝对定位覆盖层 <a>，避免 <a> 嵌套 <a>
  */
-export default function PostCard({ post }: { post: PostWithTags }) {
+export default function PostCard({
+  post,
+  priority = false,
+}: {
+  post: PostWithTags;
+  priority?: boolean;
+}) {
   const postUrl = postHref(post);
   const excerpt = post.excerpt || (post.content ? stripMarkdown(post.content).slice(0, 120) : "");
   const minutes = post.reading_minutes ?? (post.content ? readingMinutes(post.content) : null);
@@ -32,8 +38,10 @@ export default function PostCard({ post }: { post: PostWithTags }) {
             src={post.cover_image}
             alt={post.title}
             fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 30rem"
+            quality={70}
+            priority={priority}
             className="object-cover transition-transform duration-500 group-hover:scale-105"
-            sizes="(max-width: 768px) 100vw, 40rem"
           />
         ) : (
           /* 无封面：青绿渐变占位 + 首字装饰 */

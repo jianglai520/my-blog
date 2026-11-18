@@ -6,6 +6,24 @@ import { NextResponse, type NextRequest } from "next/server";
  * 仅作用于 /admin/*：刷新 session cookie，未登录访问后台重定向到登录页。
  */
 export async function proxy(request: NextRequest) {
+  const { pathname, searchParams } = request.nextUrl;
+
+  // 旧分页链接 /?page=N → /page/N：让首页 `/` 保持静态 ISR
+  if (pathname === "/" && searchParams.has("page")) {
+    const page = Number(searchParams.get("page"));
+    if (Number.isInteger(page) && page > 1) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/page/${page}`;
+      url.search = "";
+      return NextResponse.redirect(url, 308);
+    }
+  }
+
+  // 只有 /admin 需要 Supabase 会话刷新，其他路径直接放行
+  if (!pathname.startsWith("/admin")) {
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -49,5 +67,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/"],
 };
