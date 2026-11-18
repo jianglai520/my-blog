@@ -9,6 +9,17 @@ import BackToTop from "./components/BackToTop";
 import VisitTracker from "./components/VisitTracker";
 
 const SITE_URL = "https://jianglai520.com";
+const FONT_CSS_URL =
+  "https://fonts.googleapis.cn/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@400;600&family=Outfit:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Ma+Shan+Zheng&display=swap";
+
+/**
+ * 字体 CSS 异步加载：用 media="print" 插入，加载完成后切回 all。
+ * 直接 <link rel="stylesheet"> 会阻塞首屏，Google Fonts 的中文分片 CSS 约 180KB，
+ * 实测会把文章页 DOMContentLoaded 拖到 4s。
+ */
+const FONT_LOADER = `(function(){var l=document.createElement('link');l.rel='stylesheet';l.media='print';l.href=${JSON.stringify(
+  FONT_CSS_URL,
+)};l.onload=function(){l.media='all'};document.head.appendChild(l);})();`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -77,10 +88,11 @@ export default function RootLayout({
           href="https://fonts.gstatic.cn"
           crossOrigin="anonymous"
         />
-        <link
-          href="https://fonts.googleapis.cn/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@400;600&family=Outfit:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Ma+Shan+Zheng&display=swap"
-          rel="stylesheet"
-        />
+        {/* 字体异步加载，不阻塞渲染；无 JS 时回退到系统字体 */}
+        <script dangerouslySetInnerHTML={{ __html: FONT_LOADER }} />
+        <noscript>
+          <link href={FONT_CSS_URL} rel="stylesheet" />
+        </noscript>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

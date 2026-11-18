@@ -9,6 +9,30 @@ import rehypeStringify from "rehype-stringify";
 import type { Element, Root } from "hast";
 
 /**
+ * 正文图片懒加载：外部图床图片通常很大，浏览器默认会立刻加载。
+ * 统一补 loading/decoding，减少首屏图片请求与解码开销。
+ */
+function lazyImages() {
+  return (tree: Root) => {
+    const visit = (node: Element) => {
+      if (node.tagName === "img") {
+        node.properties = {
+          ...node.properties,
+          loading: "lazy",
+          decoding: "async",
+        };
+      }
+      for (const child of node.children ?? []) {
+        if (child.type === "element") visit(child as Element);
+      }
+    };
+    for (const child of tree.children) {
+      if (child.type === "element") visit(child as Element);
+    }
+  };
+}
+
+/**
  * 无语言代码块补默认语言 text：
  * rehype-pretty-code 对无语言标注的代码块不做高亮（原样输出裸 <pre>），
  * 统一补 language-text 使其也走 shiki 双主题（深浅色下都有协调底色）。
@@ -46,6 +70,7 @@ const toHtml = cache(async (source: string) => {
     .use(remarkGfm)
     .use(remarkRehype)
     .use(rehypeSlug)
+    .use(lazyImages)
     .use(defaultCodeLang)
     .use(rehypePrettyCode, {
       theme: {
