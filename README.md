@@ -67,7 +67,7 @@ npm run eval:rag  # RAG retrieval eval (Recall@5 / MRR / P95)
 | 📎 **Attachment upload** | Insert PDF/Word/Excel/zip (**multi-select batch**, ≤20MB each, direct browser upload); rendered as a **file card with online preview + download** (PDF/txt/md inline, Office via Office Online Viewer); insertion works in both source and WYSIWYG modes |
 | 😀 **Emoji insertion** | Editor toolbar emoji panel, grouped emojis inserted at cursor |
 | 🏷️ **Tag system** | Tag posts; `/tags/xxx` tag pages; tags on cards |
-| 🔍 **Search** | Nav search box (debounced), **relevance-ranked search** (title 3 / excerpt 2 / content 1 + trgm similarity), trgm GIN indexes |
+| 🔍 **Search** | Nav search box (debounced), **relevance-ranked search** (title 3 / excerpt 2 / content 1 + trgm similarity), trgm GIN indexes; **60s result cache**, only a 500-char content snippet is fetched (avoids transferring full articles) |
 | 🤖 **AI Q&A (RAG)** | Floating "Ask AI" on post pages: **hybrid retrieval** (pgvector Top8 + trgm keyword Top8 → fused Top5, max 2 chunks per post), **streaming SSE**, **clickable citations**, prompt-injection guard, DB-backed rate limit, and an **eval script** (`npm run eval:rag`) |
 | 📡 **RSS** | `/feed.xml` (Atom), injected into layout |
 | 🕒 **Uptime & changelog** | Footer shows **live site uptime** (days HH:MM:SS, ticks every second, hydration-safe); `/logs` renders a **commit-driven changelog** (GitHub API, 1h ISR cache, test/merge commits filtered, type badges + commit links) |

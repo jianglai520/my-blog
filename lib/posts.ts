@@ -177,49 +177,95 @@ export async function getPostsByTag(
 }
 
 /**
- * 搜索已发布文章（相关性排序）。
+ * 搜索已发布文章（相关性排序 + 60 秒缓存）。
  * 评分：
  *   标题命中 3 + 摘要命中 2 + 正文命中 1
  *   + 标题相似度 × 2 + 摘要相似度 × 1
  * 依赖 0005 / 0019 的 trgm GIN 索引；正文只作为兜底命中。
+ *
+ * 性能关键：只取 `left(content, 500)` 用于无摘要时的兜底展示，
+ * 绝不把整篇正文查出来——远程 Supabase 上传输全文会让搜索慢到数秒。
  */
+const searchPostsCached = unstable_cache(
+  async (query: string, limit: number): Promise<PostWithTags[]> => {
+    const pattern = `%${query}%`;
+
+    const ranked = await db.execute(sql`
+      select
+        p.id,
+        (
+          case when p.title ilike ${pattern} then 3 else 0 end
+          + case when coalesce(p.excerpt, '') ilike ${pattern} then 2 else 0 end
+          + case when p.content ilike ${pattern} then 1 else 0 end
+          + similarity(p.title, ${query}) * 2
+          + similarity(coalesce(p.excerpt, ''), ${query})
+        ) as score
+      from posts p
+      where p.status = 'published'
+        and (
+          p.title ilike ${pattern}
+          or coalesce(p.excerpt, '') ilike ${pattern}
+          or p.content ilike ${pattern}
+        )
+      order by score desc, p.created_at desc
+      limit ${limit}
+    `);
+
+    const ids = (ranked.rows ?? []).map((row) => Number(row.id));
+    if (ids.length === 0) return [];
+
+    const rows = await db
+      .select({
+        id: posts.id,
+        author_id: posts.author_id,
+        slug: posts.slug,
+        title: posts.title,
+        // 仅用于摘要兜底，截断正文
+        content: sql<string>`left(${posts.content}, 500)`,
+        excerpt: posts.excerpt,
+        cover_image: posts.cover_image,
+        status: posts.status,
+        published: posts.published,
+        pinned: posts.pinned,
+        view_count: posts.view_count,
+        index_status: posts.index_status,
+        created_at: posts.created_at,
+      })
+      .from(posts)
+      .where(inArray(posts.id, ids));
+
+    const tagRows = await db
+      .select({
+        post_id: postTags.post_id,
+        name: tagsTable.name,
+        slug: tagsTable.slug,
+      })
+      .from(postTags)
+      .innerJoin(tagsTable, eq(tagsTable.id, postTags.tag_id))
+      .where(inArray(postTags.post_id, ids));
+
+    const tagsByPost = new Map<number, { name: string; slug: string }[]>();
+    for (const row of tagRows) {
+      const list = tagsByPost.get(row.post_id) ?? [];
+      list.push({ name: row.name, slug: row.slug });
+      tagsByPost.set(row.post_id, list);
+    }
+
+    const byId = new Map(
+      rows.map((row) => [row.id, { ...row, tags: tagsByPost.get(row.id) ?? [] }]),
+    );
+    return ids
+      .map((id) => byId.get(id))
+      .filter((post): post is PostWithTags => Boolean(post));
+  },
+  ["search-posts"],
+  { revalidate: 60, tags: ["posts"] },
+);
+
 export async function searchPosts(q: string, limit = 20): Promise<PostWithTags[]> {
   const query = q.trim();
   if (!query) return [];
-  const pattern = `%${query}%`;
-
-  const ranked = await db.execute(sql`
-    select
-      p.id,
-      (
-        case when p.title ilike ${pattern} then 3 else 0 end
-        + case when coalesce(p.excerpt, '') ilike ${pattern} then 2 else 0 end
-        + case when p.content ilike ${pattern} then 1 else 0 end
-        + similarity(p.title, ${query}) * 2
-        + similarity(coalesce(p.excerpt, ''), ${query})
-      ) as score
-    from posts p
-    where p.status = 'published'
-      and (
-        p.title ilike ${pattern}
-        or coalesce(p.excerpt, '') ilike ${pattern}
-        or p.content ilike ${pattern}
-      )
-    order by score desc, p.created_at desc
-    limit ${limit}
-  `);
-
-  const ids = (ranked.rows ?? []).map((row) => Number(row.id));
-  if (ids.length === 0) return [];
-
-  const matched = await db.query.posts.findMany({
-    where: inArray(posts.id, ids),
-    with: { postTags: { with: { tag: true } } },
-  });
-  const byId = new Map(matched.map((row) => [row.id, mapPostTags(row)]));
-  return ids
-    .map((id) => byId.get(id))
-    .filter((post): post is PostWithTags => Boolean(post));
+  return searchPostsCached(query, limit);
 }
 
 /** 归档条目（归档页展示用） */
