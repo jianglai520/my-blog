@@ -3,7 +3,7 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { postSchema, type PostFormInput } from "@/lib/validations/posts";
-import { slugify, readingMinutes } from "@/lib/format";
+import { slugify, readingMinutes, countWords } from "@/lib/format";
 import { deletePostChunks } from "@/lib/rag";
 
 export type PostFormState = {
@@ -131,6 +131,7 @@ export async function createPost(
         cover_image: coverImage || null,
         content,
         reading_minutes: readingMinutes(content),
+        word_count: countWords(content),
         status,
         published: status === "published",
         author_id: admin.id,
@@ -200,6 +201,7 @@ export async function updatePost(
         cover_image: coverImage || null,
         content,
         reading_minutes: readingMinutes(content),
+        word_count: countWords(content),
         status,
         published: status === "published",
         // 编辑后标记待索引，embedding 由后台定时任务批量处理
@@ -340,4 +342,28 @@ export async function togglePin(formData: FormData): Promise<PinState> {
       message: e instanceof Error ? e.message : "操作失败，请稍后重试",
     };
   }
+}
+
+/**
+ * 后台编辑时按需读取正文。
+ * 列表只传元数据，避免一次性把所有文章全文发给客户端。
+ */
+export async function getPostContent(postId: number): Promise<string | null> {
+  if (!Number.isFinite(postId) || postId <= 0) return null;
+
+  try {
+    await requireAdmin();
+  } catch {
+    return null;
+  }
+
+  const supabase = await getServerSupabase();
+  const { data, error } = await supabase
+    .from("posts")
+    .select("content")
+    .eq("id", postId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return typeof data.content === "string" ? data.content : "";
 }

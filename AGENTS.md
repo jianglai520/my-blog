@@ -22,7 +22,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **写操作**：一律走 **Server Actions**（`app/actions/`），服务端 `requireAdmin()` 鉴权 + 数据库 RLS 双保险
 - **浏览器端零数据库写权限**；**绝不使用 `service_role` key**（会绕过 RLS）
 - 连接池：`lib/db.ts` 用 `pg` 驱动 + globalThis 缓存（生产模式也必须复用）
-- **列表/搜索不要查整篇正文**：只 select 必要列；无摘要时的兜底用 `left(content, 500)`；阅读时长读 `posts.reading_minutes`（发布/编辑时写入，历史数据用 `scripts/backfill-reading-time.mjs` 回填）
+- **列表/搜索不要查整篇正文**：只 select 必要列；无摘要时的兜底用 `left(content, 500)`；阅读时长读 `posts.reading_minutes`、字数读 `posts.word_count`（发布/编辑时写入，历史数据用 `scripts/backfill-reading-time.mjs` 回填）
+- **后台列表只传文章元数据**：编辑时通过 `getPostContent` Server Action 按需取正文；评论/留言/私信只在 `?tab=comments` 时加载
 - **IP 不落明文**：统一 `sha256(IP | salt)`（`lib/server/ip.ts`），用于限流、浏览量、访客统计
 - **限流**：`rate_limit_events` 表 + `lib/server/rate-limit.ts`；不要用进程内 Map（Vercel 多实例失效）
 - **浏览量**：`record_post_view` RPC + `post_views` 表，同一访客每天每篇只计一次
@@ -53,7 +54,7 @@ npm run cleanup:storage # Storage 孤儿文件扫描（默认预演，不删除�
 
 ## 数据库迁移
 
-- 迁移脚本在 `supabase/migrations/`（**0001~0022**，幂等），**手动在 Supabase SQL Editor 执行**
+- 迁移脚本在 `supabase/migrations/`（**0001~0023**，幂等），**手动在 Supabase SQL Editor 执行**
 - **新表必须同时配「表级 GRANT + RLS 策略」**；公开读/写路径要用 **anon（未登录）身份**测试，不能只用登录态
 - 旧表结构变更：`create table if not exists` 不补已存在表，需显式 `ALTER TABLE`
 - 涉及安全函数（RPC）时：`security definer` + `set search_path = public`，并 `revoke ... from public` 后只 grant 必要角色

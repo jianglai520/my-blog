@@ -168,7 +168,7 @@ my-blog/
 ├── proxy.ts                        # 路由守卫（Next 16 中 middleware 更名为此）
 ├── drizzle.config.ts               # drizzle-kit 配置（schema → 迁移 SQL）
 ├── supabase/
-│   └── migrations/                 # 数据库迁移 SQL（0001~0022，手动在 SQL Editor 执行）
+│   └── migrations/                 # 数据库迁移 SQL（0001~0023，手动在 SQL Editor 执行）
 ├── scripts/
 │   ├── generate-og.mjs             # 一次性脚本：生成 public/og.png
 │   ├── backup.mjs                  # 数据库备份脚本（导出全表 JSON 到 backups/）
@@ -331,7 +331,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 公开读的文章图片存储桶（仅博主可上传/删除，RLS 策略见 `0002_rls.sql` / `0003_markdown_draft.sql`；项目封面也复用此桶的 `projects/` 目录）。
 
-> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0022），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0023），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
 
 ---
 

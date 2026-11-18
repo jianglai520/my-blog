@@ -14,9 +14,11 @@ import type { AdminPost } from "./shared";
 export default function PostList({
   posts,
   onEdit,
+  loadingId,
 }: {
   posts: AdminPost[];
   onEdit: (post: AdminPost) => void;
+  loadingId?: number | null;
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -208,9 +210,10 @@ export default function PostList({
                 </button>
                 <button
                   onClick={() => onEdit(post)}
-                  className="rounded-lg border border-brand-400/30 px-4 py-2 text-sm text-brand-300 transition-colors hover:bg-brand-400/10"
+                  disabled={loadingId === post.id}
+                  className="rounded-lg border border-brand-400/30 px-4 py-2 text-sm text-brand-300 transition-colors hover:bg-brand-400/10 disabled:opacity-50"
                 >
-                  编辑
+                  {loadingId === post.id ? "打开中…" : "编辑"}
                 </button>
                 <form
                   action={deletePost}

@@ -8,12 +8,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let posts: Awaited<ReturnType<typeof getPublishedPosts>>["posts"] = [];
   let tags: Awaited<ReturnType<typeof getTags>> = [];
   try {
-    const [postResult, tagResult] = await Promise.all([
-      getPublishedPosts(1, 100),
-      getTags(),
-    ]);
-    posts = postResult.posts;
-    tags = tagResult;
+    // 分页取全量，避免文章超过 100 篇后 sitemap 漏条目
+    const collected: typeof posts = [];
+    for (let page = 1; page <= 50; page++) {
+      const result = await getPublishedPosts(page, 100);
+      collected.push(...result.posts);
+      if (result.posts.length === 0 || collected.length >= result.total) break;
+    }
+    posts = collected;
+    tags = await getTags();
   } catch (error) {
     console.error("sitemap: 获取数据失败，仅输出基础页", error);
   }

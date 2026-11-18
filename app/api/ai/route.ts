@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { embedText } from "@/lib/ai";
 import { searchChunks, type RetrievedChunk } from "@/lib/rag";
-import { getPostByIdentifier } from "@/lib/posts";
+import { getPostContextByIdentifier } from "@/lib/posts";
 import { postHref } from "@/lib/format";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { getClientIp, hashIp } from "@/lib/server/ip";
@@ -106,7 +106,9 @@ export async function POST(req: Request) {
   }
 
   // ---------- ③ 当前文章上下文（解决“这篇文章”类代词问题） ----------
-  const currentPost = identifier ? await getPostByIdentifier(identifier) : null;
+  const currentPost = identifier
+    ? await getPostContextByIdentifier(identifier, CURRENT_POST_MAX_CHARS)
+    : null;
 
   // ---------- ④ 问题向量化 + 混合检索 ----------
   let embedding: number[];
@@ -133,7 +135,7 @@ export async function POST(req: Request) {
   if (currentPost) {
     contextParts.push(
       `[#${currentPost.id}] 《${currentPost.title}》（当前阅读文章）\n${sanitize(
-        currentPost.content.slice(0, CURRENT_POST_MAX_CHARS),
+        currentPost.content,
       )}`,
     );
   }

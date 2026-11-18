@@ -2,7 +2,6 @@ import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import { posts, comments, tags as tagsTable, postTags, type Post, type Comment } from "@/db/schema";
-import { countWords, readingMinutes } from "./format";
 
 /**
  * 公开读数据层（Drizzle 直连，应用层安全过滤）。
@@ -85,6 +84,38 @@ export async function getPostByIdentifier(identifier: string): Promise<PostWithT
   });
 
   return row ? mapPostTags(row) : null;
+}
+
+export type PostContext = {
+  id: number;
+  title: string;
+  content: string;
+};
+
+/**
+ * AI 问答的当前文章上下文：只取正文前 maxChars 字，不传输整篇长文。
+ */
+export async function getPostContextByIdentifier(
+  identifier: string,
+  maxChars = 6000,
+): Promise<PostContext | null> {
+  const numId = /^\d+$/.test(identifier) ? Number(identifier) : null;
+  const conditions =
+    numId !== null
+      ? [eq(posts.id, numId)]
+      : [eq(posts.slug, identifier)];
+
+  const rows = await db
+    .select({
+      id: posts.id,
+      title: posts.title,
+      content: sql<string>`left(${posts.content}, ${maxChars})`,
+    })
+    .from(posts)
+    .where(and(eq(posts.status, "published"), or(...conditions)))
+    .limit(1);
+
+  return rows[0] ?? null;
 }
 
 /** 某篇文章已公开的评论（按时间正序） */
@@ -237,6 +268,7 @@ const searchPostsCached = unstable_cache(
         pinned: posts.pinned,
         view_count: posts.view_count,
         reading_minutes: posts.reading_minutes,
+        word_count: posts.word_count,
         index_status: posts.index_status,
         created_at: posts.created_at,
       })
@@ -305,18 +337,19 @@ export async function getArchives(): Promise<
       excerpt: posts.excerpt,
       view_count: posts.view_count,
       created_at: posts.created_at,
-      content: posts.content,
+      reading_minutes: posts.reading_minutes,
+      word_count: posts.word_count,
     })
     .from(posts)
     .where(eq(posts.status, "published"))
     .orderBy(desc(posts.created_at));
 
-  // content 仅用于计算阅读时长，不返回给页面（避免归档页传输整篇正文）
+  // 阅读时长与字数已在发布/编辑时落库，归档页不再读取正文
   return groupArchivesByMonth(
-    rows.map(({ content, ...row }) => ({
+    rows.map((row) => ({
       ...row,
-      reading_minutes: readingMinutes(content),
-      word_count: countWords(content),
+      reading_minutes: row.reading_minutes ?? 1,
+      word_count: row.word_count ?? 0,
     })),
   );
 }

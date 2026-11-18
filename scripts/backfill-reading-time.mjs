@@ -63,15 +63,23 @@ const client = new pg.Client({
 await client.connect();
 
 try {
-  const rows = await client.query("select id, content, reading_minutes from posts");
+  const rows = await client.query(
+    "select id, content, reading_minutes, word_count from posts",
+  );
   let updated = 0;
   for (const row of rows.rows) {
     const minutes = readingMinutes(row.content ?? "");
-    if (Number(row.reading_minutes) === minutes) continue;
-    await client.query("update posts set reading_minutes = $1 where id = $2", [
-      minutes,
-      row.id,
-    ]);
+    const words = countWords(row.content ?? "");
+    if (
+      Number(row.reading_minutes) === minutes &&
+      Number(row.word_count) === words
+    ) {
+      continue;
+    }
+    await client.query(
+      "update posts set reading_minutes = $1, word_count = $2 where id = $3",
+      [minutes, words, row.id],
+    );
     updated++;
   }
   console.log(`回填完成：共 ${rows.rowCount} 篇，更新 ${updated} 篇`);

@@ -168,7 +168,7 @@ my-blog/
 ├── proxy.ts                        # route guard (Next 16 renamed middleware)
 ├── drizzle.config.ts               # drizzle-kit config (schema → migration SQL)
 ├── supabase/
-│   └── migrations/                 # DB migration SQL (0001~0022, run manually in SQL Editor)
+│   └── migrations/                 # DB migration SQL (0001~0023, run manually in SQL Editor)
 ├── scripts/
 │   ├── generate-og.mjs             # one-off: generate public/og.png
 │   ├── backup.mjs                  # DB backup script (export all tables to backups/)
@@ -332,7 +332,7 @@ Site config (key-value, editable from admin, instant effect):
 
 Public-read image bucket (only the owner can upload/delete, RLS policies in `0002_rls.sql` / `0003_markdown_draft.sql`; project covers reuse the `projects/` folder in this bucket).
 
-> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0022). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
+> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0023). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
 
 ---
 

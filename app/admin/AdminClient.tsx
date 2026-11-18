@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { logout } from "@/app/actions/auth";
+import { getPostContent } from "@/app/actions/posts";
 import PostForm from "./PostForm";
 import PostList from "./PostList";
 import CommentManager from "./CommentManager";
@@ -18,9 +19,26 @@ import type { Comment } from "@/lib/posts";
 import type { GuestbookMessage, Message } from "@/db/schema";
 import { formatBytes } from "@/lib/format";
 
+export type AdminTab = "posts" | "comments" | "projects" | "skills" | "settings";
+
+const TABS: { key: AdminTab; label: string; countKey?: keyof AdminCounts }[] = [
+  { key: "posts", label: "📝 文章管理", countKey: "posts" },
+  { key: "comments", label: "💬 评论管理", countKey: "comments" },
+  { key: "projects", label: "📁 项目管理" },
+  { key: "skills", label: "🏷️ 技能管理" },
+  { key: "settings", label: "⚙️ 站点设置" },
+];
+
+export type AdminCounts = {
+  posts: number;
+  comments: number;
+  guestbook: number;
+  messages: number;
+};
+
 /**
- * 后台主界面：顶部导航 + Tab 切换 + 组合各管理模块。
- * 子模块拆分为 PostForm / PostList / CommentManager / GuestbookManager / ProjectManager / SkillManager / SettingsForm。
+ * 后台主界面：顶部导航 + Tab（URL 驱动，按需加载）+ 组合各管理模块。
+ * 文章列表只接收元数据；编辑时通过 Server Action 按需取正文。
  */
 export default function AdminClient({
   userEmail,
@@ -30,6 +48,8 @@ export default function AdminClient({
   messages,
   siteSettings,
   storageUsage,
+  tab,
+  counts,
 }: {
   userEmail: string;
   posts: AdminPost[];
@@ -38,13 +58,13 @@ export default function AdminClient({
   messages: Message[];
   siteSettings: SiteSettings;
   storageUsage: { files: number; bytes: number };
+  tab: AdminTab;
+  counts: AdminCounts;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState<AdminPost | null>(null);
   const [formVersion, setFormVersion] = useState(0);
-  const [tab, setTab] = useState<"posts" | "comments" | "projects" | "skills" | "settings">(
-    "posts",
-  );
+  const [editLoadingId, setEditLoadingId] = useState<number | null>(null);
 
   // 保存成功：退出编辑模式 + 递增 key 重置表单 + 刷新列表
   function handleSaved() {
@@ -53,9 +73,21 @@ export default function AdminClient({
     router.refresh();
   }
 
-  function handleEdit(post: AdminPost) {
-    setEditing(post);
-    document.getElementById("post-form")?.scrollIntoView({ behavior: "smooth" });
+  // 列表只有元数据，点击编辑时再拉正文
+  async function handleEdit(post: AdminPost) {
+    setEditLoadingId(post.id);
+    try {
+      const content = await getPostContent(post.id);
+      if (content == null) return;
+      setEditing({ ...post, content });
+      requestAnimationFrame(() => {
+        document
+          .getElementById("post-form")
+          ?.scrollIntoView({ behavior: "smooth" });
+      });
+    } finally {
+      setEditLoadingId(null);
+    }
   }
 
   return (
@@ -82,58 +114,28 @@ export default function AdminClient({
         </form>
       </div>
 
-      {/* Tab 切换 */}
-      <div className="mb-6 flex gap-2 border-b border-ink-700/60">
-        <button
-          onClick={() => setTab("posts")}
-          className={`rounded-t-lg px-4 py-2 text-sm transition-colors ${
-            tab === "posts"
-              ? "border-b-2 border-brand-500 text-fg"
-              : "text-fg-muted hover:text-fg"
-          }`}
-        >
-          📝 文章管理（{posts.length}）
-        </button>
-        <button
-          onClick={() => setTab("comments")}
-          className={`rounded-t-lg px-4 py-2 text-sm transition-colors ${
-            tab === "comments"
-              ? "border-b-2 border-brand-500 text-fg"
-              : "text-fg-muted hover:text-fg"
-          }`}
-        >
-          💬 评论管理（{comments.length}）
-        </button>
-        <button
-          onClick={() => setTab("projects")}
-          className={`rounded-t-lg px-4 py-2 text-sm transition-colors ${
-            tab === "projects"
-              ? "border-b-2 border-brand-500 text-fg"
-              : "text-fg-muted hover:text-fg"
-          }`}
-        >
-          📁 项目管理
-        </button>
-        <button
-          onClick={() => setTab("skills")}
-          className={`rounded-t-lg px-4 py-2 text-sm transition-colors ${
-            tab === "skills"
-              ? "border-b-2 border-brand-500 text-fg"
-              : "text-fg-muted hover:text-fg"
-          }`}
-        >
-          🏷️ 技能管理
-        </button>
-        <button
-          onClick={() => setTab("settings")}
-          className={`rounded-t-lg px-4 py-2 text-sm transition-colors ${
-            tab === "settings"
-              ? "border-b-2 border-brand-500 text-fg"
-              : "text-fg-muted hover:text-fg"
-          }`}
-        >
-          ⚙️ 站点设置
-        </button>
+      {/* Tab 切换（URL 驱动：只加载当前 Tab 的数据） */}
+      <div className="mb-6 flex flex-wrap gap-2 border-b border-ink-700/60">
+        {TABS.map((item) => {
+          const active = tab === item.key;
+          const count = item.countKey ? counts[item.countKey] : undefined;
+          return (
+            <Link
+              key={item.key}
+              href={`/admin?tab=${item.key}`}
+              scroll={false}
+              aria-current={active ? "page" : undefined}
+              className={`rounded-t-lg px-4 py-2 text-sm transition-colors ${
+                active
+                  ? "border-b-2 border-brand-500 text-fg"
+                  : "text-fg-muted hover:text-fg"
+              }`}
+            >
+              {item.label}
+              {count != null ? `（${count}）` : ""}
+            </Link>
+          );
+        })}
       </div>
 
       {tab === "posts" ? (
@@ -154,7 +156,7 @@ export default function AdminClient({
             </button>
           )}
 
-          {/* 文章管理列表 */}
+          {/* 文章管理列表（仅元数据） */}
           <div className="rounded-2xl border border-ink-700/60 bg-ink-900/50 p-8">
             <h2 className="mb-6 text-xl font-bold text-fg">
               📋 文章管理{" "}
@@ -162,11 +164,15 @@ export default function AdminClient({
                 （{posts.length} 篇，含草稿）
               </span>
             </h2>
-            <PostList posts={posts} onEdit={handleEdit} />
+            <PostList
+              posts={posts}
+              onEdit={handleEdit}
+              loadingId={editLoadingId}
+            />
           </div>
         </>
       ) : tab === "comments" ? (
-        /* 评论管理 */
+        /* 评论管理（仅进入此 Tab 时由服务端加载） */
         <div className="rounded-2xl border border-ink-700/60 bg-ink-900/50 p-8">
           <h2 className="mb-6 text-xl font-bold text-fg">
             💬 评论管理{" "}
@@ -177,14 +183,18 @@ export default function AdminClient({
           {/* 留言板留言 */}
           <h2 className="mb-6 mt-10 text-xl font-bold text-fg">
             📝 留言板留言{" "}
-            <span className="text-sm font-normal text-fg-faint">（最新 {guestbookMessages.length} 条）</span>
+            <span className="text-sm font-normal text-fg-faint">
+              （最新 {guestbookMessages.length} 条）
+            </span>
           </h2>
           <GuestbookManager messages={guestbookMessages} />
 
           {/* 站内私信（含联系方式，仅博主可见） */}
           <h2 className="mb-6 mt-10 text-xl font-bold text-fg">
             ✉️ 站内私信{" "}
-            <span className="text-sm font-normal text-fg-faint">（最新 {messages.length} 条，含联系方式）</span>
+            <span className="text-sm font-normal text-fg-faint">
+              （最新 {messages.length} 条，含联系方式）
+            </span>
           </h2>
           <MessageManager messages={messages} />
         </div>

@@ -36,6 +36,8 @@ export const posts = pgTable("posts", {
   view_count: bigint("view_count", { mode: "number" }).notNull().default(0),
   // 预计阅读时长（分钟），发布/编辑时计算，列表页直接使用
   reading_minutes: integer("reading_minutes").notNull().default(1),
+  // 正文字数（中文按字、英文按词），归档页直接使用
+  word_count: integer("word_count").notNull().default(0),
   // AI 索引状态：pending（待同步）/ done（已索引）/ failed（失败可重试）
   index_status: text("index_status").notNull().default("pending"),
   created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
