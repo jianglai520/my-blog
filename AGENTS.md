@@ -26,7 +26,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **后台列表只传文章元数据**：编辑时通过 `getPostContent` Server Action 按需取正文；后台 Tab 用客户端状态即时切换，文章/评论/留言/私信首次并行加载，切换不再走服务端导航
 - **页面默认用 ISR**（`export const revalidate = 60`）；只有必须读取 cookie / 实时请求数据时才用 `force-dynamic`。不要为了“数据最新”滥用 `force-dynamic`，否则每次访问都要服务端重新渲染
 - **分页优先用路径参数**（`/page/N`）；不要让根路由 `/` 读取 `searchParams`，否则首页会失去静态化与预取，点击导航比别的页面慢
-- **字体自托管**：使用 `public/fonts` + `scripts/build-fonts.mjs` 生成子集（`font-display: optional` + 关键字体 preload），不要再引入 Google Fonts 外部链接；新增大量生僻字后重新运行脚本
+- **外部字体 CSS 不得阻塞渲染**：等页面 `load` 后再异步注入（`media="print"` → `onload` 切 `all`），不要把 Google Fonts 的 `<link rel="stylesheet">` 直接放 `<head>`
 - **后台数据用 Drizzle 一次查询**：不要为文章/评论/留言/私信分别走多次 Supabase REST；鉴权与数据查询并行；`profiles.is_admin` 缓存 30 秒
 - **正文图片必须懒加载**：Markdown 图片统一补 `loading="lazy"` + `decoding="async"`
 - **重服务端渲染必须缓存**：Markdown + Shiki 的 HTML 用 `unstable_cache` 按正文内容缓存（tag `posts`），文章/评论查询各加 60s 缓存（tag `posts` / `comments`）

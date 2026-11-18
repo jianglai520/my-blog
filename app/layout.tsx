@@ -3,13 +3,23 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
-import "../public/fonts/fonts.css";
 import SiteHeader from "./components/SiteHeader";
 import SiteFooter from "./components/SiteFooter";
 import BackToTop from "./components/BackToTop";
 import VisitTracker from "./components/VisitTracker";
 
 const SITE_URL = "https://jianglai520.com";
+const FONT_CSS_URL =
+  "https://fonts.googleapis.cn/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@400;600&family=Outfit:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Ma+Shan+Zheng&display=swap";
+
+/**
+ * 字体 CSS 异步加载：等页面 load 之后再插入，避免外部字体请求拖住 load 事件。
+ * Google Fonts 的中文分片 CSS 约 180KB，网络差时单次请求可达 6–7 秒；
+ * 页面先用系统字体渲染，字体就绪后再替换。
+ */
+const FONT_LOADER = `(function(){function add(){var l=document.createElement('link');l.rel='stylesheet';l.media='print';l.href=${JSON.stringify(
+  FONT_CSS_URL,
+)};l.onload=function(){l.media='all'};document.head.appendChild(l);}function schedule(){setTimeout(add,800);}if(document.readyState==='complete'){schedule()}else{window.addEventListener('load',schedule,{once:true})}})();`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -71,35 +81,18 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <head>
-        {/* 自托管字体（public/fonts，scripts/build-fonts.mjs 生成）：无外部请求、无字体闪烁 */}
+        {/* 运行时字体（fonts.googleapis.cn 镜像）：不走 next/font，避免构建期拉取失败 */}
+        <link rel="preconnect" href="https://fonts.googleapis.cn" />
         <link
-          rel="preload"
-          href="/fonts/noto-serif-sc-400.woff2"
-          as="font"
-          type="font/woff2"
+          rel="preconnect"
+          href="https://fonts.gstatic.cn"
           crossOrigin="anonymous"
         />
-        <link
-          rel="preload"
-          href="/fonts/noto-sans-sc-400.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          href="/fonts/outfit-600.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          href="/fonts/ma-shan-zheng-400.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
+        {/* 字体异步加载，不阻塞渲染；无 JS 时回退到系统字体 */}
+        <script dangerouslySetInnerHTML={{ __html: FONT_LOADER }} />
+        <noscript>
+          <link href={FONT_CSS_URL} rel="stylesheet" />
+        </noscript>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
