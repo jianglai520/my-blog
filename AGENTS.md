@@ -23,7 +23,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **浏览器端零数据库写权限**；**绝不使用 `service_role` key**（会绕过 RLS）
 - 连接池：`lib/db.ts` 用 `pg` 驱动 + globalThis 缓存（生产模式也必须复用）
 - **列表/搜索不要查整篇正文**：只 select 必要列；无摘要时的兜底用 `left(content, 500)`；阅读时长读 `posts.reading_minutes`、字数读 `posts.word_count`（发布/编辑时写入，历史数据用 `scripts/backfill-reading-time.mjs` 回填）
-- **后台列表只传文章元数据**：编辑时通过 `getPostContent` Server Action 按需取正文；评论/留言/私信只在 `?tab=comments` 时加载
+- **后台列表只传文章元数据**：编辑时通过 `getPostContent` Server Action 按需取正文；后台 Tab 用客户端状态即时切换，文章/评论/留言/私信首次并行加载，切换不再走服务端导航
 - **页面默认用 ISR**（`export const revalidate = 60`）；只有必须读取 cookie / 实时请求数据时才用 `force-dynamic`。不要为了“数据最新”滥用 `force-dynamic`，否则每次访问都要服务端重新渲染
 - **分页优先用路径参数**（`/page/N`）；不要让根路由 `/` 读取 `searchParams`，否则首页会失去静态化与预取，点击导航比别的页面慢
 - **外部字体 CSS 不得阻塞渲染**：等页面 `load` 后再异步注入（`media="print"` → `onload` 切 `all`），不要把 Google Fonts 的 `<link rel="stylesheet">` 直接放 `<head>`

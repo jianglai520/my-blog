@@ -37,7 +37,7 @@ export type AdminCounts = {
 };
 
 /**
- * 后台主界面：顶部导航 + Tab（URL 驱动，按需加载）+ 组合各管理模块。
+ * 后台主界面：顶部导航 + Tab（客户端即时切换，数据首次并行加载）。
  * 文章列表只接收元数据；编辑时通过 Server Action 按需取正文。
  */
 export default function AdminClient({
@@ -48,7 +48,7 @@ export default function AdminClient({
   messages,
   siteSettings,
   storageUsage,
-  tab,
+  initialTab,
   counts,
 }: {
   userEmail: string;
@@ -58,13 +58,20 @@ export default function AdminClient({
   messages: Message[];
   siteSettings: SiteSettings;
   storageUsage: { files: number; bytes: number };
-  tab: AdminTab;
+  initialTab: AdminTab;
   counts: AdminCounts;
 }) {
   const router = useRouter();
+  const [tab, setTab] = useState<AdminTab>(initialTab);
   const [editing, setEditing] = useState<AdminPost | null>(null);
   const [formVersion, setFormVersion] = useState(0);
   const [editLoadingId, setEditLoadingId] = useState<number | null>(null);
+
+  // 只更新本地状态 + 地址栏，不触发服务端导航
+  function selectTab(next: AdminTab) {
+    setTab(next);
+    window.history.replaceState(null, "", `/admin?tab=${next}`);
+  }
 
   // 保存成功：退出编辑模式 + 递增 key 重置表单 + 刷新列表
   function handleSaved() {
@@ -114,16 +121,16 @@ export default function AdminClient({
         </form>
       </div>
 
-      {/* Tab 切换（URL 驱动：只加载当前 Tab 的数据） */}
+      {/* Tab 切换（客户端即时切换，不重新请求服务端） */}
       <div className="mb-6 flex flex-wrap gap-2 border-b border-ink-700/60">
         {TABS.map((item) => {
           const active = tab === item.key;
           const count = item.countKey ? counts[item.countKey] : undefined;
           return (
-            <Link
+            <button
               key={item.key}
-              href={`/admin?tab=${item.key}`}
-              scroll={false}
+              type="button"
+              onClick={() => selectTab(item.key)}
               aria-current={active ? "page" : undefined}
               className={`rounded-t-lg px-4 py-2 text-sm transition-colors ${
                 active
@@ -133,7 +140,7 @@ export default function AdminClient({
             >
               {item.label}
               {count != null ? `（${count}）` : ""}
-            </Link>
+            </button>
           );
         })}
       </div>

@@ -17,13 +17,13 @@ const VALID_TABS: AdminTab[] = [
   "settings",
 ];
 
-/** 后台数据（Drizzle 直连，一次往返拿完） */
-async function loadAdminData(tab: AdminTab) {
+/** 后台数据（Drizzle 直连，首次并行加载；Tab 切换不再请求服务端） */
+async function loadAdminData() {
   const [postsAndCounts, siteSettings, storageUsage, inbox] = await Promise.all([
     getAdminPostsAndCounts(),
     getSiteSettings(),
     getStorageUsage(),
-    tab === "comments" ? getAdminInbox() : Promise.resolve(null),
+    getAdminInbox(),
   ]);
 
   return { ...postsAndCounts, siteSettings, storageUsage, inbox };
@@ -40,7 +40,7 @@ export default async function AdminPage({
     : "posts";
 
   // 鉴权与数据并行：数据查询不等认证完成，认证失败时直接丢弃结果
-  const dataPromise = loadAdminData(tab);
+  const dataPromise = loadAdminData();
   dataPromise.catch(() => {}); // 防止 redirect 时出现未处理的 rejection
 
   const admin = await requireAdmin().catch(() => null);
@@ -63,7 +63,7 @@ export default async function AdminPage({
       messages={data.inbox?.messages ?? []}
       siteSettings={data.siteSettings}
       storageUsage={data.storageUsage}
-      tab={tab}
+      initialTab={tab}
       counts={data.counts}
     />
   );
