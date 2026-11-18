@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import AdminClient, { type AdminTab } from "./AdminClient";
-import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
+import { requireAdmin } from "@/lib/server/supabase";
 import { getSiteSettings } from "@/lib/site";
 import { getStorageUsage } from "@/lib/storage";
+import { getAdminInbox, getAdminPostsAndCounts } from "@/lib/admin-data";
 import type { Post, Comment } from "@/lib/posts";
-import type { GuestbookMessage, Message } from "@/db/schema";
 
 // 后台始终读最新数据，不做静态缓存
 export const dynamic = "force-dynamic";
@@ -17,98 +17,54 @@ const VALID_TABS: AdminTab[] = [
   "settings",
 ];
 
+/** 后台数据（Drizzle 直连，一次往返拿完） */
+async function loadAdminData(tab: AdminTab) {
+  const [postsAndCounts, siteSettings, storageUsage, inbox] = await Promise.all([
+    getAdminPostsAndCounts(),
+    getSiteSettings(),
+    getStorageUsage(),
+    tab === "comments" ? getAdminInbox() : Promise.resolve(null),
+  ]);
+
+  return { ...postsAndCounts, siteSettings, storageUsage, inbox };
+}
+
 export default async function AdminPage({
   searchParams,
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
-  // 服务端鉴权：未登录 / 非博主一律重定向到登录页（proxy 已拦一道，这里是双保险）
-  let admin;
-  try {
-    admin = await requireAdmin();
-  } catch {
-    redirect("/login?next=/admin");
-  }
-
   const { tab: rawTab } = await searchParams;
   const tab: AdminTab = VALID_TABS.includes(rawTab as AdminTab)
     ? (rawTab as AdminTab)
     : "posts";
 
-  const supabase = await getServerSupabase();
+  // 鉴权与数据并行：数据查询不等认证完成，认证失败时直接丢弃结果
+  const dataPromise = loadAdminData(tab);
+  dataPromise.catch(() => {}); // 防止 redirect 时出现未处理的 rejection
 
-  // 文章列表只取元数据，不取全文；评论/留言/私信只在对应 Tab 加载
-  const [
-    { data: posts },
-    { count: commentCount },
-    { count: guestbookCount },
-    { count: messageCount },
-    siteSettings,
-    storageUsage,
-  ] = await Promise.all([
-    supabase
-      .from("posts")
-      .select(
-        "id,slug,title,excerpt,cover_image,created_at,published,status,pinned,post_tags(tag:tags(name))",
-      )
-      .order("created_at", { ascending: false }),
-    supabase.from("comments").select("id", { count: "exact", head: true }),
-    supabase
-      .from("guestbook_messages")
-      .select("id", { count: "exact", head: true }),
-    supabase.from("messages").select("id", { count: "exact", head: true }),
-    getSiteSettings(),
-    getStorageUsage(),
-  ]);
+  const admin = await requireAdmin().catch(() => null);
+  if (!admin) redirect("/login?next=/admin");
 
-  let comments: Comment[] = [];
-  let guestbook: GuestbookMessage[] = [];
-  let messages: Message[] = [];
-
-  if (tab === "comments") {
-    const [commentRows, guestbookRows, messageRows] = await Promise.all([
-      supabase
-        .from("comments")
-        .select("id,post_id,name,content,reply,replied_at,created_at,status")
-        .order("created_at", { ascending: false })
-        .limit(200),
-      supabase
-        .from("guestbook_messages")
-        .select("id,name,content,reply,replied_at,created_at")
-        .order("created_at", { ascending: false })
-        .limit(200),
-      supabase
-        .from("messages")
-        .select("id,name,contact,content,created_at")
-        .order("created_at", { ascending: false })
-        .limit(100),
-    ]);
-    comments = (commentRows.data ?? []) as Comment[];
-    guestbook = (guestbookRows.data ?? []) as GuestbookMessage[];
-    messages = (messageRows.data ?? []) as Message[];
-  }
+  const data = await dataPromise;
 
   // 列表不传正文；编辑时由 getPostContent 按需取
-  const adminPosts = (
-    (posts ?? []) as unknown as Omit<AdminPost, "content">[]
-  ).map((post) => ({ ...post, content: "" })) as AdminPost[];
+  const adminPosts = data.posts.map((post) => ({
+    ...post,
+    content: "",
+  })) as AdminPost[];
 
   return (
     <AdminClient
       userEmail={admin.email}
       posts={adminPosts}
-      comments={comments}
-      guestbookMessages={guestbook}
-      messages={messages}
-      siteSettings={siteSettings}
-      storageUsage={storageUsage}
+      comments={(data.inbox?.comments ?? []) as Comment[]}
+      guestbookMessages={data.inbox?.guestbook ?? []}
+      messages={data.inbox?.messages ?? []}
+      siteSettings={data.siteSettings}
+      storageUsage={data.storageUsage}
       tab={tab}
-      counts={{
-        posts: adminPosts.length,
-        comments: commentCount ?? 0,
-        guestbook: guestbookCount ?? 0,
-        messages: messageCount ?? 0,
-      }}
+      counts={data.counts}
     />
   );
 }

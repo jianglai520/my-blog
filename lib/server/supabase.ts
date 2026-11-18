@@ -1,6 +1,10 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { unstable_cache } from "next/cache";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { profiles } from "@/db/schema";
 
 /**
  * 服务端 Supabase 客户端（cookie session）。
@@ -51,22 +55,38 @@ export class UnauthorizedError extends Error {
 }
 
 /**
+ * profiles.is_admin 查询结果缓存 30 秒。
+ * 用户身份仍由 getUser() 校验，缓存只省掉每次请求的 profiles REST 往返；
+ * 角色变更最多延迟 30 秒生效（单博主场景可接受）。
+ */
+const isAdminCached = unstable_cache(
+  async (userId: string): Promise<boolean> => {
+    const row = await db.query.profiles.findFirst({
+      where: eq(profiles.id, userId),
+      columns: { is_admin: true },
+    });
+    return Boolean(row?.is_admin);
+  },
+  ["is-admin"],
+  { revalidate: 30 },
+);
+
+/**
  * 校验当前用户是否为博主（profiles.is_admin = true）。
- * 数据库查询失败时按「非管理员」处理（安全默认），
- * 并要求 profiles 表已通过迁移脚本创建。
+ * 数据库查询失败时按「非管理员」处理（安全默认）。
  */
 export async function requireAdmin(): Promise<{ id: string; email: string }> {
   const user = await getCurrentUser();
   if (!user?.email) throw new UnauthorizedError("请先登录");
 
-  const supabase = await getServerSupabase();
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .maybeSingle();
+  let isAdmin = false;
+  try {
+    isAdmin = await isAdminCached(user.id);
+  } catch (error) {
+    console.error("读取管理员权限失败:", error);
+  }
 
-  if (error || !data?.is_admin) {
+  if (!isAdmin) {
     throw new UnauthorizedError("仅博主可执行此操作");
   }
 

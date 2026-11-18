@@ -13,13 +13,13 @@ const FONT_CSS_URL =
   "https://fonts.googleapis.cn/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@400;600&family=Outfit:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Ma+Shan+Zheng&display=swap";
 
 /**
- * 字体 CSS 异步加载：用 media="print" 插入，加载完成后切回 all。
- * 直接 <link rel="stylesheet"> 会阻塞首屏，Google Fonts 的中文分片 CSS 约 180KB，
- * 实测会把文章页 DOMContentLoaded 拖到 4s。
+ * 字体 CSS 异步加载：等页面 load 之后再插入，避免外部字体请求拖住 load 事件。
+ * Google Fonts 的中文分片 CSS 约 180KB，网络差时单次请求可达 6–7 秒；
+ * 页面先用系统字体渲染，字体就绪后再替换。
  */
-const FONT_LOADER = `(function(){var l=document.createElement('link');l.rel='stylesheet';l.media='print';l.href=${JSON.stringify(
+const FONT_LOADER = `(function(){function add(){var l=document.createElement('link');l.rel='stylesheet';l.media='print';l.href=${JSON.stringify(
   FONT_CSS_URL,
-)};l.onload=function(){l.media='all'};document.head.appendChild(l);})();`;
+)};l.onload=function(){l.media='all'};document.head.appendChild(l);}function schedule(){setTimeout(add,800);}if(document.readyState==='complete'){schedule()}else{window.addEventListener('load',schedule,{once:true})}})();`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
