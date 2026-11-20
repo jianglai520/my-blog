@@ -21,7 +21,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **公开读**：`lib/posts.ts` / `lib/rag.ts` 用 Drizzle 直连（绕过 RLS），**必须显式过滤 `status = 'published'`**（草稿永不公开）；评论只返回 `approved`
 - **写操作**：一律走 **Server Actions**（`app/actions/`），服务端 `requireAdmin()` 鉴权 + 数据库 RLS 双保险
 - **浏览器端零数据库写权限**；**绝不使用 `service_role` key**（会绕过 RLS）
-- 连接池：`lib/db.ts` 用 `pg` 驱动 + globalThis 缓存（生产模式也必须复用）
+- 连接池：`lib/db.ts` 用 `pg` 驱动 + globalThis 缓存（生产模式也必须复用）；`next build` 默认多 worker，构建期连接池 `max=2`，并在 `next.config.ts` 限制 `experimental.cpus=4`，避免并发静态页打满 Supabase 连接池
 - **列表/搜索不要查整篇正文**：只 select 必要列；无摘要时的兜底用 `left(content, 500)`；阅读时长读 `posts.reading_minutes`、字数读 `posts.word_count`（发布/编辑时写入，历史数据用 `scripts/backfill-reading-time.mjs` 回填）
 - **后台列表只传文章元数据**：编辑时通过 `getPostContent` Server Action 按需取正文；后台 Tab 用客户端状态即时切换，文章/评论/留言/私信首次并行加载，切换不再走服务端导航
 - **页面默认用 ISR**（`export const revalidate = 60`）；只有必须读取 cookie / 实时请求数据时才用 `force-dynamic`。不要为了“数据最新”滥用 `force-dynamic`，否则每次访问都要服务端重新渲染

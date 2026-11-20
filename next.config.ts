@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
       // 图片上传走 Server Action，默认 1MB 不够，放宽到 10MB（配合 uploads.ts 的 5MB 单图限制）
       bodySizeLimit: "10mb",
     },
+    // 限制构建 worker 数：静态页会并发查库，worker 太多会打满 Supabase 连接池
+    cpus: 4,
   },
   images: {
     // 优先 AVIF/WebP，减小封面图传输体积

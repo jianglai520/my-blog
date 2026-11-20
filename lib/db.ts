@@ -21,11 +21,15 @@ if (!connectionString) {
   throw new Error("缺少 DATABASE_URL 环境变量（Phase 2 数据库连接串，见 .env.example）");
 }
 
+/** 构建阶段：减少每个 worker 的连接数，避免 next build 并发查库打满 Supabase 连接池 */
+const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+
 const pool =
   globalForDb.pool ??
   new Pool({
     connectionString,
-    max: 5,
+    // 构建时 4 个 worker × 2 连接；运行时保持 5 连接/实例
+    max: isBuildPhase ? 2 : 5,
     connectionTimeoutMillis: 10_000,
     idleTimeoutMillis: 30_000,
   });
