@@ -78,31 +78,27 @@ export default function PostCard({
           )}
         </div>
 
-        <h3 className="text-lg font-bold leading-snug text-fg transition-colors group-hover:text-brand-300">
+        <h3 className="line-clamp-2 min-h-[3.1rem] text-lg font-bold leading-snug text-fg transition-colors group-hover:text-brand-300">
           <Link href={postUrl} className="relative z-10">
             {post.title}
           </Link>
         </h3>
 
-        {excerpt && (
-          <p className="line-clamp-2 text-sm leading-relaxed text-fg-muted">
-            {excerpt}
-          </p>
-        )}
+        <p className="line-clamp-2 min-h-[2.85rem] text-sm leading-relaxed text-fg-muted">
+          {excerpt || "\u00a0"}
+        </p>
 
-        {post.tags.length > 0 && (
-          <div className="mt-auto flex flex-wrap gap-2 pt-1">
-            {post.tags.map((tag) => (
-              <Link
-                key={tag.slug}
-                href={`/tags/${tag.slug}`}
-                className="relative z-10 rounded-full border border-ink-600/60 bg-ink-800/40 px-2.5 py-0.5 text-xs text-fg-muted backdrop-blur-sm transition-colors hover:border-brand-400/60 hover:bg-brand-500/10 hover:text-brand-300"
-              >
-                #{tag.name}
-              </Link>
-            ))}
-          </div>
-        )}
+        <div className="mt-auto flex min-h-[1.75rem] flex-nowrap gap-2 overflow-hidden pt-1">
+          {post.tags.slice(0, 3).map((tag) => (
+            <Link
+              key={tag.slug}
+              href={`/tags/${tag.slug}`}
+              className="relative z-10 shrink-0 whitespace-nowrap rounded-full border border-ink-600/60 bg-ink-800/40 px-2.5 py-0.5 text-xs text-fg-muted backdrop-blur-sm transition-colors hover:border-brand-400/60 hover:bg-brand-500/10 hover:text-brand-300"
+            >
+              #{tag.name}
+            </Link>
+          ))}
+        </div>
       </div>
     </article>
   );

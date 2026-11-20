@@ -126,7 +126,7 @@ export default async function HomeContent({ page }: { page: number }) {
       </section>
 
       {/* ===== 文章列表（双列网格） ===== */}
-      <section className="mx-auto max-w-5xl px-4 pb-16">
+      <section className="mx-auto max-w-4xl px-4 pb-16">
         <h2 className="page-heading mb-6 flex items-center gap-3 font-display text-xl font-semibold text-fg">
           <span className="h-5 w-1 rounded bg-gradient-to-b from-glow-400 to-brand-500" />
           最新文章
@@ -157,7 +157,7 @@ export default async function HomeContent({ page }: { page: number }) {
             <p className="mt-2 text-sm text-fg-faint">敬请期待第一篇作品</p>
           </div>
         ) : (
-          <div className="grid gap-5 md:grid-cols-2">
+          <div className="grid auto-rows-fr gap-5 md:grid-cols-2">
             {posts.map((post, index) => (
               <PostCard
                 key={post.id}
