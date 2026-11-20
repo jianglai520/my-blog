@@ -6,7 +6,7 @@ import type { PostWithTags } from "@/lib/posts";
 
 /**
  * 文章卡片（首页 / 标签页 / 搜索页复用）：青绿毛玻璃卡片。
- * - 毛玻璃面板 + 封面图置顶（16:9 统一比例），文字区在玻璃上，结构固定不拉伸
+ * - 毛玻璃面板 + 封面图置顶（2:1 统一比例），文字区在玻璃上，结构固定不拉伸
  * - 无封面时用青绿渐变占位 + 文章首字装饰，风格统一
  * - 整卡高度一致（flex h-full），杜绝同排卡片高低错落
  * - stretched-link：整卡点击用绝对定位覆盖层 <a>，避免 <a> 嵌套 <a>
@@ -31,8 +31,8 @@ export default function PostCard({
       {/* 整卡点击覆盖层（stretched link，z-0；内容链接需 relative z-10 才能在上层） */}
       <Link href={postUrl} className="absolute inset-0 z-0" aria-label={post.title} />
 
-      {/* ===== 封面图（置顶，统一 16:9，不再整卡通铺） ===== */}
-      <div className="relative aspect-[16/9] shrink-0 overflow-hidden">
+      {/* ===== 封面图（置顶，统一 2:1，不再整卡通铺） ===== */}
+      <div className="relative aspect-[2/1] shrink-0 overflow-hidden">
         {post.cover_image ? (
           <Image
             src={post.cover_image}
@@ -63,8 +63,8 @@ export default function PostCard({
       </div>
 
       {/* ===== 内容层（玻璃面板上，语义色自适应深浅色） ===== */}
-      <div className="relative z-10 flex flex-1 flex-col gap-3 p-5">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-fg-faint">
+      <div className="relative z-10 flex flex-1 flex-col gap-2.5 p-4">
+        <div className="flex flex-nowrap items-center gap-x-3 overflow-hidden whitespace-nowrap text-xs text-fg-faint">
           <span>{formatDate(post.created_at)}</span>
           {minutes != null && (
             <span className="inline-flex items-center gap-1" aria-label="阅读时长">
@@ -78,13 +78,13 @@ export default function PostCard({
           )}
         </div>
 
-        <h3 className="line-clamp-2 min-h-[3.1rem] text-lg font-bold leading-snug text-fg transition-colors group-hover:text-brand-300">
+        <h3 className="line-clamp-2 min-h-[2.75rem] text-[17px] font-bold leading-[1.3] text-fg transition-colors group-hover:text-brand-300">
           <Link href={postUrl} className="relative z-10">
             {post.title}
           </Link>
         </h3>
 
-        <p className="line-clamp-2 min-h-[2.85rem] text-sm leading-relaxed text-fg-muted">
+        <p className="line-clamp-1 min-h-[1.45rem] text-sm leading-relaxed text-fg-muted">
           {excerpt || "\u00a0"}
         </p>
 
