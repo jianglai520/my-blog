@@ -154,13 +154,13 @@ export const getTags = unstable_cache(
       .select({
         name: tagsTable.name,
         slug: tagsTable.slug,
-        count: sql<number>`count(${postTags.post_id})`,
+        count: sql<number>`count(${posts.id})`,
       })
       .from(tagsTable)
       .leftJoin(postTags, eq(postTags.tag_id, tagsTable.id))
       .leftJoin(posts, and(eq(posts.id, postTags.post_id), eq(posts.status, "published")))
       .groupBy(tagsTable.id)
-      .having(sql`count(${postTags.post_id}) > 0`) // 过滤无文章的空标签
+      .having(sql`count(${posts.id}) > 0`) // 只保留有已发布文章的标签（草稿不计入）
       .orderBy(desc(sql`count`), asc(tagsTable.name));
 
     return rows.map((r) => ({ name: r.name, slug: r.slug, count: Number(r.count ?? 0) }));

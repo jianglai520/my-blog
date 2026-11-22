@@ -51,7 +51,7 @@ export default async function TagPage({ params, searchParams }: Props) {
           该标签下还没有文章
         </p>
       ) : (
-        <div className="grid gap-5">
+        <div className="grid auto-rows-fr gap-5 md:grid-cols-2">
           {posts.map((post) => (
             <PostCard key={post.id} post={post} />
           ))}

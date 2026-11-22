@@ -22,7 +22,8 @@ export default async function HomeContent({ page }: { page: number }) {
     getVisitStats(),
   ]);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const hotTags = tags.slice(0, 8);
+  // 展示全部有文章的标签：低频标签（如“运维”）也不能被截断
+  const hotTags = tags;
 
   const hasAvatar = settings.avatar_url !== "";
   const cta = [
