@@ -24,6 +24,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // 清掉客户端可能伪造的内部请求头：只有本 proxy 能写入
+  request.headers.delete("x-admin-id");
+  request.headers.delete("x-admin-email");
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -45,10 +49,38 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  // 重要：不要用 getSession()，它会无条件信任 cookie 而不会向 Auth 服务器验证。
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // 验证会话：
+  // - 项目使用 ES256 非对称签名，getClaims() 用 JWKS 本地验签（首次拉取后缓存），
+  //   避免每个后台请求都跨区域调用 Supabase Auth。
+  // - 验签失败 / 无会话 / 仍为 HS256 时，回退 getUser()（由 Auth 服务校验）。
+  let authUser: { id: string; email: string } | null = null;
+
+  try {
+    const { data, error } = await supabase.auth.getClaims();
+    const claims = data?.claims;
+    if (!error && claims?.sub) {
+      authUser = {
+        id: claims.sub,
+        email: typeof claims.email === "string" ? claims.email : "",
+      };
+    }
+  } catch {
+    // 交给下面的 getUser 兜底
+  }
+
+  if (!authUser) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) authUser = { id: user.id, email: user.email ?? "" };
+  }
+
+  // 把已验证的身份通过内部请求头传给页面 / Server Action，
+  // 避免 requireAdmin() 再调一次 auth.getUser()（每次都是跨区域 HTTPS 往返）。
+  if (authUser) {
+    request.headers.set("x-admin-id", authUser.id);
+    request.headers.set("x-admin-email", authUser.email);
+  }
 
   // Server Action 的 POST 也命中 /admin，若被重定向会导致客户端报
   // "An unexpected response was received from the server"。
@@ -56,14 +88,19 @@ export async function proxy(request: NextRequest) {
   const isServerAction =
     request.method === "POST" && request.headers.has("next-action");
 
-  if (!user && !isServerAction && request.nextUrl.pathname.startsWith("/admin")) {
+  if (!authUser && !isServerAction && request.nextUrl.pathname.startsWith("/admin")) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
 
-  return supabaseResponse;
+  // 重建响应：确保 getUser 之后写入的请求头一定被转发
+  const response = NextResponse.next({ request });
+  for (const cookie of supabaseResponse.cookies.getAll()) {
+    response.cookies.set(cookie);
+  }
+  return response;
 }
 
 export const config = {

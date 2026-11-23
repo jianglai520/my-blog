@@ -14,11 +14,29 @@ import {
   AIChatButton,
 } from "@/app/components/ArticleClientWidgets";
 import ShareButton from "@/app/components/ShareButton";
-import { getComments, getPostByIdentifier } from "@/lib/posts";
+import { getComments, getPostByIdentifier, getPublishedPostIdentifiers } from "@/lib/posts";
 import { getSiteSettings } from "@/lib/site";
 import { formatDateTime, postHref, readingMinutes } from "@/lib/format";
 
 const SITE_URL = "https://jianglai520.com";
+
+/**
+ * 文章页 ISR：60 秒。
+ * - 构建时预渲染全部已发布文章，首访直接命中 CDN，不再每次走 Serverless
+ * - 新文章按需渲染并缓存；过期后 stale-while-revalidate
+ * - 预渲染失败时返回空数组，不影响构建（退化为按需渲染）
+ */
+export const revalidate = 60;
+
+export async function generateStaticParams() {
+  try {
+    const identifiers = await getPublishedPostIdentifiers();
+    return identifiers.map((identifier) => ({ identifier }));
+  } catch (error) {
+    console.error("预渲染文章失败，回退按需渲染:", error);
+    return [];
+  }
+}
 
 type Props = {
   params: Promise<{ identifier: string }>;

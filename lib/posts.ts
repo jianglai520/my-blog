@@ -169,6 +169,25 @@ export const getTags = unstable_cache(
   { revalidate: 60, tags: ["posts"] },
 );
 
+/**
+ * 已发布文章的 URL identifier（构建期 generateStaticParams 用）。
+ * 与 postHref 规则一致：非数字 slug 优先，否则用 id。
+ */
+export const getPublishedPostIdentifiers = unstable_cache(
+  async (): Promise<string[]> => {
+    const rows = await db
+      .select({ id: posts.id, slug: posts.slug })
+      .from(posts)
+      .where(eq(posts.status, "published"));
+
+    return rows.map((r) =>
+      r.slug && !/^\d+$/.test(r.slug) ? r.slug : String(r.id),
+    );
+  },
+  ["post-identifiers"],
+  { revalidate: 60, tags: ["posts"] },
+);
+
 /** 站点统计：已发布文章数 / 已通过评论数 / 总浏览量。缓存 60s + tag "posts"/"comments" */
 export const getSiteStats = unstable_cache(
   async (): Promise<{ postCount: number; commentCount: number; totalViews: number }> => {

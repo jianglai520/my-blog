@@ -6,6 +6,20 @@ import { ExternalLink, FolderGit2, GitFork, ArrowLeft } from "lucide-react";
 import { getSiteSettings } from "@/lib/site";
 import { parseProjects, splitTech, projectSlug } from "@/lib/projects";
 
+/** 项目详情 ISR：60 秒，构建时按 site_settings 里的项目预渲染 */
+export const revalidate = 60;
+
+export async function generateStaticParams() {
+  try {
+    const settings = await getSiteSettings();
+    const projects = parseProjects(settings.projects);
+    return projects.map((p, i) => ({ slug: projectSlug(p, i) }));
+  } catch (error) {
+    console.error("预渲染项目详情失败，回退按需渲染:", error);
+    return [];
+  }
+}
+
 /** 详情页标题（SEO） */
 export async function generateMetadata({
   params,

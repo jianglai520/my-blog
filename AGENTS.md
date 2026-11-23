@@ -74,6 +74,9 @@ npm run cleanup:storage # Storage 孤儿文件扫描（默认预演，不删除�
 
 ## 安全约定
 
+- **鉴权快速路径**：`proxy.ts` 用 `auth.getClaims()` 本地验签（ES256 + JWKS 缓存，失败回退 `getUser()`），并通过 `x-admin-id` / `x-admin-email` 内部请求头传递身份；`requireAdmin()` 优先读该头（proxy 会先删除客户端伪造的同名头），无头时回退 `getUser()`。新增后台路由必须命中 `/admin` matcher。
+- **文章/项目详情页是 ISR**：`revalidate = 60` + `generateStaticParams` 预渲染；修改数据后靠 tag `posts` 失效，不要再改成每次请求 SSR。
+
 - 安全响应头在 `next.config.ts`（nosniff / Referrer-Policy / X-Frame-Options / Permissions-Policy）
 - `/api/download` 必须用 `new URL()` 校验 hostname 与 pathname，**禁止用 `includes` 做 URL 白名单**
 - Storage 桶 `post-images` 有 MIME 白名单 + 20MB 单文件上限；上传失败必须给出明确提示

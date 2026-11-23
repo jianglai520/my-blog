@@ -1,6 +1,6 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { unstable_cache } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -76,6 +76,23 @@ const isAdminCached = unstable_cache(
  * 数据库查询失败时按「非管理员」处理（安全默认）。
  */
 export async function requireAdmin(): Promise<{ id: string; email: string }> {
+  const requestHeaders = await headers();
+  const trustedId = requestHeaders.get("x-admin-id");
+
+  // 快速路径：proxy.ts 已完成会话校验（auth.getUser），并通过内部请求头传递身份。
+  // 客户端传入的同名头会在 proxy 中被删除，无法伪造；授权仍以 profiles.is_admin 为准。
+  if (trustedId) {
+    let isAdmin = false;
+    try {
+      isAdmin = await isAdminCached(trustedId);
+    } catch (error) {
+      console.error("读取管理员权限失败:", error);
+    }
+    if (!isAdmin) throw new UnauthorizedError("仅博主可执行此操作");
+    return { id: trustedId, email: requestHeaders.get("x-admin-email") ?? "" };
+  }
+
+  // 兜底：没有经过 proxy 的调用路径，回到 Supabase Auth 校验
   const user = await getCurrentUser();
   if (!user?.email) throw new UnauthorizedError("请先登录");
 
