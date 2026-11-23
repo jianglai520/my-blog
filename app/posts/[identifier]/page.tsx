@@ -8,9 +8,11 @@ import ViewCounter from "@/app/components/ViewCounter";
 import AttachmentEnhancer from "@/app/components/AttachmentEnhancer";
 import CodeBlockCopy from "@/app/components/CodeBlockCopy";
 import ReadingProgress from "@/app/components/ReadingProgress";
-import Toc from "@/app/components/Toc";
-import ImageLightbox from "@/app/components/ImageLightbox";
-import AIChatButton from "@/app/components/AIChatButton";
+import {
+  Toc,
+  ImageLightbox,
+  AIChatButton,
+} from "@/app/components/ArticleClientWidgets";
 import ShareButton from "@/app/components/ShareButton";
 import { getComments, getPostByIdentifier } from "@/lib/posts";
 import { getSiteSettings } from "@/lib/site";

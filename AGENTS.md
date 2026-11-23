@@ -36,6 +36,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **浏览量**：`record_post_view` RPC + `post_views` 表，同一访客每天每篇只计一次
 - **访客 UV**：`site_visits` + `/api/visit`，按天去重；站长登录态与爬虫不计入
 
+## 前端加载与草稿
+
+- **重组件按需加载**：文章页的 TOC / 图片灯箱 / AI 按钮统一从 `app/components/ArticleClientWidgets.tsx` 导入（内部 `next/dynamic` + `ssr:false`）；后台 `PostForm` / `ProjectManager` / `SkillManager` 用 `next/dynamic`。不要再把它们静态 import 进 Server Component（Server Component 不支持 `ssr:false`）。
+- **草稿自动保存**：`app/admin/PostForm.tsx` 以 1 秒防抖写 localStorage（`draft:new` / `draft:edit:<id>`）；发布成功、主动丢弃、手动清除时必须删除；恢复提示未处理前禁止写入，避免覆盖旧草稿。
+
 ## AI / RAG 约定
 
 - 检索：**向量 Top8 + 关键词 Top8 → 融合 0.7/0.3 → 单篇最多 2 段 → Top5**

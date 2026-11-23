@@ -1,18 +1,46 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { logout } from "@/app/actions/auth";
 import { getPostContent } from "@/app/actions/posts";
-import PostForm from "./PostForm";
 import PostList from "./PostList";
 import CommentManager from "./CommentManager";
 import GuestbookManager from "./GuestbookManager";
 import MessageManager from "./MessageManager";
-import ProjectManager from "./ProjectManager";
-import SkillManager from "./SkillManager";
 import SettingsForm from "./SettingsForm";
+
+/** 懒加载占位：只在对应 Tab 首次打开时短暂出现，避免大面积布局跳动 */
+function LazyPlaceholder({ label }: { label: string }) {
+  return (
+    <div
+      aria-busy="true"
+      className="mb-6 rounded-2xl border border-ink-700/60 bg-ink-900/40 p-8 text-sm text-fg-faint"
+    >
+      {label}
+    </div>
+  );
+}
+
+/**
+ * 重组件按需加载：
+ * - PostForm → 编辑器（TipTap）是后台最大的依赖
+ * - ProjectManager / SkillManager → 只有切到对应 Tab 才下载
+ */
+const PostForm = dynamic(() => import("./PostForm"), {
+  ssr: false,
+  loading: () => <LazyPlaceholder label="正在加载编辑器…" />,
+});
+const ProjectManager = dynamic(() => import("./ProjectManager"), {
+  ssr: false,
+  loading: () => <LazyPlaceholder label="正在加载项目管理…" />,
+});
+const SkillManager = dynamic(() => import("./SkillManager"), {
+  ssr: false,
+  loading: () => <LazyPlaceholder label="正在加载技能管理…" />,
+});
 import type { AdminPost } from "./shared";
 import type { SiteSettings } from "@/lib/site";
 import type { Comment } from "@/lib/posts";
