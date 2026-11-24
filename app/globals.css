@@ -211,6 +211,20 @@ body::before {
   letter-spacing: 0.01em;
 }
 
+/* ---- 数学公式（KaTeX）：块级公式窄屏可横向滚动，避免撑破正文宽度 ---- */
+.markdown-body .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}
+.markdown-body .katex-display > .katex {
+  max-width: none;
+}
+/* 行内公式不要被正文行高裁切 */
+.markdown-body .katex {
+  font-size: 1.1em;
+}
+
 /* ---- 标题：层级递进，h1→h6 由大到小 ---- */
 .markdown-body h1,
 .markdown-body h2,
