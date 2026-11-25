@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { siteVisits } from "@/db/schema";
+import { logger } from "@/lib/logger";
 
 /** 全站访客统计（UV 去重，PV 不在此表统计） */
 export type VisitStats = {
@@ -43,7 +44,7 @@ export async function getVisitStats(): Promise<VisitStats> {
   try {
     return await readVisitStats();
   } catch (error) {
-    console.error("读取访客统计失败（是否已执行 0016 迁移？）:", error);
+    logger.error("读取访客统计失败（是否已执行 0016 迁移？）:", error);
     return { totalUv: 0, todayUv: 0 };
   }
 }

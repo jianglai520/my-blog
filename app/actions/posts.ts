@@ -5,6 +5,7 @@ import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { postSchema, type PostFormInput } from "@/lib/validations/posts";
 import { slugify, readingMinutes, countWords } from "@/lib/format";
 import { deletePostChunks } from "@/lib/rag";
+import { logger } from "@/lib/logger";
 
 export type PostFormState = {
   message: string;
@@ -97,7 +98,7 @@ async function syncPostTags(
   const { error } = await supabase
     .from("post_tags")
     .insert(tagRows.map((t: { id: number }) => ({ post_id: postId, tag_id: t.id })));
-  if (error) console.error("同步标签失败:", error.message);
+  if (error) logger.error("同步标签失败:", error.message);
 }
 
 /** 发布新文章：zod 校验 → 博主鉴权 → 写库 → 同步索引/标签 → 刷新缓存 */
@@ -158,7 +159,7 @@ export async function createPost(
     };
   } catch (e) {
     // 兜底：任何异常都转为错误消息，绝不抛给前端（否则 action reject → 表单闪回）
-    console.error("createPost 异常:", e);
+    logger.error("createPost 异常:", e);
     return {
       message: `❌ 发布失败：${e instanceof Error ? e.message : "未知错误，请稍后重试"}`,
       success: false,
@@ -229,7 +230,7 @@ export async function updatePost(
     };
   } catch (e) {
     // 兜底：任何异常都转为错误消息，绝不抛给前端
-    console.error("updatePost 异常:", e);
+    logger.error("updatePost 异常:", e);
     return {
       message: `❌ 保存失败：${e instanceof Error ? e.message : "未知错误，请稍后重试"}`,
       success: false,
@@ -255,7 +256,7 @@ export async function deletePost(formData: FormData): Promise<void> {
     await deletePostChunks(supabase, postId);
     const { error } = await supabase.from("posts").delete().eq("id", postId);
     if (error) {
-      console.error("删除文章失败:", error);
+      logger.error("删除文章失败:", error);
       return;
     }
 
@@ -265,7 +266,7 @@ export async function deletePost(formData: FormData): Promise<void> {
     revalidatePath("/sitemap.xml");
     updateTag("posts");
   } catch (e) {
-    console.error("deletePost 异常:", e);
+    logger.error("deletePost 异常:", e);
   }
 }
 
@@ -283,7 +284,7 @@ export async function batchDeletePosts(ids: number[]): Promise<void> {
   await supabase.from("comments").delete().in("post_id", ids);
   const { error } = await supabase.from("posts").delete().in("id", ids);
   if (error) {
-    console.error("批量删除文章失败:", error);
+    logger.error("批量删除文章失败:", error);
     return;
   }
 
@@ -321,7 +322,7 @@ export async function togglePin(formData: FormData): Promise<PinState> {
     const { data, error } = await query.select("id").maybeSingle();
 
     if (error) {
-      console.error("置顶操作失败:", error);
+      logger.error("置顶操作失败:", error);
       return { success: false, message: error.message };
     }
     if (!data) {
@@ -336,7 +337,7 @@ export async function togglePin(formData: FormData): Promise<PinState> {
     updateTag("posts");
     return { success: true, message: pinned ? "已置顶" : "已取消置顶" };
   } catch (e) {
-    console.error("togglePin 异常:", e);
+    logger.error("togglePin 异常:", e);
     return {
       success: false,
       message: e instanceof Error ? e.message : "操作失败，请稍后重试",

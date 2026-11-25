@@ -3,6 +3,7 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { parseProjects, serializeProjects, type ProjectItem } from "@/lib/projects";
+import { logger } from "@/lib/logger";
 
 export type ProjectState = {
   message: string;
@@ -85,14 +86,14 @@ export async function saveProject(
 
     const err = await writeProjects(supabase, next);
     if (err) {
-      console.error("保存项目失败:", err);
+      logger.error("保存项目失败:", err);
       return { message: `❌ 保存失败：${err}`, success: false };
     }
 
     revalidateProjects();
     return { message: "✅ 已保存", success: true };
   } catch (e) {
-    console.error("saveProject 异常:", e);
+    logger.error("saveProject 异常:", e);
     return {
       message: `❌ 保存失败：${e instanceof Error ? e.message : "未知错误"}`,
       success: false,
@@ -123,14 +124,14 @@ export async function deleteProject(
 
     const err = await writeProjects(supabase, next);
     if (err) {
-      console.error("删除项目失败:", err);
+      logger.error("删除项目失败:", err);
       return { message: `❌ 删除失败：${err}`, success: false };
     }
 
     revalidateProjects();
     return { message: "✅ 已删除", success: true };
   } catch (e) {
-    console.error("deleteProject 异常:", e);
+    logger.error("deleteProject 异常:", e);
     return {
       message: `❌ 删除失败：${e instanceof Error ? e.message : "未知错误"}`,
       success: false,

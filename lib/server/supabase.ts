@@ -6,6 +6,7 @@ import { unstable_cache } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { profiles } from "@/db/schema";
+import { logger } from "@/lib/logger";
 
 /**
  * 服务端 Supabase 客户端（cookie session）。
@@ -89,7 +90,7 @@ export async function requireAdmin(): Promise<{ id: string; email: string }> {
     try {
       isAdmin = await isAdminCached(trustedId);
     } catch (error) {
-      console.error("读取管理员权限失败:", error);
+      logger.error("读取管理员权限失败:", error);
     }
     if (!isAdmin) throw new UnauthorizedError("仅博主可执行此操作");
     return { id: trustedId, email: requestHeaders.get("x-admin-email") ?? "" };
@@ -103,7 +104,7 @@ export async function requireAdmin(): Promise<{ id: string; email: string }> {
   try {
     isAdmin = await isAdminCached(user.id);
   } catch (error) {
-    console.error("读取管理员权限失败:", error);
+    logger.error("读取管理员权限失败:", error);
   }
 
   if (!isAdmin) {

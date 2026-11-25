@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { getClientIp, hashIp } from "@/lib/server/ip";
 import { messageSchema } from "@/lib/validations/message";
+import { logger } from "@/lib/logger";
 
 export type MessageFormState = {
   message: string;
@@ -57,7 +58,7 @@ export async function createMessage(
   });
 
   if (error) {
-    console.error("发送私信失败:", error);
+    logger.error("发送私信失败:", error);
     return { message: "❌ 发送失败，请稍后重试", success: false };
   }
 
@@ -80,7 +81,7 @@ export async function deleteMessage(formData: FormData): Promise<void> {
   const supabase = await getServerSupabase();
   const { error } = await supabase.from("messages").delete().eq("id", messageId);
   if (error) {
-    console.error("删除私信失败:", error);
+    logger.error("删除私信失败:", error);
     return;
   }
 

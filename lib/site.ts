@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import { siteSettings } from "@/db/schema";
+import { logger } from "@/lib/logger";
 
 /**
  * 站点配置读取（Drizzle 直连，公开数据）。
@@ -73,7 +74,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   try {
     return await readSiteSettings();
   } catch (error) {
-    console.error("读取站点配置失败，使用默认值（不缓存）:", error);
+    logger.error("读取站点配置失败，使用默认值（不缓存）:", error);
     return { ...DEFAULTS };
   }
 }

@@ -1,4 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
+import dotenv from "dotenv";
+
+// 本地 E2E 读取 .env.local；CI 使用 GitHub Secrets，文件不存在时静默跳过
+dotenv.config({ path: ".env.local" });
 
 export default defineConfig({
   testDir: "./e2e",

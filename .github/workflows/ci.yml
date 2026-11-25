@@ -26,8 +26,8 @@ jobs:
       - name: TypeScript
         run: npx tsc --noEmit
 
-      - name: Unit tests
-        run: npm test
+      - name: Unit tests + coverage
+        run: npm run test:coverage
 
       # 构建需要数据库（静态页查库）；secrets 未配置时跳过（lint+test 仍为门禁）。
       # 注：GitHub Actions 的 if 条件不支持 secrets context，改用 shell 判断。

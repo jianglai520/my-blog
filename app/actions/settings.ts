@@ -3,6 +3,7 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { settingsSchema, type SettingsInput } from "@/lib/validations/settings";
+import { logger } from "@/lib/logger";
 
 export type SettingsState = {
   message: string;
@@ -53,7 +54,7 @@ export async function updateSiteSettings(
   });
 
   if (error) {
-    console.error("保存站点设置失败:", error);
+    logger.error("保存站点设置失败:", error);
     return { message: "❌ 保存失败，请稍后重试", success: false };
   }
 

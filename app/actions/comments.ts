@@ -5,6 +5,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { getClientIp, hashIp } from "@/lib/server/ip";
 import { commentSchema } from "@/lib/validations/comments";
+import { logger } from "@/lib/logger";
 
 export type CommentFormState = {
   message: string;
@@ -57,7 +58,7 @@ export async function createComment(
   });
 
   if (error) {
-    console.error("发表评论失败:", error);
+    logger.error("发表评论失败:", error);
     return { message: "❌ 评论失败，请稍后重试", success: false };
   }
 
@@ -83,7 +84,7 @@ export async function deleteComment(formData: FormData): Promise<void> {
   const supabase = await getServerSupabase();
   const { error } = await supabase.from("comments").delete().eq("id", commentId);
   if (error) {
-    console.error("删除评论失败:", error);
+    logger.error("删除评论失败:", error);
     return;
   }
 
@@ -105,7 +106,7 @@ export async function batchDeleteComments(ids: number[]): Promise<void> {
   const supabase = await getServerSupabase();
   const { error } = await supabase.from("comments").delete().in("id", ids);
   if (error) {
-    console.error("批量删除评论失败:", error);
+    logger.error("批量删除评论失败:", error);
     return;
   }
 
@@ -153,7 +154,7 @@ export async function replyComment(
     .eq("id", commentId);
 
   if (error) {
-    console.error("回复评论失败:", error);
+    logger.error("回复评论失败:", error);
     return { message: "❌ 保存失败，请稍后重试", success: false };
   }
 

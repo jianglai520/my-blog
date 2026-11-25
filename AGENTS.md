@@ -61,6 +61,7 @@ npm run start          # 生产服务器
 npm run lint           # ESLint
 npx tsc --noEmit       # 类型检查（CI 门禁，必须保持全绿）
 npm test               # Vitest 单测
+npm run test:coverage  # 单测 + 覆盖率阈值（CI 门禁）
 npm run test:e2e       # Playwright E2E（生产模式，需先 build）
 npm run eval:rag       # RAG 检索评测（Recall@5 / MRR / P95）
 npm run cleanup:storage # Storage 孤儿文件扫描（默认预演，不删除）
@@ -97,7 +98,9 @@ node scripts/optimize-storage-images.mjs --apply   # 备份原图后覆盖压缩
 
 - 单测聚焦**纯逻辑 + 权限分支**（mock `@/lib/server/supabase`；mock 清理用 `vi.resetAllMocks()`）
 - E2E **必须用生产模式**（`build + start`，不用 dev）；登录测试凭据走 `TEST_EMAIL`/`TEST_PASSWORD` 环境变量（未配置跳过）
-- CI 门禁：lint → `tsc --noEmit` → 单测 → build → E2E；`main` 分支缺 `DATABASE_URL` 时构建/E2E **直接失败**，不允许静默跳过；类型错误必须当场修掉
+- CI 门禁：lint → `tsc --noEmit` → `test:coverage`（语句 48 / 分支 43 / 函数 38 / 行 50）→ build → E2E；`main` 分支缺 `DATABASE_URL` 时构建/E2E **直接失败**，不允许静默跳过；类型错误必须当场修掉
+- E2E 包含 **axe 无障碍**（关闭 `color-contrast`，属于已知设计取舍）；新增公开页面时同步加入 `e2e/a11y.spec.ts` 的 `PAGES`
+- 服务端日志统一用 `lib/logger.ts`（单行 JSON）；健康检查是 `GET /api/health`
 - RAG 相关改动：同步更新 `data/eval/rag-qa.jsonl` 或在文档记录评测结果
 
 ## 文档

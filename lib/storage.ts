@@ -1,6 +1,7 @@
 import "server-only";
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 export type StorageUsage = {
   /** 文件数 */
@@ -30,7 +31,7 @@ export async function getStorageUsage(): Promise<StorageUsage> {
       bytes: Number(row?.bytes ?? 0),
     };
   } catch (error) {
-    console.error("读取存储用量失败:", error);
+    logger.error("读取存储用量失败:", error);
     return { files: 0, bytes: 0 };
   }
 }

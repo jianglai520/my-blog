@@ -34,8 +34,11 @@ A full-stack personal blog built with **Next.js 16 + React 19 + Supabase + Verce
 
 | Capability | Description |
 |-----------|-------------|
-| Unit tests | **Vitest** (98 cases): `lib/format`, zod validation, Server Actions auth branches, pure data-layer functions with mocked queries, Markdown/KaTeX pipeline, image scaling, env validation, pagination jump, component rendering (RTL) |
-| E2E tests | **Playwright** (9 chromium cases): homepage/post/search/RSS/login (`npm run test:e2e`; login cases need `TEST_EMAIL`/`TEST_PASSWORD`) |
+| Unit tests | **Vitest** (103 cases): `lib/format`, zod validation, Server Actions auth branches, pure data-layer functions with mocked queries, Markdown/KaTeX pipeline, image scaling, env validation, pagination jump, logger, component rendering (RTL) |
+| Coverage | `npm run test:coverage` (v8); CI enforces statements **48** / branches **43** / functions **38** / lines **50** |
+| E2E tests | **Playwright** (17 cases): homepage/post/search/RSS/login, admin draft create+delete, pagination jump, cover images, and axe accessibility checks |
+| Accessibility | Playwright + **axe** (WCAG 2.1 A/AA); color contrast is excluded as a documented design trade-off |
+| Observability | Structured JSON logger (`lib/logger.ts`) + `GET /api/health` (DB probe, `503` when down) |
 | CI pipeline | **GitHub Actions** (`.github/workflows/ci.yml`): lint + tsc + unit tests + build + E2E on push/PR; **fails instead of silently skipping** when `DATABASE_URL` is missing on `main` |
 | Config validation | `lib/env.ts` fails fast with the missing variable name (no more scattered `process.env.X!`) |
 | Dependency hygiene | **Dependabot** weekly for npm + GitHub Actions; `katex` pinned via npm `overrides`; Node pinned with `.nvmrc` + `engines` |
@@ -209,6 +212,7 @@ Open http://localhost:3000; visit `/admin` for the dashboard (login required).
 npm run build   # production build (Next 16 removed `next lint`, build includes type check)
 npm start       # start production server
 npm run lint    # ESLint
+npm run test:coverage  # unit tests + coverage threshold
 npm run check:markdown  # scan posts for flattened tables / broken Markdown
 npm run cleanup:storage # report orphan files in Supabase Storage (dry-run)
 node scripts/optimize-storage-images.mjs           # image compression dry-run

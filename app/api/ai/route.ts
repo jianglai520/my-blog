@@ -6,6 +6,7 @@ import { getPostContextByIdentifier } from "@/lib/posts";
 import { postHref } from "@/lib/format";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { getClientIp, hashIp } from "@/lib/server/ip";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +80,7 @@ export async function POST(req: Request) {
     RATE_LIMIT_WINDOW_SECONDS,
   ).catch((error) => {
     // 限流表异常时不阻断问答（可用性优先），但记录日志
-    console.error("AI 限流检查失败:", error);
+    logger.error("AI 限流检查失败:", error);
     return true;
   });
   if (!allowed) {
@@ -115,7 +116,7 @@ export async function POST(req: Request) {
   try {
     embedding = await embedText(question);
   } catch (e) {
-    console.error("问题向量化失败:", e);
+    logger.error("问题向量化失败:", e);
     return NextResponse.json(
       { error: e instanceof Error && e.message.includes("未配置") ? e.message : "检索服务暂时不可用" },
       { status: 500 },
@@ -150,7 +151,7 @@ export async function POST(req: Request) {
   // ---------- ⑥ DeepSeek 流式生成 ----------
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
-    console.error("DEEPSEEK_API_KEY 未配置");
+    logger.error("DEEPSEEK_API_KEY 未配置");
     return NextResponse.json({ error: "AI 服务未配置，请联系站长" }, { status: 500 });
   }
 
@@ -175,13 +176,16 @@ export async function POST(req: Request) {
       signal: AbortSignal.timeout(60_000),
     });
   } catch (e) {
-    console.error("DeepSeek 请求失败:", e);
+    logger.error("DeepSeek 请求失败:", e);
     return NextResponse.json({ error: "AI 服务暂时不可用，请稍后再试" }, { status: 502 });
   }
 
   if (!upstream.ok || !upstream.body) {
     const errText = await upstream.text().catch(() => "");
-    console.error("DeepSeek 返回错误:", upstream.status, errText);
+    logger.error("DeepSeek 返回错误", {
+      status: upstream.status,
+      body: errText.slice(0, 500),
+    });
     return NextResponse.json({ error: "AI 服务暂时不可用" }, { status: 502 });
   }
 
@@ -236,7 +240,7 @@ export async function POST(req: Request) {
         }
         send({ type: "done" });
       } catch (error) {
-        console.error("AI 流式响应中断:", error);
+        logger.error("AI 流式响应中断:", error);
         try {
           send({ type: "error", error: "回答生成中断，请重试" });
         } catch {

@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
 import { embedTexts, chunkText } from "@/lib/ai";
+import { logger } from "@/lib/logger";
 
 /**
  * AI 问答 RAG：文章分块 → embedding 存储 / 混合检索。
@@ -252,7 +253,7 @@ export async function syncPostChunks(
     embedding: embeddings[i],
   }));
   const { error } = await supabase.from("article_chunks").insert(rows);
-  if (error) console.error("同步文章分块失败:", error.message);
+  if (error) logger.error("同步文章分块失败:", error.message);
 }
 
 /** 删除文章的索引分块（外键级联已兜底，显式调用更保险） */

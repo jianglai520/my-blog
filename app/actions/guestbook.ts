@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { getClientIp, hashIp } from "@/lib/server/ip";
 import { guestbookSchema } from "@/lib/validations/guestbook";
+import { logger } from "@/lib/logger";
 
 export type GuestbookFormState = {
   message: string;
@@ -55,7 +56,7 @@ export async function createGuestbookMessage(
   });
 
   if (error) {
-    console.error("发表留言失败:", error);
+    logger.error("发表留言失败:", error);
     return { message: "❌ 留言失败，请稍后重试", success: false };
   }
 
@@ -102,7 +103,7 @@ export async function replyGuestbookMessage(
     .eq("id", messageId);
 
   if (error) {
-    console.error("回复留言失败:", error);
+    logger.error("回复留言失败:", error);
     return { message: "❌ 保存失败，请稍后重试", success: false };
   }
 
@@ -128,7 +129,7 @@ export async function deleteGuestbookMessage(formData: FormData): Promise<void> 
   const supabase = await getServerSupabase();
   const { error } = await supabase.from("guestbook_messages").delete().eq("id", messageId);
   if (error) {
-    console.error("删除留言失败:", error);
+    logger.error("删除留言失败:", error);
     return;
   }
 

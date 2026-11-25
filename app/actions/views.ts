@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { getServerSupabase } from "@/lib/server/supabase";
 import { getClientIp, hashIp } from "@/lib/server/ip";
+import { logger } from "@/lib/logger";
 
 /**
  * 浏览量 +1（匿名访客可调用）。
@@ -22,7 +23,7 @@ export async function incrementView(postId: number): Promise<number | null> {
   });
 
   if (error) {
-    console.error("浏览量更新失败:", error.message);
+    logger.error("浏览量更新失败:", error.message);
     return null;
   }
   const count = Number(data);

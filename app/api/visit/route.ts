@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createHash } from "node:crypto";
 import { recordVisit } from "@/lib/visits";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
 
     await recordVisit(visitorHash, path);
   } catch (error) {
-    console.error("访客打点失败:", error);
+    logger.error("访客打点失败:", error);
   }
 
   return new NextResponse(null, { status: 204 });

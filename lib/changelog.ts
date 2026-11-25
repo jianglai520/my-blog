@@ -5,6 +5,8 @@
  * - 可选配置 GITHUB_TOKEN，避免匿名 API 的 60 次/小时限流
  */
 
+import { logger } from "@/lib/logger";
+
 const REPO = "jianglai520/my-blog";
 const API = `https://api.github.com/repos/${REPO}/commits`;
 const PER_PAGE = 100;
@@ -110,7 +112,7 @@ export async function getSiteChangelog(): Promise<{
 
     return { entries, source: "github" };
   } catch (error) {
-    console.error("读取更新日志失败:", error);
+    logger.error("读取更新日志失败:", error);
     return { entries: [], source: "unavailable" };
   }
 }

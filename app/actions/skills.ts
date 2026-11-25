@@ -8,6 +8,7 @@ import {
   serializeSkills,
   type SkillItem,
 } from "@/lib/skills";
+import { logger } from "@/lib/logger";
 
 export type SkillsState = {
   message: string;
@@ -92,14 +93,14 @@ export async function saveSkill(
 
     const err = await writeSkills(supabase, next);
     if (err) {
-      console.error("保存技能失败:", err);
+      logger.error("保存技能失败:", err);
       return { message: `❌ 保存失败：${err}`, success: false };
     }
 
     revalidateSkills();
     return { message: "✅ 已保存", success: true };
   } catch (e) {
-    console.error("saveSkill 异常:", e);
+    logger.error("saveSkill 异常:", e);
     return {
       message: `❌ 保存失败：${e instanceof Error ? e.message : "未知错误"}`,
       success: false,
@@ -133,14 +134,14 @@ export async function deleteSkill(
 
     const err = await writeSkills(supabase, next);
     if (err) {
-      console.error("删除技能失败:", err);
+      logger.error("删除技能失败:", err);
       return { message: `❌ 删除失败：${err}`, success: false };
     }
 
     revalidateSkills();
     return { message: "✅ 已删除", success: true };
   } catch (e) {
-    console.error("deleteSkill 异常:", e);
+    logger.error("deleteSkill 异常:", e);
     return {
       message: `❌ 删除失败：${e instanceof Error ? e.message : "未知错误"}`,
       success: false,
@@ -172,14 +173,14 @@ export async function moveGroup(
 
     const err = await writeSkills(supabase, next);
     if (err) {
-      console.error("移动分组失败:", err);
+      logger.error("移动分组失败:", err);
       return { message: `❌ 移动失败：${err}`, success: false };
     }
 
     revalidateSkills();
     return { message: "✅ 分组顺序已更新", success: true };
   } catch (e) {
-    console.error("moveGroup 异常:", e);
+    logger.error("moveGroup 异常:", e);
     return {
       message: `❌ 移动失败：${e instanceof Error ? e.message : "未知错误"}`,
       success: false,
