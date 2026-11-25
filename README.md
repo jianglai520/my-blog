@@ -39,6 +39,8 @@ A full-stack personal blog built with **Next.js 16 + React 19 + Supabase + Verce
 | E2E tests | **Playwright** (17 cases): homepage/post/search/RSS/login, admin draft create+delete, pagination jump, cover images, and axe accessibility checks |
 | Accessibility | Playwright + **axe** (WCAG 2.1 A/AA); color contrast is excluded as a documented design trade-off |
 | Observability | Structured JSON logger (`lib/logger.ts`) + `GET /api/health` (DB probe, `503` when down) |
+| Ops automation | `uptime.yml` probes `/api/health` every 15 min and opens an issue on failure; `lighthouse.yml` runs a weekly performance budget |
+| Pre-commit | `simple-git-hooks` + `lint-staged` run ESLint on staged files (`prepare` no-ops outside git) |
 | CI pipeline | **GitHub Actions** (`.github/workflows/ci.yml`): lint + tsc + unit tests + build + E2E on push/PR; **fails instead of silently skipping** when `DATABASE_URL` is missing on `main` |
 | Config validation | `lib/env.ts` fails fast with the missing variable name (no more scattered `process.env.X!`) |
 | Dependency hygiene | **Dependabot** weekly for npm + GitHub Actions; `katex` pinned via npm `overrides`; Node pinned with `.nvmrc` + `engines` |
@@ -214,6 +216,7 @@ npm start       # start production server
 npm run lint    # ESLint
 npm run test:coverage  # unit tests + coverage threshold
 npm run check:markdown  # scan posts for flattened tables / broken Markdown
+npm run check:migrations # migration numbering / idempotency static check
 npm run cleanup:storage # report orphan files in Supabase Storage (dry-run)
 node scripts/optimize-storage-images.mjs           # image compression dry-run
 node scripts/optimize-storage-images.mjs --apply   # backup originals, then overwrite compressed

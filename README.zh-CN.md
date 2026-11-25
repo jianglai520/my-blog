@@ -39,6 +39,8 @@
 | E2E 测试 | **Playwright**（17 个用例）：首页/文章/搜索/RSS/登录、后台创建草稿并删除、分页跳转、封面图加载、axe 无障碍 |
 | 无障碍 | Playwright + **axe**（WCAG 2.1 A/AA）；颜色对比度作为已知设计取舍被排除 |
 | 可观测性 | 结构化 JSON 日志（`lib/logger.ts`）+ `GET /api/health`（数据库探活，异常返回 `503`） |
+| 运维自动化 | `uptime.yml` 每 15 分钟探活，失败自动开 issue；`lighthouse.yml` 每周跑性能预算 |
+| 提交门禁 | `simple-git-hooks` + `lint-staged` 对暂存文件跑 ESLint（非 git 环境自动跳过） |
 | CI 流水线 | **GitHub Actions**（`.github/workflows/ci.yml`）：push/PR 自动跑 lint + tsc + 单测 + 构建 + E2E；`main` 分支缺 `DATABASE_URL` 时**直接失败**，不再静默跳过 |
 | 配置校验 | `lib/env.ts` 缺少变量时立即报错并指出变量名，不再散落 `process.env.X!` |
 | 依赖治理 | **Dependabot** 每周检查 npm + GitHub Actions；`katex` 通过 npm `overrides` 统一版本；Node 用 `.nvmrc` + `engines` 固定 |
@@ -214,6 +216,7 @@ npm start       # 启动生产服务器
 npm run lint    # ESLint 检查
 npm run test:coverage  # 单元测试 + 覆盖率门禁
 npm run check:markdown  # 扫描文章中的压平表格 / 异常 Markdown
+npm run check:migrations # 迁移编号与幂等静态检查
 npm run cleanup:storage # 扫描 Storage 孤儿文件（默认预演，不删除）
 node scripts/optimize-storage-images.mjs           # 图片压缩预演（dry-run）
 node scripts/optimize-storage-images.mjs --apply   # 备份原图后覆盖压缩

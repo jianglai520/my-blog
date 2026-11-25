@@ -1,0 +1,70 @@
+name: Uptime
+
+on:
+  schedule:
+    # 每 15 分钟检查一次（GitHub 定时任务可能延迟几分钟）
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  health:
+    name: Health check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe /api/health
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -s -o health.json -w "%{http_code}" --max-time 15 \
+              https://jianglai520.com/api/health || true)
+            echo "attempt $i -> HTTP $code"
+            cat health.json 2>/dev/null || true
+            if [ "$code" = "200" ]; then
+              echo "✅ health OK"
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::error::/api/health 连续 3 次未返回 200"
+          exit 1
+
+      - name: Open an issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "🚨 站点健康检查失败";
+            const { owner, repo } = context.repo;
+
+            const { data: openIssues } = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              state: "open",
+              per_page: 100,
+            });
+
+            if (openIssues.some((issue) => issue.title === title)) {
+              core.info("已有未关闭的健康告警 issue，跳过创建");
+              return;
+            }
+
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.create({
+              owner,
+              repo,
+              title,
+              body: [
+                "`GET https://jianglai520.com/api/health` 连续 3 次未返回 200。",
+                "",
+                `运行记录：${runUrl}`,
+                "",
+                "排查顺序：Vercel → Deployments → Runtime Logs；Supabase → 项目状态；DNS A 记录是否仍指向可达的 anycast IP。",
+              ].join("\n"),
+            });

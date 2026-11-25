@@ -65,6 +65,7 @@ npm run test:coverage  # 单测 + 覆盖率阈值（CI 门禁）
 npm run test:e2e       # Playwright E2E（生产模式，需先 build）
 npm run eval:rag       # RAG 检索评测（Recall@5 / MRR / P95）
 npm run cleanup:storage # Storage 孤儿文件扫描（默认预演，不删除）
+npm run check:migrations # 迁移编号与幂等静态检查
 node scripts/optimize-storage-images.mjs           # 图片压缩预演（dry-run）
 node scripts/optimize-storage-images.mjs --apply   # 备份原图后覆盖压缩
 ```

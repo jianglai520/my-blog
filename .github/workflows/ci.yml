@@ -23,6 +23,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Migration checks
+        run: npm run check:migrations
+
       - name: TypeScript
         run: npx tsc --noEmit
 
