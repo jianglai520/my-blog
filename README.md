@@ -43,7 +43,7 @@ A full-stack personal blog built with **Next.js 16 + React 19 + Supabase + Verce
 | Pre-commit | `simple-git-hooks` + `lint-staged` run ESLint on staged files (`prepare` no-ops outside git) |
 | CI pipeline | **GitHub Actions** (`.github/workflows/ci.yml`): lint + tsc + unit tests + build + E2E on push/PR; **fails instead of silently skipping** when `DATABASE_URL` is missing on `main` |
 | Config validation | `lib/env.ts` fails fast with the missing variable name (no more scattered `process.env.X!`) |
-| Dependency hygiene | **Dependabot** weekly for npm + GitHub Actions; `katex` pinned via npm `overrides`; Node pinned with `.nvmrc` + `engines` |
+| Dependency hygiene | **Dependabot** weekly for npm + GitHub Actions; `katex` pinned via npm `overrides`; Node pinned with `.nvmrc` + `engines`; Dependabot branch previews disabled via `vercel.json` (test-tooling majors have peer conflicts) |
 | Error monitoring | **Sentry** (active once `SENTRY_DSN` is set) + custom `error.tsx` / `global-error.tsx` |
 | Analytics | **Vercel Analytics** (`@vercel/analytics`, enable in dashboard) |
 | Data backup | See **`BACKUP.md`**: `scripts/backup.mjs` exports JSON + `scripts/restore-drill.mjs` restore drill (temporary schema validation, verified) |

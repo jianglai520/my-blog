@@ -110,6 +110,7 @@ node scripts/optimize-storage-images.mjs --apply   # 备份原图后覆盖压缩
 - `README.md` / `README.zh-CN.md`：使用、部署、安全架构、功能清单
 - `supabase/migrations/`：数据库档案；`scripts/`：索引、备份、清理、评测脚本
 - 桌面 `my-blog搭建/`：
+  - `文档总索引.md`：全部文档导航与推荐阅读路径（先看这篇）
   - `项目优化方案.md`：每批改动的实施记录
   - `开发经验与踩坑合集.md`：可复用经验
   - `AI问答RAG实战详解.md`：架构、指标、面试追问
