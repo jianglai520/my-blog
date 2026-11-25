@@ -12,8 +12,10 @@ import "katex/dist/katex.min.css";
 import type { Element, Root } from "hast";
 
 /**
- * 正文图片懒加载：外部图床图片通常很大，浏览器默认会立刻加载。
- * 统一补 loading/decoding，减少首屏图片请求与解码开销。
+ * 正文图片属性：
+ * - lazy/async：外部图床图片通常很大，减少首屏请求与解码开销
+ * - no-referrer：Gitee 等图床有防盗链，带本站 Referer 会被 302 到 favicon；
+ *   不带 Referer 时正常返回图片
  */
 function lazyImages() {
   return (tree: Root) => {
@@ -23,6 +25,7 @@ function lazyImages() {
           ...node.properties,
           loading: "lazy",
           decoding: "async",
+          referrerPolicy: "no-referrer",
         };
       }
       for (const child of node.children ?? []) {
@@ -108,7 +111,7 @@ function normalizeDisplayMath(source: string): string {
  * 使用 unstable_cache 按「正文内容」缓存渲染结果：
  * Shiki 代码高亮是文章页 TTFB 的主要成本，缓存后重复访问不再重新渲染。
  * tag "posts" 在发布/编辑时失效；内容变化本身也会生成新的缓存 key。
- * 渲染管线变化时必须递增 key 前缀（当前 v3 = KaTeX + 单行块级公式兼容），
+ * 渲染管线变化时必须递增 key 前缀（当前 v4 = 正文图片 no-referrer 防盗链兼容），
  * 否则已缓存的旧 HTML 不会更新。
  */
 const toHtml = unstable_cache(
@@ -133,7 +136,7 @@ const toHtml = unstable_cache(
       .process(normalizeDisplayMath(source));
     return String(file);
   },
-  ["markdown-html-v3"],
+  ["markdown-html-v4"],
   { revalidate: 3600, tags: ["posts"] },
 );
 

@@ -40,7 +40,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 - **重组件按需加载**：文章页的 TOC / 图片灯箱 / AI 按钮统一从 `app/components/ArticleClientWidgets.tsx` 导入（内部 `next/dynamic` + `ssr:false`）；后台 `PostForm` / `ProjectManager` / `SkillManager` 用 `next/dynamic`。不要再把它们静态 import 进 Server Component（Server Component 不支持 `ssr:false`）。
 - **草稿自动保存**：`app/admin/PostForm.tsx` 以 1 秒防抖写 localStorage（`draft:new` / `draft:edit:<id>`）；发布成功、主动丢弃、手动清除时必须删除；恢复提示未处理前禁止写入，避免覆盖旧草稿。
-- **Markdown 渲染管线**：`app/components/Markdown.tsx` 用 `remark-math` + `rehype-katex`（`$$` 块级 / `$` 行内），并兼容独占一行的单行 `$$...$$`；管线变化时必须递增 `unstable_cache` 的 key 前缀（当前 `markdown-html-v3`），否则旧缓存不会更新。
+- **Markdown 渲染管线**：`app/components/Markdown.tsx` 用 `remark-math` + `rehype-katex`（`$$` 块级 / `$` 行内），并兼容独占一行的单行 `$$...$$`；正文图片统一补 `referrerpolicy="no-referrer"`（Gitee 等图床防盗链）；管线变化时必须递增 `unstable_cache` 的 key 前缀（当前 `markdown-html-v4`），否则旧缓存不会更新。
 
 ## AI / RAG 约定
 
