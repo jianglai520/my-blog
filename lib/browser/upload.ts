@@ -39,6 +39,46 @@ const EXT_BY_MIME: Record<string, string> = {
 };
 
 /**
+ * 上传前压缩图片。
+ * - 手机原图常见 3–8MB，直接进 Storage 会让文章页/首页加载很慢
+ * - 最长边压到 1600px，转 WebP（保留透明度），质量 0.82
+ * - GIF 跳过（保留动图）；压缩后反而更大时保留原文件
+ * - 失败时静默回退原文件，不阻断上传
+ */
+async function compressImage(file: File): Promise<File> {
+  if (file.type === "image/gif") return file;
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      bitmap.close();
+      return file;
+    }
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/webp", 0.82)
+    );
+    if (!blob || blob.size >= file.size) return file;
+
+    const base = file.name.replace(/\.[^.]+$/, "") || "image";
+    return new File([blob], `${base}.webp`, { type: "image/webp" });
+  } catch (error) {
+    console.warn("图片压缩失败，使用原文件:", error);
+    return file;
+  }
+}
+
+/**
  * 浏览器直传 Supabase Storage（不走 Server Action 中转，上传更快）。
  * 依赖 RLS 策略 `post_images_admin_insert`（仅博主可插入）保证安全：
  * 未登录/非博主调用 storage.upload 会被 RLS 拒绝。
@@ -140,9 +180,10 @@ async function uploadToStorage(
   return { url: data.publicUrl, message: "✅ 上传成功", success: true };
 }
 
-/** 上传图片（封面图 / 正文插图用，≤5MB） */
+/** 上传图片（封面图 / 正文插图用，≤5MB；上传前自动压缩） */
 export async function uploadImageToStorage(file: File, folder: string): Promise<UploadResult> {
-  return uploadToStorage(file, folder, 5 * 1024 * 1024, IMAGE_TYPES, "图片");
+  const optimized = await compressImage(file);
+  return uploadToStorage(optimized, folder, 5 * 1024 * 1024, IMAGE_TYPES, "图片");
 }
 
 /** 上传附件（PDF/Word/Excel/压缩包等，≤20MB） */

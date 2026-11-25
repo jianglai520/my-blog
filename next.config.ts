@@ -15,9 +15,17 @@ const nextConfig: NextConfig = {
     cpus: 4,
   },
   images: {
-    // 优先 AVIF/WebP，减小封面图传输体积
+    /**
+     * Hobby 计划的 Image Optimization 额度是 5K/月，本项目已用满（5K/5K）。
+     * 额度用尽后，任何未缓存的图片变换都会返回 402，表现为封面图空白。
+     *
+     * 这里关闭 Vercel 图片优化：next/image 直接输出 Supabase 原图 URL，
+     * 不再消耗 Transformations / Cache Writes 额度。
+     * 若以后升级到 Pro 或改为自托管 + sharp，可删除 unoptimized 重新启用。
+     */
+    unoptimized: true,
+    // 以下配置仅在重新开启优化时生效，保留以便日后恢复
     formats: ["image/avif", "image/webp"],
-    // 允许远程封面图来自常用图床；本地 public 下的图片无需配置
     remotePatterns: [
       { protocol: "https", hostname: "**.supabase.co" },
       { protocol: "https", hostname: "images.unsplash.com" },

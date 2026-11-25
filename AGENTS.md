@@ -41,6 +41,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **重组件按需加载**：文章页的 TOC / 图片灯箱 / AI 按钮统一从 `app/components/ArticleClientWidgets.tsx` 导入（内部 `next/dynamic` + `ssr:false`）；后台 `PostForm` / `ProjectManager` / `SkillManager` 用 `next/dynamic`。不要再把它们静态 import 进 Server Component（Server Component 不支持 `ssr:false`）。
 - **草稿自动保存**：`app/admin/PostForm.tsx` 以 1 秒防抖写 localStorage（`draft:new` / `draft:edit:<id>`）；发布成功、主动丢弃、手动清除时必须删除；恢复提示未处理前禁止写入，避免覆盖旧草稿。
 - **Markdown 渲染管线**：`app/components/Markdown.tsx` 用 `remark-math` + `rehype-katex`（`$$` 块级 / `$` 行内），并兼容独占一行的单行 `$$...$$`；正文图片统一补 `referrerpolicy="no-referrer"`（Gitee 等图床防盗链）；管线变化时必须递增 `unstable_cache` 的 key 前缀（当前 `markdown-html-v4`），否则旧缓存不会更新。
+- **图片优化**：Vercel Hobby 的 Image Optimization 额度（5K/月）已用满，`next.config.ts` 设了 `images.unoptimized = true`，`next/image` 直接输出 Supabase 原图；新上传图片在 `lib/browser/upload.ts` 浏览器端压缩（最长边 1600px、WebP q=0.82）。重新开启优化前先确认额度或改用自托管 + sharp。
 
 ## AI / RAG 约定
 
@@ -63,15 +64,17 @@ npm test               # Vitest 单测
 npm run test:e2e       # Playwright E2E（生产模式，需先 build）
 npm run eval:rag       # RAG 检索评测（Recall@5 / MRR / P95）
 npm run cleanup:storage # Storage 孤儿文件扫描（默认预演，不删除）
+node scripts/optimize-storage-images.mjs           # 图片压缩预演（dry-run）
+node scripts/optimize-storage-images.mjs --apply   # 备份原图后覆盖压缩
 ```
 
 ## 数据库迁移
 
-- 迁移脚本在 `supabase/migrations/`（**0001~0023**，幂等），**手动在 Supabase SQL Editor 执行**
+- 迁移脚本在 `supabase/migrations/`（**0001~0024**，幂等），**手动在 Supabase SQL Editor 执行**
 - **新表必须同时配「表级 GRANT + RLS 策略」**；公开读/写路径要用 **anon（未登录）身份**测试，不能只用登录态
 - 旧表结构变更：`create table if not exists` 不补已存在表，需显式 `ALTER TABLE`
 - 涉及安全函数（RPC）时：`security definer` + `set search_path = public`，并 `revoke ... from public` 后只 grant 必要角色
-- 近期新增：`site_visits`（UV）、`rate_limit_events`（限流）、`post_views`（浏览量去重）、trgm 检索索引（0019）
+- 近期新增：`site_visits`（UV）、`rate_limit_events`（限流）、`post_views`（浏览量去重）、trgm 检索索引（0019）；0024 为 `post-images` 增加管理员 UPDATE 策略（覆盖上传）
 
 ## 安全约定
 
@@ -105,5 +108,9 @@ npm run cleanup:storage # Storage 孤儿文件扫描（默认预演，不删除�
   - `开发经验与踩坑合集.md`：可复用经验
   - `AI问答RAG实战详解.md`：架构、指标、面试追问
   - `面试准备与项目总结.md`：项目亮点与问答
+  - `后端架构详解.md`：后端技术栈、请求链路、面试话术
+  - `简历项目经历-AI应用方向.md`：简历可直接使用的项目经历
+  - `服务器网络与备案指南.md`：DNS、托管形态、备案、方案对比
+  - `Vercel部署全流程.md`：构建、路由渲染、环境变量、缓存、区域、排障
   - `存储孤儿文件说明.md`：Storage 生命周期
 - 每次功能或修复后，同步更新对应文档（工程化可交付）
