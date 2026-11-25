@@ -102,6 +102,7 @@ node scripts/optimize-storage-images.mjs --apply   # 备份原图后覆盖压缩
 - CI 门禁：lint → `tsc --noEmit` → `test:coverage`（语句 48 / 分支 43 / 函数 38 / 行 50）→ build → E2E；`main` 分支缺 `DATABASE_URL` 时构建/E2E **直接失败**，不允许静默跳过；类型错误必须当场修掉
 - E2E 包含 **axe 无障碍**（关闭 `color-contrast`，属于已知设计取舍）；新增公开页面时同步加入 `e2e/a11y.spec.ts` 的 `PAGES`
 - 服务端日志统一用 `lib/logger.ts`（单行 JSON）；健康检查是 `GET /api/health`
+- Dependabot 分支不触发 Vercel 预览部署（`vercel.json` → `git.deploymentEnabled`）；测试工具链 major 在 `dependabot.yml` 中忽略
 - RAG 相关改动：同步更新 `data/eval/rag-qa.jsonl` 或在文档记录评测结果
 
 ## 文档
