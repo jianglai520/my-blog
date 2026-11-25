@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import PostCard from "@/app/components/PostCard";
+import PageJump from "@/app/components/PageJump";
 import { getPostsByTag } from "@/lib/posts";
 
 const PAGE_SIZE = 10;
@@ -60,7 +61,10 @@ export default async function TagPage({ params, searchParams }: Props) {
 
       {/* 分页 */}
       {totalPages > 1 && (
-        <nav className="mt-10 flex items-center justify-center gap-4 text-sm" aria-label="分页">
+        <nav
+          className="mt-10 flex flex-wrap items-center justify-center gap-3 text-sm"
+          aria-label="分页"
+        >
           {page > 1 ? (
             <Link
               href={`/tags/${slug}?page=${page - 1}`}
@@ -84,6 +88,13 @@ export default async function TagPage({ params, searchParams }: Props) {
           ) : (
             <span className="rounded-lg border border-ink-700/50 px-4 py-2 text-fg-faint opacity-50">下一页 →</span>
           )}
+          <PageJump
+            key={page}
+            current={page}
+            total={totalPages}
+            hrefTemplate={`/tags/${encodeURIComponent(slug)}?page={page}`}
+            page1Href={`/tags/${encodeURIComponent(slug)}`}
+          />
         </nav>
       )}
     </div>

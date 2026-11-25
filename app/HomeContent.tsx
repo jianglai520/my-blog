@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { GitFork, Mail, ArrowRight } from "lucide-react";
 import PostCard from "@/app/components/PostCard";
+import PageJump from "@/app/components/PageJump";
 import { getPublishedPosts, getTags, getSiteStats } from "@/lib/posts";
 import { getSiteSettings } from "@/lib/site";
 import { getVisitStats } from "@/lib/visits";
@@ -171,7 +172,10 @@ export default async function HomeContent({ page }: { page: number }) {
 
         {/* 分页 */}
         {totalPages > 1 && (
-          <nav className="mt-10 flex items-center justify-center gap-4 text-sm" aria-label="分页">
+          <nav
+            className="mt-10 flex flex-wrap items-center justify-center gap-3 text-sm"
+            aria-label="分页"
+          >
             {page > 1 ? (
               <Link
                 href={page === 2 ? "/" : `/page/${page - 1}`}
@@ -199,6 +203,13 @@ export default async function HomeContent({ page }: { page: number }) {
                 下一页 →
               </span>
             )}
+            <PageJump
+              key={page}
+              current={page}
+              total={totalPages}
+              hrefTemplate="/page/{page}"
+              page1Href="/"
+            />
           </nav>
         )}
       </section>
