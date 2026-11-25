@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
-import { posts, comments, tags as tagsTable, postTags, type Post, type Comment } from "@/db/schema";
+import { posts, comments, tags as tagsTable, postTags, replies as repliesTable, type Post, type Comment, type Reply } from "@/db/schema";
 
 /**
  * 公开读数据层（Drizzle 直连，应用层安全过滤）。
@@ -130,20 +130,50 @@ export async function getPostContextByIdentifier(
   return rows[0] ?? null;
 }
 
-/** 某篇文章已公开的评论（按时间正序）。缓存 60s + tag "comments" */
+/** 某篇文章已公开的评论（按时间正序，附带游客回复）。缓存 60s + tag "comments" */
+export type CommentWithReplies = Comment & { replies: Reply[] };
+
 const getCommentsCached = unstable_cache(
-  async (postId: number): Promise<Comment[]> => {
-    return db
+  async (postId: number): Promise<CommentWithReplies[]> => {
+    const rows = await db
       .select()
       .from(comments)
       .where(and(eq(comments.post_id, postId), eq(comments.status, "approved")))
       .orderBy(asc(comments.created_at));
+
+    if (!rows.length) return [];
+
+    const replyRows = await db
+      .select()
+      .from(repliesTable)
+      .where(
+        and(
+          eq(repliesTable.target_type, "comment"),
+          inArray(
+            repliesTable.target_id,
+            rows.map((row) => row.id),
+          ),
+        ),
+      )
+      .orderBy(asc(repliesTable.created_at));
+
+    const byTarget = new Map<number, Reply[]>();
+    for (const reply of replyRows) {
+      const list = byTarget.get(reply.target_id) ?? [];
+      list.push(reply);
+      byTarget.set(reply.target_id, list);
+    }
+
+    return rows.map((comment) => ({
+      ...comment,
+      replies: byTarget.get(comment.id) ?? [],
+    }));
   },
   ["post-comments"],
   { revalidate: 60, tags: ["comments"] },
 );
 
-export async function getComments(postId: number): Promise<Comment[]> {
+export async function getComments(postId: number): Promise<CommentWithReplies[]> {
   return getCommentsCached(postId);
 }
 

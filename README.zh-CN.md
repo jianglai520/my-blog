@@ -87,8 +87,8 @@ npm run eval:rag  # RAG 检索评测（Recall@5 / MRR / P95）
 | 🗂 **归档 / 关于** | 时间轴归档页（渐变时间线、月份折叠、Changelog 风格 commit 行：等宽日期/短编号/阅读时长/字数）；**开发者名片式关于页**（固定资料卡、Pinned 项目、技能、经历、私信表单、展示数量上限） |
 | ⚙️ **站点设置** | 后台可随时修改博主名/简介/GitHub/邮箱/**头像（可上传或填 URL）**/备案号，前台即时生效 |
 | 🌗 **深浅色主题** | header 切换按钮；跟随系统偏好 + 手动选择记忆（localStorage） |
-| 💬 评论区 | 昵称 + 内容，即时显示；**博主可在后台回复**，回复展示在评论下方；后台可单删 / **多选批量删除**（IP 60 秒限流） |
-| 💬 **留言板** | 独立留言页 `/guestbook`，**信件/编辑风**（宋体信件卡片、署名行、引号装饰），匿名可发 + IP 限流；**博主可在后台回复**，回复展示在来信下方；后台可删 |
+| 💬 评论区 | 昵称 + 内容，**可选上传访客头像**（96×96 WebP，data URL 存库），即时显示；**博主可在后台回复**；**游客可在评论区回复**（独立线程，不会显示成博主回复）；后台可单删 / **多选批量删除**（IP 60 秒限流） |
+| 💬 **留言板** | 独立留言页 `/guestbook`，**信件/编辑风**（宋体信件卡片、署名行、引号装饰），匿名可发 + IP 限流；**可选上传头像**；**博主可在后台回复**；**游客可回信**（独立线程）；后台可删 |
 | ✉️ **站内私信** | 关于页底部私信表单（昵称/联系方式可选，**内容仅站长可见**），匿名可发 + IP 限流，后台管理查看/删除 |
 | 🏷️ **技能页** | `/skills` **Bento + 雷达图**（按分组展示能力分布 + 平均分圆环）+ **核心技术栈**大卡 + 等级文案；后台支持**逐技能独立保存/删除**、分组排序、实时预览，以及描述/年限/图标/核心标记 |
 | 📁 **项目展示** | `/projects` 项目列表页（**紧凑毛玻璃卡片**，点进 `/projects/[slug]` 详情页查看完整简介）；后台**每个项目独立保存/删除**（互不影响），名称/年份/描述/技术栈/链接，**封面支持本地上传或 URL** + **16:9 裁剪预览与位置滑块**，面试展示 |
@@ -179,7 +179,7 @@ my-blog/
 ├── proxy.ts                        # 路由守卫（Next 16 中 middleware 更名为此）
 ├── drizzle.config.ts               # drizzle-kit 配置（schema → 迁移 SQL）
 ├── supabase/
-│   └── migrations/                 # 数据库迁移 SQL（0001~0024，手动在 SQL Editor 执行）
+│   └── migrations/                 # 数据库迁移 SQL（0001~0025，手动在 SQL Editor 执行）
 ├── scripts/
 │   ├── generate-og.mjs             # 一次性脚本：生成 public/og.png
 │   ├── backup.mjs                  # 数据库备份脚本（导出全表 JSON 到 backups/）
@@ -252,6 +252,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 ---
 
 ## 🗄️ 数据库结构（Supabase）
+
+> 访客头像以 `avatar_data`（96×96 WebP data URL）存在 `comments` / `guestbook_messages`；游客回复在 `replies` 表（`target_type` + `target_id`），与博主回复字段分开。
 
 ### 表 `posts`
 
@@ -352,7 +354,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 公开读的文章图片存储桶（INSERT / DELETE / UPDATE 仅博主可操作；项目封面也复用此桶的 `projects/` 目录）。`0024_storage_admin_update.sql` 的 UPDATE 策略用于 `upsert` 覆盖（如图片压缩脚本）。
 
-> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0024），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0025），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
 
 ---
 

@@ -14,6 +14,8 @@ import {
   AIChatButton,
 } from "@/app/components/ArticleClientWidgets";
 import ShareButton from "@/app/components/ShareButton";
+import Avatar from "@/app/components/Avatar";
+import ReplyForm from "@/app/components/ReplyForm";
 import { getComments, getPostByIdentifier, getPublishedPostIdentifiers } from "@/lib/posts";
 import { getSiteSettings } from "@/lib/site";
 import { formatDateTime, postHref, readingMinutes } from "@/lib/format";
@@ -212,9 +214,11 @@ export default async function PostPage({ params }: Props) {
                 className="rounded-2xl border border-ink-700/60 bg-ink-900/60 p-5"
               >
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600/30 text-sm font-bold text-brand-300">
-                    {comment.name.charAt(0)}
-                  </span>
+                  <Avatar
+                    name={comment.name}
+                    avatarUrl={comment.avatar_data ?? ""}
+                    size={32}
+                  />
                   <span className="font-medium text-fg">{comment.name}</span>
                   <span className="text-xs text-fg-faint">
                     {formatDateTime(comment.created_at)}
@@ -222,15 +226,20 @@ export default async function PostPage({ params }: Props) {
                 </div>
                 <p className="text-fg-muted">{comment.content}</p>
 
-                {/* 博主回复 */}
+                {/* 博主回复（与游客回复分开；头像不加描边/对号） */}
                 {comment.reply && (
                   <div className="mt-4 rounded-xl border-l-2 border-brand-400/50 bg-brand-500/[0.06] px-4 py-3">
-                    <div className="mb-1 flex items-center justify-between gap-3">
+                    <div className="mb-2 flex items-center gap-2">
+                      <Avatar
+                        name={settings.author_name}
+                        avatarUrl={settings.avatar_url}
+                        size={22}
+                      />
                       <span className="text-[11px] tracking-wide text-brand-300">
                         博主回复
                       </span>
                       {comment.replied_at && (
-                        <span className="font-mono text-[10px] text-fg-faint">
+                        <span className="ml-auto font-mono text-[10px] text-fg-faint">
                           {formatDateTime(comment.replied_at)}
                         </span>
                       )}
@@ -243,6 +252,38 @@ export default async function PostPage({ params }: Props) {
                     </p>
                   </div>
                 )}
+
+                {/* 游客回复 */}
+                {comment.replies.length > 0 && (
+                  <div className="mt-4 space-y-3 border-l-2 border-ink-600/60 pl-4">
+                    {comment.replies.map((reply) => (
+                      <div key={reply.id} className="flex gap-3">
+                        <Avatar
+                          name={reply.name}
+                          avatarUrl={reply.avatar_data ?? ""}
+                          size={26}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="font-medium text-fg">{reply.name}</span>
+                            <span className="text-fg-faint">
+                              {formatDateTime(reply.created_at)}
+                            </span>
+                          </div>
+                          <p className="mt-1 whitespace-pre-wrap text-sm text-fg-muted">
+                            {reply.content}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <ReplyForm
+                  targetType="comment"
+                  targetId={comment.id}
+                  identifier={identifier}
+                />
               </div>
             ))}
           </div>

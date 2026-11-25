@@ -41,6 +41,7 @@ export async function createComment(
     postId: formData.get("postId"),
     identifier: String(formData.get("identifier") || ""),
     name: String(formData.get("name") || ""),
+    avatarData: String(formData.get("avatarData") || ""),
     content: String(formData.get("content") || ""),
   });
 
@@ -49,11 +50,12 @@ export async function createComment(
     return { message: `❌ ${first?.message || "输入不合法"}`, success: false };
   }
 
-  const { postId, identifier, name, content } = parsed.data;
+  const { postId, identifier, name, content, avatarData } = parsed.data;
   const { error } = await supabase.from("comments").insert({
     post_id: postId,
     name,
     content,
+    avatar_data: avatarData || null,
     ip: ipHash,
   });
 
@@ -82,6 +84,12 @@ export async function deleteComment(formData: FormData): Promise<void> {
   }
 
   const supabase = await getServerSupabase();
+  // 先清理游客回复，再删评论
+  await supabase
+    .from("replies")
+    .delete()
+    .eq("target_type", "comment")
+    .eq("target_id", commentId);
   const { error } = await supabase.from("comments").delete().eq("id", commentId);
   if (error) {
     logger.error("删除评论失败:", error);
@@ -104,6 +112,11 @@ export async function batchDeleteComments(ids: number[]): Promise<void> {
   }
 
   const supabase = await getServerSupabase();
+  await supabase
+    .from("replies")
+    .delete()
+    .eq("target_type", "comment")
+    .in("target_id", ids);
   const { error } = await supabase.from("comments").delete().in("id", ids);
   if (error) {
     logger.error("批量删除评论失败:", error);

@@ -52,6 +52,8 @@ export const comments = pgTable("comments", {
   name: text("name").notNull(),
   content: text("content").notNull(),
   status: text("status").notNull().default("approved"),
+  // 访客头像：小尺寸 WebP data URL（不开放匿名 Storage 写权限）
+  avatar_data: text("avatar_data"),
   // 博主回复：reply 为空表示未回复
   reply: text("reply"),
   replied_at: timestamp("replied_at", { withTimezone: true, mode: "string" }),
@@ -64,9 +66,23 @@ export const guestbookMessages = pgTable("guestbook_messages", {
   name: text("name").notNull(),
   content: text("content").notNull(),
   ip: text("ip"),
+  // 访客头像：小尺寸 WebP data URL
+  avatar_data: text("avatar_data"),
   // 博主回复：reply 为空表示未回复
   reply: text("reply"),
   replied_at: timestamp("replied_at", { withTimezone: true, mode: "string" }),
+  created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+});
+
+/** 游客回复（评论 / 留言），与博主回复分开存储 */
+export const replies = pgTable("replies", {
+  id: bigint("id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
+  target_type: text("target_type").notNull(),
+  target_id: bigint("target_id", { mode: "number" }).notNull(),
+  name: text("name").notNull().default("匿名"),
+  avatar_data: text("avatar_data"),
+  content: text("content").notNull(),
+  ip: text("ip"),
   created_at: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
 
@@ -167,6 +183,7 @@ export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
 export type GuestbookMessage = typeof guestbookMessages.$inferSelect;
+export type Reply = typeof replies.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
 export type Profile = typeof profiles.$inferSelect;

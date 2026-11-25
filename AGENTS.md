@@ -72,11 +72,11 @@ node scripts/optimize-storage-images.mjs --apply   # 备份原图后覆盖压缩
 
 ## 数据库迁移
 
-- 迁移脚本在 `supabase/migrations/`（**0001~0024**，幂等），**手动在 Supabase SQL Editor 执行**
+- 迁移脚本在 `supabase/migrations/`（**0001~0025**，幂等），**手动在 Supabase SQL Editor 执行**
 - **新表必须同时配「表级 GRANT + RLS 策略」**；公开读/写路径要用 **anon（未登录）身份**测试，不能只用登录态
 - 旧表结构变更：`create table if not exists` 不补已存在表，需显式 `ALTER TABLE`
 - 涉及安全函数（RPC）时：`security definer` + `set search_path = public`，并 `revoke ... from public` 后只 grant 必要角色
-- 近期新增：`site_visits`（UV）、`rate_limit_events`（限流）、`post_views`（浏览量去重）、trgm 检索索引（0019）；0024 为 `post-images` 增加管理员 UPDATE 策略（覆盖上传）
+- 近期新增：`site_visits`（UV）、`rate_limit_events`（限流）、`post_views`（浏览量去重）、trgm 检索索引（0019）；0024 为 `post-images` 增加管理员 UPDATE 策略（覆盖上传）；0025 增加评论/留言头像 `avatar_data` 与 `replies` 表（游客回复）
 
 ## 安全约定
 
@@ -86,6 +86,7 @@ node scripts/optimize-storage-images.mjs --apply   # 备份原图后覆盖压缩
 - 安全响应头在 `next.config.ts`（nosniff / Referrer-Policy / X-Frame-Options / Permissions-Policy）
 - `/api/download` 必须用 `new URL()` 校验 hostname 与 pathname，**禁止用 `includes` 做 URL 白名单**
 - Storage 桶 `post-images` 有 MIME 白名单 + 20MB 单文件上限；上传失败必须给出明确提示
+- 访客头像不走 Storage：客户端压成 96×96 WebP data URL 存 DB，服务端限制 `webp/png/jpeg` 且 ≤ 48k 字符，避免匿名 Storage 写入被刷
 - 依赖升级后必须跑 `npm audit`（官方 registry）并回归 lint/tsc/test/build
 - 服务端环境变量统一走 `lib/env.ts` 的 `getServerEnv()` / `getPublicEnv()`（缺失立即报错）；客户端仍直接读 `process.env.NEXT_PUBLIC_*`，**不要 import `lib/env.ts`**
 
@@ -111,6 +112,7 @@ node scripts/optimize-storage-images.mjs --apply   # 备份原图后覆盖压缩
 - `supabase/migrations/`：数据库档案；`scripts/`：索引、备份、清理、评测脚本
 - 桌面 `my-blog搭建/`：
   - `文档总索引.md`：全部文档导航与推荐阅读路径（先看这篇）
+  - `整体技术栈与架构.md`：全景图、技术栈、四条核心链路、选型取舍
   - `项目优化方案.md`：每批改动的实施记录
   - `开发经验与踩坑合集.md`：可复用经验
   - `AI问答RAG实战详解.md`：架构、指标、面试追问

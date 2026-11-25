@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { postSchema } from "@/lib/validations/posts";
 import { commentSchema } from "@/lib/validations/comments";
 import { credentialsSchema } from "@/lib/validations/auth";
+import { avatarDataSchema, replySchema } from "@/lib/validations/replies";
 
 describe("postSchema", () => {
   const base = {
@@ -100,5 +101,53 @@ describe("credentialsSchema", () => {
   it("密码过短被拒", () => {
     const r = credentialsSchema.safeParse({ ...base, password: "12345" });
     expect(r.success).toBe(false);
+  });
+});
+
+describe("replySchema", () => {
+  const base = {
+    targetType: "comment",
+    targetId: "33",
+    identifier: "33",
+    name: "访客",
+    avatarData: "",
+    content: "回复内容",
+  };
+
+  it("合法回复通过", () => {
+    expect(replySchema.safeParse(base).success).toBe(true);
+  });
+
+  it("目标类型非法被拒", () => {
+    expect(replySchema.safeParse({ ...base, targetType: "post" }).success).toBe(false);
+  });
+
+  it("内容为空被拒", () => {
+    expect(replySchema.safeParse({ ...base, content: "  " }).success).toBe(false);
+  });
+
+  it("昵称留空自动变匿名", () => {
+    const result = replySchema.safeParse({ ...base, name: "" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.name).toBe("匿名");
+  });
+});
+
+describe("avatarDataSchema", () => {
+  it("空字符串通过（不上传头像）", () => {
+    expect(avatarDataSchema.safeParse("").success).toBe(true);
+  });
+
+  it("合法 WebP data URL 通过", () => {
+    expect(avatarDataSchema.safeParse("data:image/webp;base64,UklGRg==").success).toBe(true);
+  });
+
+  it("非图片 / 脚本被拒", () => {
+    expect(avatarDataSchema.safeParse("javascript:alert(1)").success).toBe(false);
+    expect(avatarDataSchema.safeParse("data:text/html;base64,PHNjcmlwdD4=").success).toBe(false);
+  });
+
+  it("超长数据被拒", () => {
+    expect(avatarDataSchema.safeParse(`data:image/webp;base64,${"A".repeat(50_000)}`).success).toBe(false);
   });
 });

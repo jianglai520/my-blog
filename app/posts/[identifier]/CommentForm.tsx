@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { createComment, type CommentFormState } from "@/app/actions/comments";
+import AvatarPicker from "@/app/components/AvatarPicker";
 
 const initialState: CommentFormState = { message: "", success: false };
 
@@ -41,6 +42,10 @@ export default function CommentForm({
 
       <input type="hidden" name="postId" value={postId} />
       <input type="hidden" name="identifier" value={identifier} />
+
+      <div className="mb-4">
+        <AvatarPicker />
+      </div>
 
       <div className="mb-4">
         <label htmlFor="comment-name" className="mb-1 block text-sm text-fg-muted">

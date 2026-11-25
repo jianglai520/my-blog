@@ -40,6 +40,7 @@ export async function createGuestbookMessage(
   // ② zod 校验
   const parsed = guestbookSchema.safeParse({
     name: String(formData.get("name") || ""),
+    avatarData: String(formData.get("avatarData") || ""),
     content: String(formData.get("content") || ""),
   });
 
@@ -52,6 +53,7 @@ export async function createGuestbookMessage(
   const { error } = await supabase.from("guestbook_messages").insert({
     name: parsed.data.name,
     content: parsed.data.content,
+    avatar_data: parsed.data.avatarData || null,
     ip: ipHash,
   });
 
@@ -127,6 +129,12 @@ export async function deleteGuestbookMessage(formData: FormData): Promise<void> 
   }
 
   const supabase = await getServerSupabase();
+  // 先清理游客回复，再删留言
+  await supabase
+    .from("replies")
+    .delete()
+    .eq("target_type", "guestbook")
+    .eq("target_id", messageId);
   const { error } = await supabase.from("guestbook_messages").delete().eq("id", messageId);
   if (error) {
     logger.error("删除留言失败:", error);

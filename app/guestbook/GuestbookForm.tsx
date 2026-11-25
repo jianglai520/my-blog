@@ -5,6 +5,7 @@ import {
   createGuestbookMessage,
   type GuestbookFormState,
 } from "@/app/actions/guestbook";
+import AvatarPicker from "@/app/components/AvatarPicker";
 
 const initial: GuestbookFormState = { message: "", success: false };
 
@@ -35,6 +36,10 @@ export default function GuestbookForm() {
           placeholder="匿名"
           className={`${inputCls} max-w-xs`}
         />
+      </div>
+
+      <div>
+        <AvatarPicker />
       </div>
 
       <div>

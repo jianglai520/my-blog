@@ -251,7 +251,19 @@ export async function deletePost(formData: FormData): Promise<void> {
 
   try {
     const supabase = await getServerSupabase();
-    // 先删该文章下的评论 + AI 索引分块（外键已级联，此处为应用层兜底保险）
+    // 先删该文章下的游客回复 + 评论 + AI 索引分块（外键已级联，此处为应用层兜底保险）
+    const { data: commentRows } = await supabase
+      .from("comments")
+      .select("id")
+      .eq("post_id", postId);
+    const commentIds = (commentRows ?? []).map((row) => row.id);
+    if (commentIds.length) {
+      await supabase
+        .from("replies")
+        .delete()
+        .eq("target_type", "comment")
+        .in("target_id", commentIds);
+    }
     await supabase.from("comments").delete().eq("post_id", postId);
     await deletePostChunks(supabase, postId);
     const { error } = await supabase.from("posts").delete().eq("id", postId);
@@ -281,6 +293,19 @@ export async function batchDeletePosts(ids: number[]): Promise<void> {
   }
 
   const supabase = await getServerSupabase();
+  // 先清理这些文章下的游客回复，再删评论与文章
+  const { data: commentRows } = await supabase
+    .from("comments")
+    .select("id")
+    .in("post_id", ids);
+  const commentIds = (commentRows ?? []).map((row) => row.id);
+  if (commentIds.length) {
+    await supabase
+      .from("replies")
+      .delete()
+      .eq("target_type", "comment")
+      .in("target_id", commentIds);
+  }
   await supabase.from("comments").delete().in("post_id", ids);
   const { error } = await supabase.from("posts").delete().in("id", ids);
   if (error) {

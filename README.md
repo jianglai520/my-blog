@@ -87,8 +87,8 @@ npm run eval:rag  # RAG retrieval eval (Recall@5 / MRR / P95)
 | 🗂 **Archives / About** | Timeline archive page (gradient timeline, collapsible month groups, changelog-style commit rows with mono date/short hash/reading time/word count); **developer-profile about page** (sticky profile card, pinned projects, skills, experience, private-message form, display limits) |
 | ⚙️ **Site settings** | Edit author name/intro/GitHub/email/**avatar (upload or URL)**/ICP from admin, instant effect |
 | 🌗 **Light/dark theme** | Header toggle; follows system + manual choice persisted (localStorage) |
-| 💬 Comments | Name + content, instant display; **owner can reply** from admin, reply shown under each comment; admin single delete / **bulk delete** (60s IP rate limit) |
-| 💬 **Guestbook** | Standalone `/guestbook` page in **letter/editorial style** (serif letters, signature line, decorative quote), anonymous + IP rate limit; **owner can reply** from admin, reply shown under each letter; admin delete |
+| 💬 Comments | Name + content, **optional visitor avatar upload** (96×96 WebP, stored as data URL), instant display; **owner can reply** from admin; **visitors can reply** in a separate thread (never labeled as owner); admin single delete / **bulk delete** (60s IP rate limit) |
+| 💬 **Guestbook** | Standalone `/guestbook` page in **letter/editorial style** (serif letters, signature line, decorative quote), anonymous + IP rate limit; **optional avatar upload**; **owner can reply** from admin; **visitors can reply** in a separate thread; admin delete |
 | ✉️ **Private messages** | About-page message form (name/contact optional, **content only visible to owner**), anonymous + IP rate limit, admin view/delete |
 | 🏷️ **Skills page** | `/skills` **Bento + radar chart** (ability distribution by group, average-score rings), **core skills** showcase, level labels; admin supports **per-skill save/delete**, group reordering, live preview, and optional description/years/icon/featured fields |
 | 📁 **Projects** | `/projects` list (**compact glass cards**, click into `/projects/[slug]` detail page with full description); each project is **saved/deleted independently** in admin (no batch overwrite); name/year/description/tech/links, **local cover upload or URL**, **16:9 crop preview with position sliders** |
@@ -179,7 +179,7 @@ my-blog/
 ├── proxy.ts                        # route guard (Next 16 renamed middleware)
 ├── drizzle.config.ts               # drizzle-kit config (schema → migration SQL)
 ├── supabase/
-│   └── migrations/                 # DB migration SQL (0001~0024, run manually in SQL Editor)
+│   └── migrations/                 # DB migration SQL (0001~0025, run manually in SQL Editor)
 ├── scripts/
 │   ├── generate-og.mjs             # one-off: generate public/og.png
 │   ├── backup.mjs                  # DB backup script (export all tables to backups/)
@@ -252,6 +252,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 ---
 
 ## 🗄️ Database Schema (Supabase)
+
+> Guest avatars are stored as `avatar_data` (96×96 WebP data URL) on `comments` / `guestbook_messages`; visitor replies live in `replies` (`target_type` + `target_id`), separate from the owner reply fields.
 
 ### Table `posts`
 
@@ -353,7 +355,7 @@ Site config (key-value, editable from admin, instant effect):
 
 Public-read image bucket (INSERT / DELETE / UPDATE restricted to the owner via RLS; project covers reuse the `projects/` folder). The UPDATE policy (`0024_storage_admin_update.sql`) is required for `upsert` overwrites, e.g. the image-compression script.
 
-> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0024). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
+> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0025). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
 
 ---
 
