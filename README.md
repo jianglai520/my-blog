@@ -20,7 +20,10 @@ A full-stack personal blog built with **Next.js 16 + React 19 + Supabase + Verce
 | **Tailwind CSS** | ^4 | Styling (CSS-first `@theme` design system) |
 | **Supabase** | ^2.108 | Auth + writes (RLS defense) |
 | **Drizzle ORM** | ^0.45 | Public-read data layer (schema as type truth, direct Postgres) |
-| **Vercel** | — | Hosting / deployment (auto-deploy on git push) |
+| **pgvector / pg_trgm** | — | Vector + keyword hybrid retrieval for RAG / fuzzy search |
+| **KaTeX** | ^0.19 | Server-side LaTeX math (`$$...$$` block, `$...$` inline) |
+| **AI** | — | BGE-M3 embeddings (SiliconFlow) + DeepSeek streaming |
+| **Vercel** | — | Hosting / deployment (functions pinned to `sin1`, same region as Supabase) |
 | **Fonts** | Noto Serif SC + Ma Shan Zheng + JetBrains Mono | Runtime-loaded from `fonts.googleapis.cn`; serif site-wide, brush for the hero greeting, mono for code (no build-time fetch; graceful fallback) |
 
 > Runtime requirement: Node.js ≥ 20.9 (dev environment uses Node 24.14.0).
@@ -37,7 +40,7 @@ A full-stack personal blog built with **Next.js 16 + React 19 + Supabase + Verce
 | Error monitoring | **Sentry** (active once `SENTRY_DSN` is set) + custom `error.tsx` / `global-error.tsx` |
 | Analytics | **Vercel Analytics** (`@vercel/analytics`, enable in dashboard) |
 | Data backup | See **`BACKUP.md`**: `scripts/backup.mjs` exports JSON + `scripts/restore-drill.mjs` restore drill (temporary schema validation, verified) |
-| Performance | Homepage **dynamic rendering + data-layer caching**: `unstable_cache` (60s) + `updateTag` instant invalidation (posts/tags/stats/site settings), production homepage **17–21ms**; publish pipeline optimization (editor ref submission, zero serialization/re-render while editing); upload optimization (direct-to-Supabase-Storage, no Server Action hop) |
+| Performance | **ISR/CDN first**: homepage, post pages, and project detail are ISR (`revalidate=60`); `generateStaticParams` pre-renders 34 posts + 5 projects at build. Data layer `unstable_cache` + tag invalidation; heavy admin widgets lazy-loaded (`next/dynamic`); Vercel functions pinned to `sin1` (same region as Supabase) — admin login 5.3s → **1.0s**, article first paint ~**0.2s** (CDN hit) |
 
 ```bash
 npm test          # unit tests
@@ -55,18 +58,19 @@ npm run eval:rag  # RAG retrieval eval (Recall@5 / MRR / P95)
 
 | Feature | Description |
 |---------|-------------|
-| 📄 Homepage | Hero (avatar/gradient title/**blob animation**/**stats row**/**learn-more CTA**) + post card grid (**teal glass cards**: 16:9 cover on top + glass content, hover lift/glow, **precomputed reading time**, tags, view count) + **pinned posts first** + **hot tags** + **pagination**; list queries fetch only a **500-char content snippet** (no full articles) |
-| 📖 Post detail | Semantic slug links (legacy numeric id compatible, 301 redirect); tags, **view count (deduplicated: once per visitor per day)**, **reading time (minutes)**; reading progress bar + table of contents (TOC) |
-| 📝 **Markdown body** | Headings / lists / **code highlighting (shiki light-dark themes, auto fallback for unlabeled blocks)** / tables / blockquotes / images; professional typography; inline code rendered clean (Typography auto-backticks disabled) |
+| 📄 Homepage | Hero (avatar/gradient title/**blob animation**/**stats row**/**learn-more CTA**) + post card grid (**teal glass cards**: 2:1 cover on top + glass content, hover lift/glow, **precomputed reading time**, tags, view count) + **pinned posts first** + **all non-empty tag chips** + **pagination (prev/next + direct page jump)**; list queries fetch only a **500-char content snippet** (no full articles) |
+| 📖 Post detail | **ISR-cached and served from CDN**; semantic slug links (legacy numeric id compatible, 301 redirect); tags, **view count (once per visitor per day)**, **reading time**; reading progress bar + table of contents (TOC) |
+| 📝 **Markdown body** | Headings / lists / **code highlighting (shiki light-dark themes, auto fallback for unlabeled blocks)** / tables / blockquotes / images; **LaTeX math via KaTeX (`$$...$$` block, `$...$` inline, single-line `$$...$$` normalized)**; professional typography; inline code rendered clean |
 | 🔍 **Image lightbox** | Click body images to zoom (click overlay / ✕ / Esc to close) |
 | 📋 **Code copy** | One-click copy button on code blocks |
-| 🖊️ **Rich text editor** | TipTap WYSIWYG, saved as Markdown; **source mode (MD) is the default** for raw Markdown, preserving tables/code fences; images/attachments/emoji are inserted at the cursor of the **active** mode; **toolbar formatting (bold/headings/lists/quote/code block) writes Markdown syntax in source mode**, with undo/redo |
-| 📥 **Drafts & editing** | Save draft / publish / edit, drafts never public |
-| 🖼️ **Image upload** | Editor image **direct browser upload** to Supabase Storage (no server hop) → auto insert |
-| 🖼️ **Cover upload** | Local cover upload (≤5MB, direct browser upload, auto-fills URL) or paste external URL |
+| 🖊️ **Rich text editor** | TipTap WYSIWYG, saved as Markdown; **source mode (MD) is the default** for raw Markdown, preserving tables/code fences; images/attachments/emoji are inserted at the cursor of the **active** mode; **toolbar formatting writes Markdown syntax in source mode**, with undo/redo |
+| 📥 **Drafts & editing** | Save draft / publish / edit, drafts never public; **1s-debounced localStorage autosave** with restore/discard prompt on re-entry |
+| 🖼️ **Image upload** | Editor images are **compressed in-browser (WebP, max 1600px)** then **directly uploaded** to Supabase Storage → auto insert |
+| 🖼️ **Cover upload** | Local cover upload (≤5MB, compressed in-browser, direct upload, auto-fills URL) or paste external URL |
+| 🖼️ **Image pipeline** | Vercel Image Optimization disabled (Hobby 5K/month quota exhausted → `402`); images served directly from Supabase CDN; existing library batch-compressed **47.4MB → 25.5MB (46%)** |
 | 📎 **Attachment upload** | Insert PDF/Word/Excel/zip (**multi-select batch**, ≤20MB each, direct browser upload); rendered as a **file card with online preview + download** (PDF/txt/md inline, Office via Office Online Viewer); insertion works in both source and WYSIWYG modes |
 | 😀 **Emoji insertion** | Editor toolbar emoji panel, grouped emojis inserted at cursor |
-| 🏷️ **Tag system** | Tag posts; `/tags/xxx` tag pages; tags on cards |
+| 🏷️ **Tag system** | Tag posts; `/tags/xxx` tag pages (**two-column card grid**); tags on cards; empty tags hidden on homepage |
 | 🔍 **Search** | Nav search box (debounced), **relevance-ranked search** (title 3 / excerpt 2 / content 1 + trgm similarity), trgm GIN indexes; **60s result cache**, only a 500-char content snippet is fetched (avoids transferring full articles) |
 | 🤖 **AI Q&A (RAG)** | Floating "Ask AI" on post pages: **hybrid retrieval** (pgvector Top8 + trgm keyword Top8 → fused Top5, max 2 chunks per post), **streaming SSE**, **clickable citations**, prompt-injection guard, DB-backed rate limit, and an **eval script** (`npm run eval:rag`) |
 | 📡 **RSS** | `/feed.xml` (Atom), injected into layout |
@@ -88,7 +92,7 @@ npm run eval:rag  # RAG retrieval eval (Recall@5 / MRR / P95)
 | 📤 **Share button** | Post sharing: copy link / Weibo / QQ / X |
 | 🔍 **Search enhancement** | In-page query input + **keyword highlighting** + compact list |
 | 🔐 Login | Supabase Auth email login (single admin) |
-| 🛡️ Admin dashboard | Server-side auth; post management (publish/edit/delete/draft/**bulk delete**/**pin-unpin**) + **comment management** (single/bulk delete) |
+| 🛡️ Admin dashboard | Server-side auth; post management (publish/edit/delete/draft/**bulk delete**/**pin-unpin**) + **comment management** (single/bulk delete); editor/project/skill panels lazy-loaded, and writing autosaves to localStorage (1s debounce) |
 | 🌐 Custom domain | jianglai520.com bound to Vercel |
 
 ---
@@ -168,7 +172,7 @@ my-blog/
 ├── proxy.ts                        # route guard (Next 16 renamed middleware)
 ├── drizzle.config.ts               # drizzle-kit config (schema → migration SQL)
 ├── supabase/
-│   └── migrations/                 # DB migration SQL (0001~0023, run manually in SQL Editor)
+│   └── migrations/                 # DB migration SQL (0001~0024, run manually in SQL Editor)
 ├── scripts/
 │   ├── generate-og.mjs             # one-off: generate public/og.png
 │   ├── backup.mjs                  # DB backup script (export all tables to backups/)
@@ -205,6 +209,8 @@ npm start       # start production server
 npm run lint    # ESLint
 npm run check:markdown  # scan posts for flattened tables / broken Markdown
 npm run cleanup:storage # report orphan files in Supabase Storage (dry-run)
+node scripts/optimize-storage-images.mjs           # image compression dry-run
+node scripts/optimize-storage-images.mjs --apply   # backup originals, then overwrite compressed
 ```
 
 ---
@@ -218,6 +224,10 @@ npm run cleanup:storage # report orphan files in Supabase Storage (dry-run)
 | `DATABASE_URL` | **Server-only** DB connection string (for Drizzle direct connection, **no `NEXT_PUBLIC_` prefix**) | Supabase → Project Settings → Database → Connection string → **Transaction pooler** (port 6543) |
 | `DEEPSEEK_API_KEY` | **Server-only** AI answer key (**no `NEXT_PUBLIC_` prefix**) | DeepSeek platform → API Keys |
 | `EMBEDDING_API_KEY` | **Server-only** embedding key (RAG, BGE-M3, **no `NEXT_PUBLIC_` prefix**) | SiliconFlow → API Keys |
+| `VISIT_HASH_SALT` | Salt for visitor UV hashing (falls back to a built-in value if unset) | Any random string |
+| `IP_HASH_SALT` | Salt for rate-limit / view IP hashing (optional) | Any random string |
+| `GITHUB_TOKEN` | Read-only token for `/logs` changelog (optional) | GitHub → Settings → Developer settings → Fine-grained token |
+| `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` | Server / client Sentry DSN (optional) | Sentry project settings |
 
 > ⚠️ `DATABASE_URL` is a server-only secret that can connect directly to the DB: keep it in `.env.local` / Vercel server env only, and **never expose it to the browser** (do **not** check "Expose to Client" in Vercel).
 
@@ -250,6 +260,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `index_status` | text | Vector index status (`pending`/`done`/`failed`, async publishing) |
 | `created_at` | timestamptz | Creation time |
 | `published` | boolean | Legacy field (redundant with `status`) |
+| `reading_minutes` | int (nullable) | Precomputed reading time (written on publish/edit) |
+| `word_count` | int (nullable) | Precomputed word count |
 
 ### Table `comments`
 
@@ -330,9 +342,9 @@ Site config (key-value, editable from admin, instant effect):
 
 ### Storage bucket `post-images`
 
-Public-read image bucket (only the owner can upload/delete, RLS policies in `0002_rls.sql` / `0003_markdown_draft.sql`; project covers reuse the `projects/` folder in this bucket).
+Public-read image bucket (INSERT / DELETE / UPDATE restricted to the owner via RLS; project covers reuse the `projects/` folder). The UPDATE policy (`0024_storage_admin_update.sql`) is required for `upsert` overwrites, e.g. the image-compression script.
 
-> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0023). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
+> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0024). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
 
 ---
 
@@ -349,7 +361,7 @@ Browser form ──▶ Server Action (zod validation → server session auth →
 
 | Defense | Purpose |
 |---------|---------|
-| `proxy.ts` route guard | Redirect unauthenticated `/admin` visits to `/login` (Next 16, replaces middleware) |
+| `proxy.ts` route guard | Verifies the session with `auth.getClaims()` (local ES256/JWKS verification, falls back to `getUser()`), redirects unauthenticated `/admin` visits, and forwards the verified identity via internal headers so the page does not call Auth twice |
 | Server Action auth | `requireAdmin()`: only `profiles.is_admin = true` can publish/delete |
 | RLS policies | Even with the public anon key, non-owners cannot modify `posts`; comments can be created anonymously but only the owner can delete |
 | zod validation | All form input validated server-side (required title/content, slug format, comment length) |
@@ -383,6 +395,8 @@ git push origin main
 
 - Domain: Vercel project → Settings → Domains → bind `jianglai520.com`
 - Environment variables: Vercel project → Settings → Environment Variables
+- Functions region: **`sin1` (Singapore)**, matching Supabase `ap-southeast-1`; changing it requires a redeploy
+- Image optimization: **disabled** (`images.unoptimized`) because the Hobby 5K/month quota was exhausted and returned `402`; uploads are compressed in-browser instead
 - Repository visibility: `my-blog` remote uses SSH
 
 > 🩺 Troubleshooting: if GitHub Actions passes after push but **Vercel does not auto-deploy**, check Vercel project → Settings → Git → **Require Verified Commits** (when enabled, only GPG-signed commits deploy; ordinary commits are silently skipped). Also check usage limits and the Git connection status.
@@ -407,4 +421,7 @@ The current version is an MVP with the following remaining items (see the optimi
 2. ~~**Content**: plain text only, no Markdown / rich text / code highlighting~~ ✅ **Resolved (Phase 1)**: Markdown rendering + TipTap editor + drafts/editing + image upload
 3. ~~**Features**: no tags, search, pagination, view counts, RSS~~ ✅ **Resolved (Phase 3)**: tags + search + pagination + views + RSS + archives + about + comment management
 4. ~~**Engineering**: no automated tests, CI, error monitoring, backup strategy~~ ✅ **Resolved (Phase 4)**: Vitest (77 cases) + Playwright E2E (9 cases) + GitHub Actions CI + Sentry + Vercel Analytics + backup & restore drill (see `BACKUP.md`)
-5. **Visual style**: the owner was unsatisfied with the frontend ("too amateur"); code block dual themes, image lightbox, reading progress, and TOC were already shipped; the **visual direction is now finalized as "teal glassmorphism"** (referencing lvyovo-wiki.tech), with P0 shipped: brand `#35bfab` + cyan `#1fc9e7` design system, `.glass` cards, homepage card refactor, and light/dark glass adaptation; the projects page has been split into list + detail (see the desktop optimization plan doc)
+5. **Visual style**: the owner was dissatisfied with the frontend ("too amateur"); code block dual themes, image lightbox, reading progress, and TOC are shipped; the **visual direction is finalized as "teal glassmorphism"** (referencing lvyovo-wiki.tech), with P0 shipped: brand `#35bfab` + cyan `#1fc9e7` design system, `.glass` cards, homepage card refactor; projects split into list + detail
+6. **Image delivery**: Vercel Image Optimization is disabled (Hobby 5K/month quota exhausted); images are served at stored size from Supabase without responsive `srcset`. Size control relies on upload-time compression.
+7. **Dynamic routes**: `/tags/[slug]` (query-string pagination) and `/search` are still rendered per request; only homepage, posts, and projects are ISR.
+8. **Mainland network**: some campus/ISP networks block specific Vercel anycast IPs; the domain may need an A record pointing to a reachable Vercel anycast (see the desktop network guide).
