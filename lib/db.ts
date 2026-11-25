@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "@/db/schema";
+import { getServerEnv } from "@/lib/env";
 
 /**
  * Drizzle 数据库客户端（仅服务端读路径使用）。
@@ -16,10 +17,7 @@ const globalForDb = globalThis as unknown as {
   pool: Pool | undefined;
 };
 
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  throw new Error("缺少 DATABASE_URL 环境变量（Phase 2 数据库连接串，见 .env.example）");
-}
+const { databaseUrl: connectionString } = getServerEnv();
 
 /** 构建阶段：减少每个 worker 的连接数，避免 next build 并发查库打满 Supabase 连接池 */
 const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";

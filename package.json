@@ -68,5 +68,11 @@
     "tsx": "^4.23.5",
     "typescript": "^5",
     "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "katex": "^0.19.1"
+  },
+  "engines": {
+    "node": ">=20.9"
   }
 }

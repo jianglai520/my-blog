@@ -40,7 +40,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 - **重组件按需加载**：文章页的 TOC / 图片灯箱 / AI 按钮统一从 `app/components/ArticleClientWidgets.tsx` 导入（内部 `next/dynamic` + `ssr:false`）；后台 `PostForm` / `ProjectManager` / `SkillManager` 用 `next/dynamic`。不要再把它们静态 import 进 Server Component（Server Component 不支持 `ssr:false`）。
 - **草稿自动保存**：`app/admin/PostForm.tsx` 以 1 秒防抖写 localStorage（`draft:new` / `draft:edit:<id>`）；发布成功、主动丢弃、手动清除时必须删除；恢复提示未处理前禁止写入，避免覆盖旧草稿。
-- **Markdown 渲染管线**：`app/components/Markdown.tsx` 用 `remark-math` + `rehype-katex`（`$$` 块级 / `$` 行内），并兼容独占一行的单行 `$$...$$`；正文图片统一补 `referrerpolicy="no-referrer"`（Gitee 等图床防盗链）；管线变化时必须递增 `unstable_cache` 的 key 前缀（当前 `markdown-html-v4`），否则旧缓存不会更新。
+- **Markdown 渲染管线**：渲染逻辑在 `lib/markdown.ts`（纯函数，可单测，含 `remark-math` + `rehype-katex`、单行 `$$...$$` 规范化、图片 `no-referrer`）；`app/components/Markdown.tsx` 只负责 `unstable_cache`，管线变化时必须递增其 key 前缀（当前 `markdown-html-v4`）。
 - **图片优化**：Vercel Hobby 的 Image Optimization 额度（5K/月）已用满，`next.config.ts` 设了 `images.unoptimized = true`，`next/image` 直接输出 Supabase 原图；新上传图片在 `lib/browser/upload.ts` 浏览器端压缩（最长边 1600px、WebP q=0.82）。重新开启优化前先确认额度或改用自托管 + sharp。
 
 ## AI / RAG 约定
@@ -85,6 +85,7 @@ node scripts/optimize-storage-images.mjs --apply   # 备份原图后覆盖压缩
 - `/api/download` 必须用 `new URL()` 校验 hostname 与 pathname，**禁止用 `includes` 做 URL 白名单**
 - Storage 桶 `post-images` 有 MIME 白名单 + 20MB 单文件上限；上传失败必须给出明确提示
 - 依赖升级后必须跑 `npm audit`（官方 registry）并回归 lint/tsc/test/build
+- 服务端环境变量统一走 `lib/env.ts` 的 `getServerEnv()` / `getPublicEnv()`（缺失立即报错）；客户端仍直接读 `process.env.NEXT_PUBLIC_*`，**不要 import `lib/env.ts`**
 
 ## 设计系统
 
@@ -96,7 +97,7 @@ node scripts/optimize-storage-images.mjs --apply   # 备份原图后覆盖压缩
 
 - 单测聚焦**纯逻辑 + 权限分支**（mock `@/lib/server/supabase`；mock 清理用 `vi.resetAllMocks()`）
 - E2E **必须用生产模式**（`build + start`，不用 dev）；登录测试凭据走 `TEST_EMAIL`/`TEST_PASSWORD` 环境变量（未配置跳过）
-- CI 门禁：lint → `tsc --noEmit` → 单测 → build → E2E；类型错误必须当场修掉
+- CI 门禁：lint → `tsc --noEmit` → 单测 → build → E2E；`main` 分支缺 `DATABASE_URL` 时构建/E2E **直接失败**，不允许静默跳过；类型错误必须当场修掉
 - RAG 相关改动：同步更新 `data/eval/rag-qa.jsonl` 或在文档记录评测结果
 
 ## 文档

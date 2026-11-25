@@ -1,0 +1,38 @@
+# Dependabot：每周检查依赖与 Actions 更新
+# - npm 的 minor/patch 合并成一个 PR，减少噪音；major 单独开
+# - Next / React 的 major 暂时忽略，升级需要人工评估（Next 16 的破坏性变更较多）
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "03:17"
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: next
+        update-types:
+          - version-update:semver-major
+      - dependency-name: react
+        update-types:
+          - version-update:semver-major
+      - dependency-name: react-dom
+        update-types:
+          - version-update:semver-major
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "03:17"
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5

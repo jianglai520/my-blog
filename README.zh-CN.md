@@ -34,9 +34,11 @@
 
 | 能力 | 说明 |
 |------|------|
-| 单元测试 | **Vitest**（77 个用例）：`lib/format`、zod 校验层、Server Actions 权限分支、数据层纯函数与 mock 查询、组件渲染（RTL） |
+| 单元测试 | **Vitest**（98 个用例）：`lib/format`、zod 校验层、Server Actions 权限分支、数据层纯函数与 mock 查询、Markdown/KaTeX 渲染管线、图片缩放、环境变量校验、分页跳转、组件渲染（RTL） |
 | E2E 测试 | **Playwright**（chromium 9 用例）：首页/文章/搜索/RSS/登录（`npm run test:e2e`，登录用例需 `TEST_EMAIL`/`TEST_PASSWORD`） |
-| CI 流水线 | **GitHub Actions**（`.github/workflows/ci.yml`）：push/PR 自动跑 lint + 单测 + 构建（+ E2E） |
+| CI 流水线 | **GitHub Actions**（`.github/workflows/ci.yml`）：push/PR 自动跑 lint + tsc + 单测 + 构建 + E2E；`main` 分支缺 `DATABASE_URL` 时**直接失败**，不再静默跳过 |
+| 配置校验 | `lib/env.ts` 缺少变量时立即报错并指出变量名，不再散落 `process.env.X!` |
+| 依赖治理 | **Dependabot** 每周检查 npm + GitHub Actions；`katex` 通过 npm `overrides` 统一版本；Node 用 `.nvmrc` + `engines` 固定 |
 | 错误监控 | **Sentry**（`SENTRY_DSN` 配置后生效）+ 自定义 `error.tsx` / `global-error.tsx` |
 | 访问分析 | **Vercel Analytics**（`@vercel/analytics`，Dashboard 开启） |
 | 数据备份 | 见 **`BACKUP.md`**：`scripts/backup.mjs` 导出 JSON + `scripts/restore-drill.mjs` 恢复演练（临时 schema 校验，已执行通过） |

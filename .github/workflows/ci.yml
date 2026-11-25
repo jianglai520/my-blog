@@ -39,7 +39,11 @@ jobs:
           SENTRY_DSN: ""
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "::warning::DATABASE_URL 未配置（GitHub Secrets），跳过 Build"
+            if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+              echo "::error::main 分支缺少 DATABASE_URL（GitHub Secrets），构建不允许跳过"
+              exit 1
+            fi
+            echo "::warning::DATABASE_URL 未配置（PR），跳过 Build"
             exit 0
           fi
           npm run build
@@ -72,7 +76,7 @@ jobs:
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "::warning::DATABASE_URL 未配置（GitHub Secrets），跳过 E2E"
-            exit 0
+            echo "::error::缺少 DATABASE_URL（GitHub Secrets），E2E 不允许跳过"
+            exit 1
           fi
           npm run test:e2e

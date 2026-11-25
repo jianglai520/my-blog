@@ -1,6 +1,7 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies, headers } from "next/headers";
+import { getPublicEnv } from "@/lib/env";
 import { unstable_cache } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -14,9 +15,11 @@ import { profiles } from "@/db/schema";
 export async function getServerSupabase() {
   const cookieStore = await cookies();
 
+  const { supabaseUrl, supabaseAnonKey } = getPublicEnv();
+
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {

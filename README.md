@@ -34,9 +34,11 @@ A full-stack personal blog built with **Next.js 16 + React 19 + Supabase + Verce
 
 | Capability | Description |
 |-----------|-------------|
-| Unit tests | **Vitest** (77 cases): `lib/format`, zod validation, Server Actions auth branches, pure data-layer functions with mocked queries, component rendering (RTL) |
+| Unit tests | **Vitest** (98 cases): `lib/format`, zod validation, Server Actions auth branches, pure data-layer functions with mocked queries, Markdown/KaTeX pipeline, image scaling, env validation, pagination jump, component rendering (RTL) |
 | E2E tests | **Playwright** (9 chromium cases): homepage/post/search/RSS/login (`npm run test:e2e`; login cases need `TEST_EMAIL`/`TEST_PASSWORD`) |
-| CI pipeline | **GitHub Actions** (`.github/workflows/ci.yml`): lint + unit tests + build (+ E2E) on push/PR |
+| CI pipeline | **GitHub Actions** (`.github/workflows/ci.yml`): lint + tsc + unit tests + build + E2E on push/PR; **fails instead of silently skipping** when `DATABASE_URL` is missing on `main` |
+| Config validation | `lib/env.ts` fails fast with the missing variable name (no more scattered `process.env.X!`) |
+| Dependency hygiene | **Dependabot** weekly for npm + GitHub Actions; `katex` pinned via npm `overrides`; Node pinned with `.nvmrc` + `engines` |
 | Error monitoring | **Sentry** (active once `SENTRY_DSN` is set) + custom `error.tsx` / `global-error.tsx` |
 | Analytics | **Vercel Analytics** (`@vercel/analytics`, enable in dashboard) |
 | Data backup | See **`BACKUP.md`**: `scripts/backup.mjs` exports JSON + `scripts/restore-drill.mjs` restore drill (temporary schema validation, verified) |

@@ -1,6 +1,7 @@
 "use client";
 
 import { getBrowserSupabase } from "./supabase";
+import { targetDimensions } from "@/lib/image";
 
 export type UploadResult = {
   url: string | null;
@@ -50,9 +51,7 @@ async function compressImage(file: File): Promise<File> {
 
   try {
     const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
-    const width = Math.max(1, Math.round(bitmap.width * scale));
-    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const { width, height } = targetDimensions(bitmap.width, bitmap.height);
 
     const canvas = document.createElement("canvas");
     canvas.width = width;
