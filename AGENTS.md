@@ -88,6 +88,7 @@ node scripts/optimize-storage-images.mjs --apply   # 备份原图后覆盖压缩
 
 - 安全响应头在 `next.config.ts`（nosniff / Referrer-Policy / X-Frame-Options / Permissions-Policy），CSP 目前是 **Report-Only**（只观察不拦截）；确认无遗漏后再改成强制的 `Content-Security-Policy`
 - `/api/download` 必须用 `new URL()` 与**本站 Supabase hostname 精确比对**，并要求路径以 `/storage/v1/object/public/post-images/` 开头，**禁止用 `includes` / `endsWith(".supabase.co")` 做白名单**；接口按 IP 限流（30 次/分）并拒绝 >20MB 文件
+- **URL 输入只看 `.url()` 不够**：zod 的 `.url()` 底层是 WHATWG `new URL()`，`javascript:alert(1)` 也能通过。`coverImage` / `avatar_url` 这类要展示到前端的字段必须再加 `/^https?:\/\//i` refine；访客头像的 data URL 仍由 `avatarDataSchema` 单独限制 MIME 与长度
 - Storage 桶 `post-images` 有 MIME 白名单 + 20MB 单文件上限；上传失败必须给出明确提示
 - 访客头像不走 Storage：客户端压成 96×96 WebP data URL 存 DB，服务端限制 `webp/png/jpeg` 且 ≤ 48k 字符，避免匿名 Storage 写入被刷
 - 依赖升级后必须跑 `npm audit`（官方 registry）并回归 lint/tsc/test/build

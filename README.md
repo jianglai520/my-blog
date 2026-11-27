@@ -34,7 +34,7 @@ A full-stack personal blog built with **Next.js 16 + React 19 + Supabase + Verce
 
 | Capability | Description |
 |-----------|-------------|
-| Unit tests | **Vitest** (103 cases): `lib/format`, zod validation, Server Actions auth branches, pure data-layer functions with mocked queries, Markdown/KaTeX pipeline, image scaling, env validation, pagination jump, logger, component rendering (RTL) |
+| Unit tests | **Vitest** (118 cases): `lib/format`, zod validation, Server Actions auth branches, pure data-layer functions with mocked queries, Markdown/KaTeX pipeline, image scaling, env validation, pagination jump, logger, component rendering (RTL) |
 | Coverage | `npm run test:coverage` (v8); CI enforces statements **48** / branches **43** / functions **38** / lines **50** |
 | E2E tests | **Playwright** (17 cases): homepage/post/search/RSS/login, admin draft create+delete, pagination jump, cover images, and axe accessibility checks |
 | Accessibility | Playwright + **axe** (WCAG 2.1 A/AA); color contrast is excluded as a documented design trade-off |
@@ -377,7 +377,7 @@ Browser form ──▶ Server Action (zod validation → server session auth →
 | `proxy.ts` route guard | Verifies the session with `auth.getClaims()` (local ES256/JWKS verification, falls back to `getUser()`), redirects unauthenticated `/admin` visits, and forwards the verified identity via internal headers so the page does not call Auth twice |
 | Server Action auth | `requireAdmin()`: only `profiles.is_admin = true` can publish/delete |
 | RLS policies | Even with the public anon key, non-owners cannot modify `posts`; comments can be created anonymously but only the owner can delete |
-| zod validation | All form input validated server-side (required title/content, slug format, comment length) |
+| zod validation | All form input validated server-side (required title/content, slug format, comment length); external link fields such as cover/avatar are restricted to `http(s)://`, rejecting `javascript:` / `data:` |
 | Rate limiting | DB-backed per-IP-hash counters (`rate_limit_events`) for AI 3/min, comments/guestbook/replies/messages 3/min, downloads 30/min; IP is stored as SHA-256 only. All interactions share `lib/server/rate-limit.ts` — never count rows with the anon client |
 | Internal identity headers | `proxy.ts` runs on **every** route (static assets excluded) and deletes client-supplied `x-admin-id` / `x-admin-email` before anything else, so they can only be set by the proxy itself |
 | Download proxy | `/api/download` compares the parsed `hostname` against the project's own Supabase host and requires the `/storage/v1/object/public/post-images/` prefix; 30 req/min per IP; rejects files over 20MB with 413 (SSRF-safe, no open proxy) |

@@ -34,7 +34,7 @@
 
 | 能力 | 说明 |
 |------|------|
-| 单元测试 | **Vitest**（103 个用例）：`lib/format`、zod 校验层、Server Actions 权限分支、数据层纯函数与 mock 查询、Markdown/KaTeX 渲染管线、图片缩放、环境变量校验、分页跳转、日志、组件渲染（RTL） |
+| 单元测试 | **Vitest**（118 个用例）：`lib/format`、zod 校验层、Server Actions 权限分支、数据层纯函数与 mock 查询、Markdown/KaTeX 渲染管线、图片缩放、环境变量校验、分页跳转、日志、组件渲染（RTL） |
 | 覆盖率 | `npm run test:coverage`（v8）；CI 门禁：语句 **48** / 分支 **43** / 函数 **38** / 行 **50** |
 | E2E 测试 | **Playwright**（17 个用例）：首页/文章/搜索/RSS/登录、后台创建草稿并删除、分页跳转、封面图加载、axe 无障碍 |
 | 无障碍 | Playwright + **axe**（WCAG 2.1 A/AA）；颜色对比度作为已知设计取舍被排除 |
@@ -376,7 +376,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | `proxy.ts` 路由守卫 | 用 `auth.getClaims()` 本地验签（ES256 + JWKS，失败回退 `getUser()`），未登录访问 `/admin` 重定向 `/login`；验证后的身份通过内部请求头传给页面，页面不再重复调用 Auth |
 | Server Actions 鉴权 | `requireAdmin()`：仅 `profiles.is_admin = true` 的博主可发文/删文 |
 | RLS 策略 | 即使拿到公开 anon key 直连数据库，非博主也无法增删改 `posts`；评论匿名可发但仅博主可删 |
-| zod 校验 | 所有表单输入在服务端校验（标题/内容必填、slug 格式、评论限长） |
+| zod 校验 | 所有表单输入在服务端校验（标题/内容必填、slug 格式、评论限长）；封面/头像等外链字段额外限制为 `http(s)://`，拒绝 `javascript:` / `data:` |
 | 限流 | 数据库按 IP 哈希计数（`rate_limit_events`）：AI 3 次/分，评论/留言/游客回复/私信 3 次/分，附件下载 30 次/分；IP 只存 SHA-256。四类互动统一走 `lib/server/rate-limit.ts`，不要再用 anon 客户端 count 行数 |
 | 内部身份头 | `proxy.ts` 匹配**全站**（仅排除静态资源），在函数最前面删除客户端伪造的 `x-admin-id` / `x-admin-email`，这两个头只能由 proxy 自己写入 |
 | 下载代理 | `/api/download` 解析 URL 后与本站 Supabase hostname **精确比对**，并要求路径以 `/storage/v1/object/public/post-images/` 开头；按 IP 限流 30 次/分，超过 20MB 直接 413（防 SSRF / 防当免费代理） |
