@@ -8,7 +8,8 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      // 图片上传走 Server Action，默认 1MB 不够，放宽到 10MB（配合 uploads.ts 的 5MB 单图限制）
+      // 图片已改为浏览器直传 Supabase Storage（lib/browser/upload.ts），不走 Server Action。
+      // 这里放宽到 10MB 主要给文章正文 / 附件等其他 action 留余量。
       bodySizeLimit: "10mb",
     },
     // 限制构建 worker 数：静态页会并发查库，worker 太多会打满 Supabase 连接池
@@ -32,8 +33,29 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "cdn.jsdelivr.net" },
     ],
   },
-  // 基础安全响应头（CSP 需要 nonce，后续单独以 Report-Only 方式引入）
+  /**
+   * 安全响应头。
+   *
+   * CSP 目前用 `Content-Security-Policy-Report-Only`：只上报不拦截，
+   * 先在真实流量里观察违规（浏览器控制台会打印 violated-directive），
+   * 确认无遗漏（Vercel Analytics、Supabase、KaTeX 字体等）后再切换成强制模式。
+   * 切换前不要直接改 key，否则一旦漏配白名单会导致整站脚本被阻断。
+   */
   async headers() {
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://*.vercel-scripts.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.cn https://fonts.gstatic.cn",
+      "font-src 'self' data: https://fonts.gstatic.cn https://fonts.gstatic.com",
+      "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://cdn.jsdelivr.net",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.googleapis.cn https://fonts.gstatic.cn https://va.vercel-scripts.com https://vitals.vercel-insights.com",
+      "media-src 'self' https://*.supabase.co",
+      "object-src 'none'",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join("; ");
+
     return [
       {
         source: "/(.*)",
@@ -45,6 +67,7 @@ const nextConfig: NextConfig = {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=()",
           },
+          { key: "Content-Security-Policy-Report-Only", value: csp },
         ],
       },
     ];

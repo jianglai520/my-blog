@@ -1,6 +1,7 @@
 import Link from "next/link";
 import SearchBox from "./SearchBox";
 import ThemeToggle from "./ThemeToggle";
+import MobileNav from "./MobileNav";
 
 export default function SiteHeader() {
   return (
@@ -16,7 +17,7 @@ export default function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-1" aria-label="主导航">
+        <nav className="hidden items-center gap-1 md:flex" aria-label="主导航">
           <Link href="/" className="nav-link rounded-md px-3 py-2 text-sm text-fg-muted transition-colors hover:text-fg">
             首页
           </Link>
@@ -38,6 +39,8 @@ export default function SiteHeader() {
           <SearchBox />
           <ThemeToggle />
         </nav>
+
+        <MobileNav />
       </div>
     </header>
   );
