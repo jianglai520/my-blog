@@ -12,7 +12,16 @@ export const postSchema = z.object({
     .optional()
     .or(z.literal("")),
   excerpt: z.string().trim().max(200, "摘要最长 200 字").optional().or(z.literal("")),
-  coverImage: z.string().trim().url("封面图需为合法 URL").optional().or(z.literal("")),
+  coverImage: z
+    .string()
+    .trim()
+    .url("封面图需为合法 URL")
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (v) => !v || /^https?:\/\//i.test(v),
+      "封面图链接需以 http:// 或 https:// 开头",
+    ),
   content: z
     .string()
     .trim()

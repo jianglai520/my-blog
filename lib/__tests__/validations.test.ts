@@ -3,6 +3,7 @@ import { postSchema } from "@/lib/validations/posts";
 import { commentSchema } from "@/lib/validations/comments";
 import { credentialsSchema } from "@/lib/validations/auth";
 import { avatarDataSchema, replySchema } from "@/lib/validations/replies";
+import { settingsSchema } from "@/lib/validations/settings";
 
 describe("postSchema", () => {
   const base = {
@@ -43,6 +44,16 @@ describe("postSchema", () => {
   it("非法封面 URL 被拒", () => {
     const r = postSchema.safeParse({ ...base, coverImage: "not-a-url" });
     expect(r.success).toBe(false);
+  });
+
+  it("封面 URL 只允许 http(s) 协议", () => {
+    expect(postSchema.safeParse({ ...base, coverImage: "javascript:alert(1)" }).success).toBe(false);
+    expect(postSchema.safeParse({ ...base, coverImage: "data:image/png;base64,AAAA" }).success).toBe(
+      false,
+    );
+    expect(postSchema.safeParse({ ...base, coverImage: "https://cdn.example.com/a.webp" }).success).toBe(
+      true,
+    );
   });
 
   it("非法 status 被拒", () => {
@@ -130,6 +141,23 @@ describe("replySchema", () => {
     const result = replySchema.safeParse({ ...base, name: "" });
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.name).toBe("匿名");
+  });
+});
+
+describe("settingsSchema", () => {
+  const base = { author_name: "江来" };
+
+  it("头像 URL 只允许 http(s) 协议", () => {
+    expect(settingsSchema.safeParse({ ...base, avatar_url: "javascript:alert(1)" }).success).toBe(
+      false,
+    );
+    expect(
+      settingsSchema.safeParse({ ...base, avatar_url: "https://cdn.example.com/avatar.webp" }).success,
+    ).toBe(true);
+  });
+
+  it("空头像通过", () => {
+    expect(settingsSchema.safeParse({ ...base, avatar_url: "" }).success).toBe(true);
   });
 });
 

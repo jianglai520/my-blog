@@ -26,7 +26,11 @@ export const settingsSchema = z.object({
     .trim()
     .url("头像需为合法 URL")
     .optional()
-    .or(z.literal("")),
+    .or(z.literal(""))
+    .refine(
+      (v) => !v || /^https?:\/\//i.test(v),
+      "头像链接需以 http:// 或 https:// 开头",
+    ),
   icp: z.string().trim().max(50, "备案号最长 50 字").optional().or(z.literal("")),
 });
 
