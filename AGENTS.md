@@ -32,12 +32,13 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **正文图片必须懒加载**：Markdown 图片统一补 `loading="lazy"` + `decoding="async"`
 - **重服务端渲染必须缓存**：Markdown + Shiki 的 HTML 用 `unstable_cache` 按正文内容缓存（tag `posts`），文章/评论查询各加 60s 缓存（tag `posts` / `comments`）
 - **IP 不落明文**：统一 `sha256(IP | salt)`（`lib/server/ip.ts`），用于限流、浏览量、访客统计
-- **限流**：`rate_limit_events` 表 + `lib/server/rate-limit.ts`；不要用进程内 Map（Vercel 多实例失效）
+- **限流**：`rate_limit_events` 表 + `lib/server/rate-limit.ts`；不要用进程内 Map（Vercel 多实例失效）。评论 / 留言 / 游客回复 / 私信 / 附件下载都必须走 `checkRateLimit(bucket, hashIp(...), max, windowSeconds)`，不要再用 anon 客户端 `select count(*)`（anon 对 `comments.ip` 已无 SELECT 权限，会静默失效）
 - **浏览量**：`record_post_view` RPC + `post_views` 表，同一访客每天每篇只计一次
 - **访客 UV**：`site_visits` + `/api/visit`，按天去重；站长登录态与爬虫不计入
 
 ## 前端加载与草稿
 
+- **导航响应式**：桌面导航在 `app/components/SiteHeader.tsx`（`hidden md:flex`），小屏折叠面板在 `app/components/MobileNav.tsx`（`md:hidden`，含搜索框与主题切换）。改动导航项时两处同步，桌面端视觉必须保持不变。
 - **重组件按需加载**：文章页的 TOC / 图片灯箱 / AI 按钮统一从 `app/components/ArticleClientWidgets.tsx` 导入（内部 `next/dynamic` + `ssr:false`）；后台 `PostForm` / `ProjectManager` / `SkillManager` 用 `next/dynamic`。不要再把它们静态 import 进 Server Component（Server Component 不支持 `ssr:false`）。
 - **草稿自动保存**：`app/admin/PostForm.tsx` 以 1 秒防抖写 localStorage（`draft:new` / `draft:edit:<id>`）；发布成功、主动丢弃、手动清除时必须删除；恢复提示未处理前禁止写入，避免覆盖旧草稿。
 - **Markdown 渲染管线**：渲染逻辑在 `lib/markdown.ts`（纯函数，可单测，含 `remark-math` + `rehype-katex`、单行 `$$...$$` 规范化、图片 `no-referrer`）；`app/components/Markdown.tsx` 只负责 `unstable_cache`，管线变化时必须递增其 key 前缀（当前 `markdown-html-v4`）。
@@ -72,19 +73,21 @@ node scripts/optimize-storage-images.mjs --apply   # 备份原图后覆盖压缩
 
 ## 数据库迁移
 
-- 迁移脚本在 `supabase/migrations/`（**0001~0025**，幂等），**手动在 Supabase SQL Editor 执行**
+- 迁移脚本在 `supabase/migrations/`（**0001~0026**，幂等），**手动在 Supabase SQL Editor 执行**
 - **新表必须同时配「表级 GRANT + RLS 策略」**；公开读/写路径要用 **anon（未登录）身份**测试，不能只用登录态
+- **匿名列级权限**：0026 已收回 anon 对 `comments` / `guestbook_messages` / `replies` 的表级 SELECT，改为按列授权（排除 `ip`），**已在生产库执行**。给这三张表新增「匿名可读」列时，必须同步改 `0026_column_privileges.sql` 的列清单；公开页面本身走 Drizzle，不依赖该授权。校验时只筛 `privilege_type = 'SELECT'`，否则 INSERT/REFERENCES 会被按列展开造成误报
 - 旧表结构变更：`create table if not exists` 不补已存在表，需显式 `ALTER TABLE`
 - 涉及安全函数（RPC）时：`security definer` + `set search_path = public`，并 `revoke ... from public` 后只 grant 必要角色
 - 近期新增：`site_visits`（UV）、`rate_limit_events`（限流）、`post_views`（浏览量去重）、trgm 检索索引（0019）；0024 为 `post-images` 增加管理员 UPDATE 策略（覆盖上传）；0025 增加评论/留言头像 `avatar_data` 与 `replies` 表（游客回复）
 
 ## 安全约定
 
-- **鉴权快速路径**：`proxy.ts` 用 `auth.getClaims()` 本地验签（ES256 + JWKS 缓存，失败回退 `getUser()`），并通过 `x-admin-id` / `x-admin-email` 内部请求头传递身份；`requireAdmin()` 优先读该头（proxy 会先删除客户端伪造的同名头），无头时回退 `getUser()`。新增后台路由必须命中 `/admin` matcher。
+- **鉴权快速路径**：`proxy.ts` 用 `auth.getClaims()` 本地验签（ES256 + JWKS 缓存，失败回退 `getUser()`），并通过 `x-admin-id` / `x-admin-email` 内部请求头传递身份；`requireAdmin()` 优先读该头，无头时回退 `getUser()`。
+- **proxy matcher 必须覆盖全站**（只排除 `_next/static`、`_next/image` 与静态文件后缀）：删头逻辑必须位于函数最前面，且任何提前 `return` 都要用 `NextResponse.next({ request })`，否则客户端可伪造身份头命中 `requireAdmin()` 快速路径。**不要把 matcher 收回 `/admin`**。
 - **文章/项目详情页是 ISR**：`revalidate = 60` + `generateStaticParams` 预渲染；修改数据后靠 tag `posts` 失效，不要再改成每次请求 SSR。
 
-- 安全响应头在 `next.config.ts`（nosniff / Referrer-Policy / X-Frame-Options / Permissions-Policy）
-- `/api/download` 必须用 `new URL()` 校验 hostname 与 pathname，**禁止用 `includes` 做 URL 白名单**
+- 安全响应头在 `next.config.ts`（nosniff / Referrer-Policy / X-Frame-Options / Permissions-Policy），CSP 目前是 **Report-Only**（只观察不拦截）；确认无遗漏后再改成强制的 `Content-Security-Policy`
+- `/api/download` 必须用 `new URL()` 与**本站 Supabase hostname 精确比对**，并要求路径以 `/storage/v1/object/public/post-images/` 开头，**禁止用 `includes` / `endsWith(".supabase.co")` 做白名单**；接口按 IP 限流（30 次/分）并拒绝 >20MB 文件
 - Storage 桶 `post-images` 有 MIME 白名单 + 20MB 单文件上限；上传失败必须给出明确提示
 - 访客头像不走 Storage：客户端压成 96×96 WebP data URL 存 DB，服务端限制 `webp/png/jpeg` 且 ≤ 48k 字符，避免匿名 Storage 写入被刷
 - 依赖升级后必须跑 `npm audit`（官方 registry）并回归 lint/tsc/test/build

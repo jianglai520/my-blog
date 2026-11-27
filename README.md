@@ -233,8 +233,8 @@ node scripts/optimize-storage-images.mjs --apply   # backup originals, then over
 | `DATABASE_URL` | **Server-only** DB connection string (for Drizzle direct connection, **no `NEXT_PUBLIC_` prefix**) | Supabase → Project Settings → Database → Connection string → **Transaction pooler** (port 6543) |
 | `DEEPSEEK_API_KEY` | **Server-only** AI answer key (**no `NEXT_PUBLIC_` prefix**) | DeepSeek platform → API Keys |
 | `EMBEDDING_API_KEY` | **Server-only** embedding key (RAG, BGE-M3, **no `NEXT_PUBLIC_` prefix**) | SiliconFlow → API Keys |
-| `VISIT_HASH_SALT` | Salt for visitor UV hashing (falls back to a built-in value if unset) | Any random string |
-| `IP_HASH_SALT` | Salt for rate-limit / view IP hashing (optional) | Any random string |
+| `VISIT_HASH_SALT` | Salt for visitor UV hashing (falls back to a built-in value if unset) | A high-entropy random string |
+| `IP_HASH_SALT` | Salt for rate-limit / view IP hashing (falls back to `VISIT_HASH_SALT`, then a built-in value) | A high-entropy random string |
 | `GITHUB_TOKEN` | Read-only token for `/logs` changelog (optional) | GitHub → Settings → Developer settings → Fine-grained token |
 | `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` | Server / client Sentry DSN (optional) | Sentry project settings |
 
@@ -355,7 +355,9 @@ Site config (key-value, editable from admin, instant effect):
 
 Public-read image bucket (INSERT / DELETE / UPDATE restricted to the owner via RLS; project covers reuse the `projects/` folder). The UPDATE policy (`0024_storage_admin_update.sql`) is required for `upsert` overwrites, e.g. the image-compression script.
 
-> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0025). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
+> All create-table / add-column / RLS / bucket scripts live in `supabase/migrations/` (0001~0026). Run them manually in the Supabase SQL Editor; they are idempotent and do not affect existing data.
+>
+> **0026** revokes table-level `SELECT` from `anon` on `comments` / `guestbook_messages` / `replies` and re-grants only public columns, excluding `ip`. Public pages read through Drizzle (`DATABASE_URL`), so they are unaffected. When adding a new publicly readable column later, update the column lists in `0026_column_privileges.sql`.
 
 ---
 
@@ -376,9 +378,10 @@ Browser form ──▶ Server Action (zod validation → server session auth →
 | Server Action auth | `requireAdmin()`: only `profiles.is_admin = true` can publish/delete |
 | RLS policies | Even with the public anon key, non-owners cannot modify `posts`; comments can be created anonymously but only the owner can delete |
 | zod validation | All form input validated server-side (required title/content, slug format, comment length) |
-| Rate limiting | DB-backed per-IP-hash counters (`rate_limit_events`): AI 3/min, comments/guestbook/messages 3/min; IP is stored as SHA-256 only |
-| Download proxy | `/api/download` parses the URL and only allows `*.supabase.co/storage/v1/object/public/*` (SSRF-safe) |
-| Security headers | `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options: DENY`, `Permissions-Policy` |
+| Rate limiting | DB-backed per-IP-hash counters (`rate_limit_events`) for AI 3/min, comments/guestbook/replies/messages 3/min, downloads 30/min; IP is stored as SHA-256 only. All interactions share `lib/server/rate-limit.ts` — never count rows with the anon client |
+| Internal identity headers | `proxy.ts` runs on **every** route (static assets excluded) and deletes client-supplied `x-admin-id` / `x-admin-email` before anything else, so they can only be set by the proxy itself |
+| Download proxy | `/api/download` compares the parsed `hostname` against the project's own Supabase host and requires the `/storage/v1/object/public/post-images/` prefix; 30 req/min per IP; rejects files over 20MB with 413 (SSRF-safe, no open proxy) |
+| Security headers | `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options: DENY`, `Permissions-Policy`, plus `Content-Security-Policy-Report-Only` (observing violations; not enforced yet) |
 | Storage hardening | Bucket-level MIME whitelist + 20MB file limit on `post-images` (direct browser uploads) |
 
 On first deployment, run in the Supabase console:
@@ -436,3 +439,4 @@ The current version is an MVP with the following remaining items (see the optimi
 6. **Image delivery**: Vercel Image Optimization is disabled (Hobby 5K/month quota exhausted); images are served at stored size from Supabase without responsive `srcset`. Size control relies on upload-time compression.
 7. **Dynamic routes**: `/tags/[slug]` (query-string pagination) and `/search` are still rendered per request; only homepage, posts, and projects are ISR.
 8. **Mainland network**: some campus/ISP networks block specific Vercel anycast IPs; the domain may need an A record pointing to a reachable Vercel anycast (see the desktop network guide).
+9. **CSP not enforced yet**: headers ship `Content-Security-Policy-Report-Only`, which observes but does not block. Verify in the browser console / real traffic (Vercel Analytics, Supabase Realtime, KaTeX fonts) before switching the header key to an enforcing `Content-Security-Policy`.

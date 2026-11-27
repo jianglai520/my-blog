@@ -233,8 +233,8 @@ node scripts/optimize-storage-images.mjs --apply   # 备份原图后覆盖压缩
 | `DATABASE_URL` | **服务端专用**数据库连接串（Drizzle 直连用，**不带 NEXT_PUBLIC_ 前缀**） | Supabase → Project Settings → Database → Connection string → **Transaction pooler**（端口 6543） |
 | `DEEPSEEK_API_KEY` | **服务端专用**AI 问答密钥（站内「问 AI」回答生成，**不带 NEXT_PUBLIC_ 前缀**） | DeepSeek 开放平台 → API Keys |
 | `EMBEDDING_API_KEY` | **服务端专用**向量化密钥（RAG 检索用，BGE-M3，**不带 NEXT_PUBLIC_ 前缀**） | 硅基流动 → API Keys |
-| `VISIT_HASH_SALT` | 访客 UV 哈希盐（未配置时使用内置默认值） | 任意随机字符串 |
-| `IP_HASH_SALT` | 限流 / 浏览量 IP 哈希盐（可选） | 任意随机字符串 |
+| `VISIT_HASH_SALT` | 访客 UV 哈希盐（未配置时使用内置默认值） | 高熵随机字符串 |
+| `IP_HASH_SALT` | 限流 / 浏览量 IP 哈希盐（未配置时回退 `VISIT_HASH_SALT`，再回退内置值） | 高熵随机字符串 |
 | `GITHUB_TOKEN` | `/logs` 更新日志读取 commit 用（可选） | GitHub → Settings → Developer settings → Fine-grained token |
 | `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` | 服务端 / 客户端 Sentry DSN（可选） | Sentry 项目设置 |
 
@@ -354,7 +354,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 公开读的文章图片存储桶（INSERT / DELETE / UPDATE 仅博主可操作；项目封面也复用此桶的 `projects/` 目录）。`0024_storage_admin_update.sql` 的 UPDATE 策略用于 `upsert` 覆盖（如图片压缩脚本）。
 
-> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0025），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+> 以上建表 / 加列 / RLS / bucket 脚本见 `supabase/migrations/`（0001~0026），需在 Supabase 控制台 SQL Editor 手动执行，脚本幂等、不影响已有数据。
+>
+> **0026** 收回 `anon` 对 `comments` / `guestbook_messages` / `replies` 的表级 `SELECT`，改为按列授权并排除 `ip`。公开页面走 Drizzle（`DATABASE_URL`）读库，不受影响；以后新增匿名可读列时，记得同步修改 `0026_column_privileges.sql` 的列清单。
 
 ---
 
@@ -375,9 +377,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 | Server Actions 鉴权 | `requireAdmin()`：仅 `profiles.is_admin = true` 的博主可发文/删文 |
 | RLS 策略 | 即使拿到公开 anon key 直连数据库，非博主也无法增删改 `posts`；评论匿名可发但仅博主可删 |
 | zod 校验 | 所有表单输入在服务端校验（标题/内容必填、slug 格式、评论限长） |
-| 限流 | 数据库按 IP 哈希计数（`rate_limit_events`）：AI 3 次/分，评论/留言/私信 3 次/分；IP 只存 SHA-256 |
-| 下载代理 | `/api/download` 解析 URL，仅放行 `*.supabase.co/storage/v1/object/public/*`（防 SSRF） |
-| 安全响应头 | `X-Content-Type-Options`、`Referrer-Policy`、`X-Frame-Options: DENY`、`Permissions-Policy` |
+| 限流 | 数据库按 IP 哈希计数（`rate_limit_events`）：AI 3 次/分，评论/留言/游客回复/私信 3 次/分，附件下载 30 次/分；IP 只存 SHA-256。四类互动统一走 `lib/server/rate-limit.ts`，不要再用 anon 客户端 count 行数 |
+| 内部身份头 | `proxy.ts` 匹配**全站**（仅排除静态资源），在函数最前面删除客户端伪造的 `x-admin-id` / `x-admin-email`，这两个头只能由 proxy 自己写入 |
+| 下载代理 | `/api/download` 解析 URL 后与本站 Supabase hostname **精确比对**，并要求路径以 `/storage/v1/object/public/post-images/` 开头；按 IP 限流 30 次/分，超过 20MB 直接 413（防 SSRF / 防当免费代理） |
+| 安全响应头 | `X-Content-Type-Options`、`Referrer-Policy`、`X-Frame-Options: DENY`、`Permissions-Policy`，以及 `Content-Security-Policy-Report-Only`（观察期，只上报不拦截） |
 | Storage 加固 | `post-images` 桶配置 MIME 白名单 + 20MB 单文件上限（浏览器直传场景） |
 
 首次部署需在 Supabase 控制台执行：
@@ -437,3 +440,4 @@ git push origin main
 6. **图片链路**：已关闭 Vercel 图片优化（Hobby 每月 5K 额度用满），图片按存储原尺寸从 Supabase 直出，没有响应式 `srcset`；体积控制依赖上传时压缩
 7. **动态路由**：`/tags/[slug]`（query 分页）与 `/search` 仍是每次请求服务端渲染；只有首页、文章页、项目详情是 ISR
 8. **大陆网络**：部分校园网/运营商会拦截特定的 Vercel anycast IP，可能需要把 A 记录指向可达的 Vercel anycast（见桌面 `服务器网络与备案指南.md`）
+9. **CSP 尚未强制**：当前是 `Content-Security-Policy-Report-Only`，只观察不拦截。需要在浏览器控制台 / 真实流量里确认没有遗漏（Vercel Analytics、Supabase Realtime、KaTeX 字体等）后，再把响应头的 key 改成强制的 `Content-Security-Policy`
