@@ -9,6 +9,18 @@ import { parseProjects, splitTech, projectSlug } from "@/lib/projects";
 /** 项目详情 ISR：60 秒，构建时按 site_settings 里的项目预渲染 */
 export const revalidate = 60;
 
+/**
+ * Next.js 16 的路径参数不会自动解码：中文 slug 会以 `%E4%B8%AD%E6%96%87` 传入，
+ * 与 projectSlug() 生成的中文原文不相等，导致直接 404。这里统一解码。
+ */
+function decodeSlug(raw: string): string {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
 export async function generateStaticParams() {
   try {
     const settings = await getSiteSettings();
@@ -26,7 +38,8 @@ export async function generateMetadata({
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = decodeSlug(rawSlug);
   const settings = await getSiteSettings();
   const projects = parseProjects(settings.projects);
   const project = projects.find((p, i) => projectSlug(p, i) === slug);
@@ -38,7 +51,8 @@ export default async function ProjectDetailPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = decodeSlug(rawSlug);
   const settings = await getSiteSettings();
   const projects = parseProjects(settings.projects);
   const project = projects.find((p, i) => projectSlug(p, i) === slug);

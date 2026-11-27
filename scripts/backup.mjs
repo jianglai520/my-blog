@@ -26,7 +26,19 @@ if (!DATABASE_URL) {
 }
 
 // 需要备份的表（按依赖顺序）
-const TABLES = ["posts", "comments", "tags", "post_tags", "profiles", "site_settings"];
+// 说明：site_visits / post_views / rate_limit_events 属于遥测数据，
+// 不参与内容恢复，且体积增长快，故不纳入备份。
+const TABLES = [
+  "posts",
+  "comments",
+  "replies",
+  "tags",
+  "post_tags",
+  "guestbook_messages",
+  "messages",
+  "profiles",
+  "site_settings",
+];
 
 const sql = postgres(DATABASE_URL, { max: 1, connect_timeout: 15 });
 

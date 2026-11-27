@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { getClientIp, hashIp } from "@/lib/server/ip";
+import { checkRateLimit } from "@/lib/server/rate-limit";
 import { guestbookSchema } from "@/lib/validations/guestbook";
 import { logger } from "@/lib/logger";
 
@@ -14,7 +15,7 @@ export type GuestbookFormState = {
 
 /** 限流：同一 IP 在窗口内的最大留言数 */
 const RATE_LIMIT_MAX = 3;
-const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_WINDOW_SECONDS = 60;
 
 /**
  * 发表留言：限流 → zod 校验 → 写库 → 刷新留言板。
@@ -26,16 +27,21 @@ export async function createGuestbookMessage(
 ): Promise<GuestbookFormState> {
   // ① 按 IP 哈希限流（防脚本刷留言；不保存明文 IP）
   const ipHash = hashIp(getClientIp(await headers()));
-  const supabase = await getServerSupabase();
-  const { count, error: countError } = await supabase
-    .from("guestbook_messages")
-    .select("id", { count: "exact", head: true })
-    .eq("ip", ipHash)
-    .gte("created_at", new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString());
+  const allowed = await checkRateLimit(
+    "guestbook",
+    ipHash,
+    RATE_LIMIT_MAX,
+    RATE_LIMIT_WINDOW_SECONDS,
+  ).catch((error) => {
+    logger.error("留言限流检查失败:", error);
+    return true;
+  });
 
-  if (!countError && (count ?? 0) >= RATE_LIMIT_MAX) {
+  if (!allowed) {
     return { message: "❌ 留言太频繁了，请稍后再试", success: false };
   }
+
+  const supabase = await getServerSupabase();
 
   // ② zod 校验
   const parsed = guestbookSchema.safeParse({

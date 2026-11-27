@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { getClientIp, hashIp } from "@/lib/server/ip";
+import { checkRateLimit } from "@/lib/server/rate-limit";
 import { messageSchema } from "@/lib/validations/message";
 import { logger } from "@/lib/logger";
 
@@ -14,7 +15,7 @@ export type MessageFormState = {
 
 /** 限流：同一 IP 在窗口内的最大私信数（私信更敏感，限得更严） */
 const RATE_LIMIT_MAX = 3;
-const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_WINDOW_SECONDS = 60;
 
 /**
  * 发送站内私信：限流 → zod 校验 → 写库。
@@ -25,17 +26,23 @@ export async function createMessage(
   formData: FormData
 ): Promise<MessageFormState> {
   // ① 按 IP 哈希限流（防脚本刷私信；不保存明文 IP）
+  // messages 表对 anon 没有 SELECT 权限，必须走统一的 rate_limit_events。
   const ipHash = hashIp(getClientIp(await headers()));
-  const supabase = await getServerSupabase();
-  const { count, error: countError } = await supabase
-    .from("messages")
-    .select("id", { count: "exact", head: true })
-    .eq("ip", ipHash)
-    .gte("created_at", new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString());
+  const allowed = await checkRateLimit(
+    "messages",
+    ipHash,
+    RATE_LIMIT_MAX,
+    RATE_LIMIT_WINDOW_SECONDS,
+  ).catch((error) => {
+    logger.error("私信限流检查失败:", error);
+    return true;
+  });
 
-  if (!countError && (count ?? 0) >= RATE_LIMIT_MAX) {
+  if (!allowed) {
     return { message: "❌ 发送太频繁了，请稍后再试", success: false };
   }
+
+  const supabase = await getServerSupabase();
 
   // ② zod 校验
   const parsed = messageSchema.safeParse({

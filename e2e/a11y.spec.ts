@@ -8,7 +8,16 @@ import AxeBuilder from "@axe-core/playwright";
  * 青绿毛玻璃主题的次要文字（`text-fg-muted` / `text-fg-faint`）对比度是已知设计取舍，
  * 强行拉高会破坏整体视觉。其余语义类问题（缺 label、role 错误、标题层级等）必须为 0。
  */
-const PAGES = ["/", "/archives", "/about", "/projects", "/guestbook"];
+const PAGES = [
+  "/",
+  "/archives",
+  "/about",
+  "/projects",
+  "/skills",
+  "/guestbook",
+  "/resume",
+  "/logs",
+];
 
 for (const path of PAGES) {
   test(`无障碍：${path}`, async ({ page }) => {

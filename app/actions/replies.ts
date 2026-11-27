@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath, updateTag } from "next/cache";
 import { getServerSupabase } from "@/lib/server/supabase";
 import { getClientIp, hashIp } from "@/lib/server/ip";
+import { checkRateLimit } from "@/lib/server/rate-limit";
 import { replySchema } from "@/lib/validations/replies";
 import { logger } from "@/lib/logger";
 
@@ -13,7 +14,7 @@ export type ReplyFormState = {
 };
 
 const RATE_LIMIT_MAX = 3;
-const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_WINDOW_SECONDS = 60;
 
 /**
  * 游客回复评论 / 留言。
@@ -26,17 +27,21 @@ export async function createReply(
   formData: FormData,
 ): Promise<ReplyFormState> {
   const ipHash = hashIp(getClientIp(await headers()));
-  const supabase = await getServerSupabase();
+  const allowed = await checkRateLimit(
+    "replies",
+    ipHash,
+    RATE_LIMIT_MAX,
+    RATE_LIMIT_WINDOW_SECONDS,
+  ).catch((error) => {
+    logger.error("回复限流检查失败:", error);
+    return true;
+  });
 
-  const { count, error: countError } = await supabase
-    .from("replies")
-    .select("id", { count: "exact", head: true })
-    .eq("ip", ipHash)
-    .gte("created_at", new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString());
-
-  if (!countError && (count ?? 0) >= RATE_LIMIT_MAX) {
+  if (!allowed) {
     return { message: "❌ 回复太频繁了，请稍后再试", success: false };
   }
+
+  const supabase = await getServerSupabase();
 
   const parsed = replySchema.safeParse({
     targetType: String(formData.get("targetType") || ""),

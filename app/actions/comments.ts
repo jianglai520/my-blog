@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath, updateTag } from "next/cache";
 import { getServerSupabase, requireAdmin } from "@/lib/server/supabase";
 import { getClientIp, hashIp } from "@/lib/server/ip";
+import { checkRateLimit } from "@/lib/server/rate-limit";
 import { commentSchema } from "@/lib/validations/comments";
 import { logger } from "@/lib/logger";
 
@@ -14,7 +15,7 @@ export type CommentFormState = {
 
 /** 限流：同一 IP 在窗口内的最大评论数 */
 const RATE_LIMIT_MAX = 3;
-const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_WINDOW_SECONDS = 60;
 
 /**
  * 发表评论：限流 → zod 校验 → 写库 → 刷新文章页。
@@ -25,17 +26,24 @@ export async function createComment(
   formData: FormData
 ): Promise<CommentFormState> {
   // ① 按 IP 哈希限流（防脚本刷评论；不保存明文 IP）
+  // 用 rate_limit_events 统一限流：anon 客户端没有 comments 表的读取权限，
+  // 直接 count 会 permission denied，导致限流静默失效。
   const ipHash = hashIp(getClientIp(await headers()));
-  const supabase = await getServerSupabase();
-  const { count, error: countError } = await supabase
-    .from("comments")
-    .select("id", { count: "exact", head: true })
-    .eq("ip", ipHash)
-    .gte("created_at", new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString());
+  const allowed = await checkRateLimit(
+    "comments",
+    ipHash,
+    RATE_LIMIT_MAX,
+    RATE_LIMIT_WINDOW_SECONDS,
+  ).catch((error) => {
+    logger.error("评论限流检查失败:", error);
+    return true; // 限流组件故障时放行，避免整站评论不可用
+  });
 
-  if (!countError && (count ?? 0) >= RATE_LIMIT_MAX) {
+  if (!allowed) {
     return { message: "❌ 评论太频繁了，请稍后再试", success: false };
   }
+
+  const supabase = await getServerSupabase();
 
   const parsed = commentSchema.safeParse({
     postId: formData.get("postId"),

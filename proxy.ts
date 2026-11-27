@@ -4,10 +4,20 @@ import { getPublicEnv } from "@/lib/env";
 
 /**
  * 路由守卫（Next.js 16：middleware 已更名为 proxy）。
- * 仅作用于 /admin/*：刷新 session cookie，未登录访问后台重定向到登录页。
+ *
+ * - 全站：剥离客户端伪造的 `x-admin-id` / `x-admin-email`（只有本 proxy 能写入）
+ * - /admin/*：刷新 session cookie，未登录访问后台重定向到登录页
+ * - 其他路径：剥头后直接放行，不额外请求 Supabase
+ *
+ * 注意：matcher 必须覆盖全站。只匹配 /admin 时，其他路径会绕过下面的删头逻辑，
+ * 客户端可以直接伪造身份头命中 `requireAdmin()` 的快速路径。
  */
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
+
+  // 清掉客户端可能伪造的内部请求头：任何提前 return 之前都必须先执行
+  request.headers.delete("x-admin-id");
+  request.headers.delete("x-admin-email");
 
   // 旧分页链接 /?page=N → /page/N：让首页 `/` 保持静态 ISR
   if (pathname === "/" && searchParams.has("page")) {
@@ -20,14 +30,11 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // 只有 /admin 需要 Supabase 会话刷新，其他路径直接放行
+  // 只有 /admin 需要 Supabase 会话刷新。
+  // 用 next({ request }) 而非裸 next()，确保上面的删头真正转发给下游。
   if (!pathname.startsWith("/admin")) {
-    return NextResponse.next();
+    return NextResponse.next({ request });
   }
-
-  // 清掉客户端可能伪造的内部请求头：只有本 proxy 能写入
-  request.headers.delete("x-admin-id");
-  request.headers.delete("x-admin-email");
 
   let supabaseResponse = NextResponse.next({ request });
 
@@ -107,5 +114,11 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/"],
+  /**
+   * 覆盖全站（排除静态资源），确保内部身份头在任何路由上都会被剥离。
+   * 非 /admin 路径只做删头，不发起 Supabase 请求，开销可忽略。
+   */
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|og.png|robots.txt|sitemap.xml|feed.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
+  ],
 };
