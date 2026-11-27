@@ -180,8 +180,13 @@ function StackTerminal({
         </span>
       </div>
 
-      {/* 代码 */}
-      <pre className="overflow-x-auto px-4 py-3 font-mono text-[11px] leading-relaxed text-[#c8d6d2]">
+      {/* 代码：可横向滚动，必须可聚焦，否则键盘用户无法滚动（axe: scrollable-region-focusable） */}
+      <pre
+        tabIndex={0}
+        role="region"
+        aria-label="技术栈概览代码"
+        className="overflow-x-auto px-4 py-3 font-mono text-[11px] leading-relaxed text-[#c8d6d2]"
+      >
         <code>
           <span className="text-[#5b7570]">{`// auto-generated from /skills`}</span>
           {"\n"}
